@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Aganthos — Learning from Experience Lab</title>
+  <meta name="description" content="Aganthos enables AI agents to learn from experience. We improve performance, enable privacy, and reduce cost through reinforcement learning, distillation, and model routing.">
+  <link rel="canonical" href="https://aganthos.com/" />
+  <link rel="icon" href="/logo.svg" type="image/svg+xml">
+  <meta property="og:title" content="Aganthos — Learning from Experience Lab">
+  <meta property="og:description" content="We enable AI agents to learn from experience. RL post-training, distillation, model routing, and agentic deployment.">
+  <meta property="og:url" content="https://aganthos.com/">
+  <meta property="og:image" content="https://aganthos.com/logo.svg">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ag: {
+              950: '#0a0202', 900: '#1a0404', 800: '#2d0808', 700: '#450a0a',
+              600: '#7f1d1d', 500: '#991b1b', 400: '#b91c1c', 300: '#dc2626',
+              200: '#f87171', 100: '#fecaca', 50: '#fef2f2',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; scroll-behavior: smooth; }
+    body { background: #0a0202; }
+    .page { display: none; }
+    .page.active { display: block; }
+    .nav-link { transition: color 0.2s, border-color 0.2s; }
+    .nav-link:hover, .nav-link.active { color: #f87171; border-color: #f87171; }
+    .mode-card { transition: transform 0.2s, box-shadow 0.2s; }
+    .mode-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(185,28,28,0.15); }
+    .flywheel-arrow { animation: pulse-arrow 2s ease-in-out infinite; }
+    @keyframes pulse-arrow { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+    .benefit-tag { font-size: 0.65rem; padding: 2px 8px; border-radius: 9999px; }
+    .tag-perf { background: rgba(248,113,113,0.12); color: #f87171; border: 1px solid rgba(248,113,113,0.3); }
+    .tag-cost { background: rgba(251,191,36,0.1); color: #fbbf24; border: 1px solid rgba(251,191,36,0.25); }
+    .tag-priv { background: rgba(52,211,153,0.1); color: #34d399; border: 1px solid rgba(52,211,153,0.25); }
+    input, textarea, select { color-scheme: dark; }
+  </style>
+</head>
+<body class="min-h-screen text-white">
+
+  <!-- Navigation -->
+  <nav class="fixed top-0 w-full z-50 bg-ag-950/90 backdrop-blur border-b border-ag-800/50">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <a href="#home" class="flex items-center gap-3">
+        <img src="logo.svg" alt="Aganthos" class="h-8 w-auto">
+        <span class="text-lg font-semibold tracking-tight">Aganthos</span>
+      </a>
+      <div class="hidden md:flex items-center gap-8 text-sm">
+        <a href="#home" class="nav-link border-b-2 border-transparent pb-0.5">Home</a>
+        <a href="#offering" class="nav-link border-b-2 border-transparent pb-0.5">Offering</a>
+        <a href="#research" class="nav-link border-b-2 border-transparent pb-0.5">Research</a>
+        <a href="#contact" class="nav-link border-b-2 border-transparent pb-0.5">Contact</a>
+      </div>
+      <button id="menu-btn" class="md:hidden text-white">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+    </div>
+    <div id="mobile-menu" class="hidden md:hidden border-t border-ag-800/50 bg-ag-950/95 backdrop-blur">
+      <div class="px-6 py-4 flex flex-col gap-4 text-sm">
+        <a href="#home" class="nav-link nav-mobile">Home</a>
+        <a href="#offering" class="nav-link nav-mobile">Offering</a>
+        <a href="#research" class="nav-link nav-mobile">Research</a>
+        <a href="#contact" class="nav-link nav-mobile">Contact</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="pt-20">
+
+    <!-- ===== HOME ===== -->
+    <div id="page-home" class="page active">
+
+      <section class="relative min-h-[90vh] flex items-center justify-center px-6 overflow-hidden">
+        <div class="absolute inset-0 bg-[radial-gradient(60%_40%_at_50%_-10%,rgba(168,40,74,0.15),transparent)]"></div>
+        <div class="absolute inset-0 bg-[radial-gradient(40%_30%_at_80%_120%,rgba(26,48,88,0.12),transparent)]"></div>
+        <div class="relative max-w-4xl text-center">
+          <p class="text-ag-200 text-sm font-mono tracking-widest uppercase mb-6">Learning from Experience Lab</p>
+          <h1 class="text-5xl md:text-7xl font-bold leading-tight text-white">
+            We enable agents to<br><span class="text-red-100">learn from experience</span>
+          </h1>
+          <p class="mt-8 text-xl md:text-2xl text-red-100/80 max-w-2xl mx-auto leading-relaxed">
+            Improve performance. Enable privacy. Reduce cost.
+          </p>
+          <div class="mt-12 flex flex-wrap gap-4 justify-center">
+            <a href="#offering" class="px-8 py-3 bg-ag-500 hover:bg-ag-400 text-white font-medium rounded-lg transition">Our Offering</a>
+            <a href="#contact" class="px-8 py-3 border border-ag-600 hover:border-ag-400 text-red-100 rounded-lg transition">Get in Touch</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="max-w-6xl mx-auto px-6 py-24">
+        <h2 class="text-3xl md:text-4xl font-bold text-center mb-4 text-white">AI agents hit a wall before becoming productive</h2>
+        <p class="text-red-100/60 text-center mb-16 max-w-2xl mx-auto">Unreliable performance, sensitive data concerns, rising model costs. We solve all three.</p>
+        <div class="grid md:grid-cols-3 gap-8">
+          <div class="bg-ag-900/60 border border-red-500/20 rounded-xl p-8 text-center">
+            <div class="text-red-400 text-4xl mb-4">&#x2191;</div>
+            <h3 class="text-2xl font-bold text-red-400 mb-3">Performance</h3>
+            <p class="text-red-100/60 text-sm leading-relaxed">Higher success rates, fewer human escalations, better decision quality</p>
+          </div>
+          <div class="bg-ag-900/60 border border-amber-500/20 rounded-xl p-8 text-center">
+            <div class="text-amber-400 text-4xl mb-4">&#x2193;</div>
+            <h3 class="text-2xl font-bold text-amber-400 mb-3">Cost Reduction</h3>
+            <p class="text-red-100/60 text-sm leading-relaxed">Intelligent model routing and small model distillation. Lower cost per request, lower latency</p>
+          </div>
+          <div class="bg-ag-900/60 border border-emerald-500/20 rounded-xl p-8 text-center">
+            <div class="text-emerald-400 text-4xl mb-4">&#x1f512;</div>
+            <h3 class="text-2xl font-bold text-emerald-400 mb-3">Privacy</h3>
+            <p class="text-red-100/60 text-sm leading-relaxed">Data never leaves your organisation. Vendor independence and regulatory compliance</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="max-w-4xl mx-auto px-6 py-24">
+        <h2 class="text-3xl md:text-4xl font-bold text-center mb-16 text-white">The Learning Flywheel</h2>
+        <div class="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-4">
+          <div class="bg-ag-900/50 border border-ag-800/50 rounded-xl px-8 py-6 text-center min-w-[180px]">
+            <p class="text-red-100 font-semibold">Deploy &amp; Collect</p>
+            <p class="text-red-100/40 text-sm mt-1">Logs, traces, feedback</p>
+          </div>
+          <div class="text-ag-200 text-2xl flywheel-arrow hidden md:block">&#x2192;</div>
+          <div class="text-ag-200 text-2xl flywheel-arrow md:hidden">&#x2193;</div>
+          <div class="bg-ag-900/50 border border-ag-800/50 rounded-xl px-8 py-6 text-center min-w-[180px]">
+            <p class="text-red-100 font-semibold">Train &amp; Improve</p>
+            <p class="text-red-100/40 text-sm mt-1">RL, distillation, ICL</p>
+          </div>
+          <div class="text-ag-200 text-2xl flywheel-arrow hidden md:block">&#x2192;</div>
+          <div class="text-ag-200 text-2xl flywheel-arrow md:hidden">&#x2193;</div>
+          <div class="bg-ag-900/50 border border-ag-800/50 rounded-xl px-8 py-6 text-center min-w-[180px]">
+            <p class="text-red-100 font-semibold">Deploy &amp; Learn</p>
+            <p class="text-red-100/40 text-sm mt-1">Continuously improving</p>
+          </div>
+        </div>
+        <div class="text-center mt-8">
+          <div class="text-ag-400 text-sm flywheel-arrow">&#x21bb; cycle repeats</div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ===== OFFERING ===== -->
+    <div id="page-offering" class="page">
+      <section class="max-w-6xl mx-auto px-6 py-24">
+        <p class="text-ag-200 text-sm font-mono tracking-widest uppercase mb-4">Our Offering</p>
+        <h2 class="text-4xl md:text-5xl font-bold mb-6 text-white">How We Enable Learning from Experience</h2>
+        <p class="text-red-100/60 text-lg max-w-3xl mb-8">
+          We reduce AI cost immediately &mdash; then train your own continuously improving agents. Each approach serves different benefits depending on your data and goals.
+        </p>
+
+        <!-- Benefit headers -->
+        <div class="grid md:grid-cols-3 gap-8 mb-20">
+          <div class="bg-ag-900/60 border border-red-500/20 rounded-xl p-8 text-center">
+            <div class="text-red-400 text-4xl mb-4">&#x2191;</div>
+            <h3 class="text-2xl font-bold text-red-400 mb-3">Performance</h3>
+            <p class="text-red-100/60 text-sm">Higher success rates, fewer escalations, better decisions</p>
+          </div>
+          <div class="bg-ag-900/60 border border-amber-500/20 rounded-xl p-8 text-center">
+            <div class="text-amber-400 text-4xl mb-4">&#x2193;</div>
+            <h3 class="text-2xl font-bold text-amber-400 mb-3">Cost Reduction</h3>
+            <p class="text-red-100/60 text-sm">Lower cost per request, lower latency, scalable usage</p>
+          </div>
+          <div class="bg-ag-900/60 border border-emerald-500/20 rounded-xl p-8 text-center">
+            <div class="text-emerald-400 text-4xl mb-4">&#x1f512;</div>
+            <h3 class="text-2xl font-bold text-emerald-400 mb-3">Privacy</h3>
+            <p class="text-red-100/60 text-sm">Data never leaves your organisation, full compliance</p>
+          </div>
+        </div>
+
+        <!-- Methods -->
+        <div class="grid gap-8">
+
+          <div class="mode-card bg-ag-900/50 border border-ag-800/50 rounded-xl p-8 ring-1 ring-red-500/20">
+            <div class="flex items-start justify-between gap-4 mb-3 flex-wrap">
+              <div class="flex items-center gap-3">
+                <h4 class="text-xl font-semibold text-white">Reinforcement Learning on Environments</h4>
+                <span class="text-[10px] font-mono uppercase tracking-wider text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded">Core</span>
+              </div>
+              <div class="flex gap-2 shrink-0">
+                <span class="benefit-tag tag-perf">&#x2191; Performance</span>
+                <span class="benefit-tag tag-cost">&#x2193; Cost</span>
+                <span class="benefit-tag tag-priv">&#x1f512; Privacy</span>
+              </div>
+            </div>
+            <p class="text-red-100/60 leading-relaxed mb-3">When a training environment or simulator is available, we apply RL directly. The agent explores, receives rewards, and improves through trial and error &mdash; genuine gains beyond imitation.</p>
+            <p class="text-red-300/40 text-xs"><strong class="text-red-200/60">Requires:</strong> Training environment or simulator for the target task.</p>
+          </div>
+
+          <div class="mode-card bg-ag-900/50 border border-ag-800/50 rounded-xl p-8">
+            <div class="flex items-start justify-between gap-4 mb-3 flex-wrap">
+              <h4 class="text-xl font-semibold text-white">Dyna-Style RL with Learned World Models</h4>
+              <div class="flex gap-2 shrink-0">
+                <span class="benefit-tag tag-perf">&#x2191; Performance</span>
+                <span class="benefit-tag tag-cost">&#x2193; Cost</span>
+                <span class="benefit-tag tag-priv">&#x1f512; Privacy</span>
+              </div>
+            </div>
+            <p class="text-red-100/60 leading-relaxed mb-3">No simulator? We learn a world model from your tool-call traces, then train via RL inside that learned model. The performance gains of RL &mdash; without a pre-built environment.</p>
+            <p class="text-red-300/40 text-xs"><strong class="text-red-200/60">Requires:</strong> Logs of queries, tool inputs &amp; tool responses.</p>
+          </div>
+
+          <div class="mode-card bg-ag-900/50 border border-ag-800/50 rounded-xl p-8">
+            <div class="flex items-start justify-between gap-4 mb-3 flex-wrap">
+              <h4 class="text-xl font-semibold text-white">In-Context Learning from User Feedback</h4>
+              <div class="flex gap-2 shrink-0">
+                <span class="benefit-tag tag-perf">&#x2191; Performance</span>
+              </div>
+            </div>
+            <p class="text-red-100/60 leading-relaxed mb-3">User interactions and corrections feed directly into the agent's context and memory. Immediate adaptation &mdash; no training, no latency, no cost.</p>
+            <p class="text-red-300/40 text-xs"><strong class="text-red-200/60">Requires:</strong> User feedback or interaction logs. No infrastructure needed.</p>
+          </div>
+
+          <div class="mode-card bg-ag-900/50 border border-ag-800/50 rounded-xl p-8">
+            <div class="flex items-start justify-between gap-4 mb-3 flex-wrap">
+              <h4 class="text-xl font-semibold text-white">Intelligent Model Routing</h4>
+              <div class="flex gap-2 shrink-0">
+                <span class="benefit-tag tag-cost">&#x2193; Cost</span>
+              </div>
+            </div>
+            <p class="text-red-100/60 leading-relaxed mb-3">Analyse production logs to learn which requests can be routed to cheaper, smaller models without quality loss. Immediate savings &mdash; just smarter dispatch.</p>
+            <p class="text-red-300/40 text-xs"><strong class="text-red-200/60">Requires:</strong> Logs of queries and LLM responses.</p>
+          </div>
+
+          <div class="mode-card bg-ag-900/50 border border-ag-800/50 rounded-xl p-8">
+            <div class="flex items-start justify-between gap-4 mb-3 flex-wrap">
+              <h4 class="text-xl font-semibold text-white">Distillation</h4>
+              <div class="flex gap-2 shrink-0">
+                <span class="benefit-tag tag-cost">&#x2193; Cost</span>
+                <span class="benefit-tag tag-priv">&#x1f512; Privacy</span>
+              </div>
+            </div>
+            <p class="text-red-100/60 leading-relaxed mb-3">Transfer knowledge from large frontier models into compact, locally deployable models. Dramatically lower inference cost while enabling on-premise deployment and data sovereignty.</p>
+            <p class="text-red-300/40 text-xs"><strong class="text-red-200/60">Requires:</strong> Logs or question set with domain access. Optionally: LLM with open logits.</p>
+          </div>
+
+          <div class="mode-card bg-ag-900/50 border border-ag-800/50 rounded-xl p-8">
+            <div class="flex items-start justify-between gap-4 mb-3 flex-wrap">
+              <h4 class="text-xl font-semibold text-white">Local Deployment &amp; Agentic Infrastructure</h4>
+              <div class="flex gap-2 shrink-0">
+                <span class="benefit-tag tag-priv">&#x1f512; Privacy</span>
+              </div>
+            </div>
+            <p class="text-red-100/60 leading-relaxed mb-3">Distilled and RL-trained models run entirely on your infrastructure via MCP tool access. Your data stays yours, with full regulatory compliance.</p>
+            <p class="text-red-300/40 text-xs"><strong class="text-red-200/60">Requires:</strong> MCP access to your tools and workflows.</p>
+          </div>
+
+        </div>
+
+        <div class="mt-24">
+          <h3 class="text-2xl font-bold mb-12 text-center text-white">How We Work With You</h3>
+          <div class="grid md:grid-cols-4 gap-6">
+            <div class="text-center">
+              <div class="w-12 h-12 rounded-full bg-ag-800 border border-ag-700 flex items-center justify-center mx-auto mb-4 text-ag-200 font-mono font-bold">1</div>
+              <h4 class="font-semibold mb-2 text-white">Identify</h4>
+              <p class="text-red-100/40 text-sm">Identify processes most suitable for learning from experience</p>
+            </div>
+            <div class="text-center">
+              <div class="w-12 h-12 rounded-full bg-ag-800 border border-ag-700 flex items-center justify-center mx-auto mb-4 text-ag-200 font-mono font-bold">2</div>
+              <h4 class="font-semibold mb-2 text-white">Evaluate</h4>
+              <p class="text-red-100/40 text-sm">Test and select the most effective AI models for your organisation</p>
+            </div>
+            <div class="text-center">
+              <div class="w-12 h-12 rounded-full bg-ag-800 border border-ag-700 flex items-center justify-center mx-auto mb-4 text-ag-200 font-mono font-bold">3</div>
+              <h4 class="font-semibold mb-2 text-white">Optimise</h4>
+              <p class="text-red-100/40 text-sm">Enhance AI performance with customised training and adjustments</p>
+            </div>
+            <div class="text-center">
+              <div class="w-12 h-12 rounded-full bg-ag-800 border border-ag-700 flex items-center justify-center mx-auto mb-4 text-ag-200 font-mono font-bold">4</div>
+              <h4 class="font-semibold mb-2 text-white">Maintain</h4>
+              <p class="text-red-100/40 text-sm">Launch your AI agent and keep it learning from experience</p>
+            </div>
+          </div>
+        </div>
+
+      </section>
+    </div>
+
+    <!-- ===== RESEARCH ===== -->
+    <div id="page-research" class="page">
+      <section class="max-w-4xl mx-auto px-6 py-24">
+        <p class="text-ag-200 text-sm font-mono tracking-widest uppercase mb-4">Research</p>
+        <h2 class="text-4xl md:text-5xl font-bold mb-6 text-white">Pushing the Frontier</h2>
+        <p class="text-red-100/60 text-lg max-w-3xl mb-16">
+          Our work bridges reinforcement learning research and real-world deployment.
+        </p>
+
+        <article class="bg-ag-900/50 border border-ag-800/50 rounded-xl p-8 mb-8">
+          <div class="flex items-center gap-3 mb-4">
+            <span class="text-xs bg-ag-400/20 text-ag-200 px-3 py-1 rounded-full border border-ag-500/30">New</span>
+            <span class="text-xs text-red-100/40">2026</span>
+          </div>
+          <h3 class="text-2xl font-semibold mb-4 text-white">RL Post-Trained Medical Model with German University Hospital</h3>
+          <p class="text-red-100/60 leading-relaxed mb-6">
+            We applied reinforcement learning post-training to a Qwen2.5-7B model on medical decision-making tasks in collaboration with a large German university hospital. The RL-trained model achieved a <strong class="text-ag-200">+30% improvement over o4-mini</strong> on clinical benchmarks &mdash; demonstrating that small, specialised models can outperform much larger general-purpose models when trained with the right methodology.
+          </p>
+          <div class="flex flex-wrap gap-2">
+            <span class="text-xs bg-ag-800/80 text-red-100 px-3 py-1 rounded-full">Qwen2.5-7B</span>
+            <span class="text-xs bg-ag-800/80 text-red-100 px-3 py-1 rounded-full">RL post-training</span>
+            <span class="text-xs bg-ag-800/80 text-red-100 px-3 py-1 rounded-full">Medical AI</span>
+          </div>
+        </article>
+
+        <p class="text-red-100/30 text-sm text-center mt-12">More publications coming soon.</p>
+      </section>
+    </div>
+
+    <!-- ===== CONTACT ===== -->
+    <div id="page-contact" class="page">
+      <section class="max-w-4xl mx-auto px-6 py-24">
+        <p class="text-ag-200 text-sm font-mono tracking-widest uppercase mb-4">Contact</p>
+        <h2 class="text-4xl md:text-5xl font-bold mb-6">Work With Us</h2>
+        <p class="text-red-100/60 text-lg max-w-2xl mb-12">
+          Interested in what learning from experience can do for your organisation? Tell us about your use case.
+        </p>
+
+        <!-- Contact Form — self-hosted, data stays on our server -->
+        <form id="contact-form" class="bg-ag-900/50 border border-ag-800/50 rounded-xl p-8 mb-16">
+          <!-- Honeypot for bots -->
+          <input type="text" name="website" style="display:none" tabindex="-1" autocomplete="off">
+
+          <div class="grid md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <label for="name" class="block text-sm text-red-100/80 mb-2">Name *</label>
+              <input type="text" id="name" name="name" required
+                class="w-full px-4 py-3 bg-ag-800/50 border border-ag-700/50 rounded-lg text-white placeholder-red-200/30 focus:outline-none focus:border-ag-400/50 transition"
+                placeholder="Your name">
+            </div>
+            <div>
+              <label for="role" class="block text-sm text-red-100/80 mb-2">Role</label>
+              <input type="text" id="role" name="role"
+                class="w-full px-4 py-3 bg-ag-800/50 border border-ag-700/50 rounded-lg text-white placeholder-red-200/30 focus:outline-none focus:border-ag-400/50 transition"
+                placeholder="e.g. CTO, Head of AI">
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <label for="email" class="block text-sm text-red-100/80 mb-2">Email <span class="text-red-200/40">(email or LinkedIn required)</span></label>
+              <input type="email" id="email" name="email"
+                class="w-full px-4 py-3 bg-ag-800/50 border border-ag-700/50 rounded-lg text-white placeholder-red-200/30 focus:outline-none focus:border-ag-400/50 transition"
+                placeholder="you@company.com">
+            </div>
+            <div>
+              <label for="linkedin" class="block text-sm text-red-100/80 mb-2">LinkedIn <span class="text-red-200/40">(email or LinkedIn required)</span></label>
+              <input type="url" id="linkedin" name="linkedin"
+                class="w-full px-4 py-3 bg-ag-800/50 border border-ag-700/50 rounded-lg text-white placeholder-red-200/30 focus:outline-none focus:border-ag-400/50 transition"
+                placeholder="https://linkedin.com/in/...">
+            </div>
+          </div>
+
+          <div class="mb-6">
+            <label for="message" class="block text-sm text-red-100/80 mb-2">Message *</label>
+            <textarea id="message" name="message" required rows="5"
+              class="w-full px-4 py-3 bg-ag-800/50 border border-ag-700/50 rounded-lg text-white placeholder-red-200/30 focus:outline-none focus:border-ag-400/50 transition resize-y"
+              placeholder="Tell us about your use case, current challenges, or what you'd like to explore..."></textarea>
+          </div>
+
+          <div id="form-error" class="hidden text-red-400 text-sm mb-4"></div>
+
+          <button type="submit" id="submit-btn"
+            class="px-8 py-3 bg-ag-400 hover:bg-ag-300 text-white font-medium rounded-lg transition w-full md:w-auto">
+            Send Message
+          </button>
+          <p class="text-red-100/30 text-xs mt-4">Your data stays on our server. We'll get back to you within 1-2 business days.</p>
+        </form>
+
+        <!-- Thank you -->
+        <div id="contact-thanks" class="hidden bg-ag-900/50 border border-ag-400/30 rounded-xl p-8 mb-16 text-center">
+          <p class="text-ag-200 text-xl font-semibold mb-2">Thank you!</p>
+          <p class="text-red-100/60">We received your message and will get back to you shortly.</p>
+        </div>
+
+        <div class="text-center mb-16">
+          <p class="text-red-200/50 text-sm">Or email us directly at
+            <a href="mailto:info@aganthos.com" class="text-ag-200 underline hover:text-red-100 transition">info@aganthos.com</a>
+          </p>
+        </div>
+
+        <!-- Legal -->
+        <div class="border-t border-ag-800/50 pt-12">
+          <div class="flex gap-6 text-sm text-red-200/50 mb-8">
+            <button onclick="toggleLegal('impressum')" class="hover:text-ag-200 transition underline">Legal Notice (Impressum)</button>
+            <button onclick="toggleLegal('privacy')" class="hover:text-ag-200 transition underline">Privacy Policy</button>
+          </div>
+
+          <div id="legal-impressum" class="hidden bg-ag-900/30 border border-ag-800/30 rounded-xl p-8 mb-8 text-sm text-red-100/60 leading-relaxed">
+            <h3 class="text-lg font-semibold text-white mb-4">Legal Notice (Impressum)</h3>
+            <p class="mb-3"><strong class="text-red-100">Operator and Contact:</strong><br>Aganthos GmbH<br>c/o Robert M&uuml;ller &amp; Tobias Magnus Schuster<br>Kirchgasse 20<br>6490 Andermatt, Switzerland</p>
+            <p class="mb-3"><strong class="text-red-100">Represented by:</strong> Robert M&uuml;ller, Chairman of the Management Board (Vorsitzender der Gesch&auml;ftsf&uuml;hrung)</p>
+            <p class="mb-3"><strong class="text-red-100">Contact:</strong> <a href="mailto:info@aganthos.com" class="underline">info@aganthos.com</a> &middot; www.aganthos.com</p>
+            <p class="mb-3"><strong class="text-red-100">Commercial Register (Switzerland):</strong><br>Registered Company Name: Aganthos GmbH<br>Commercial Register Office: Canton of Uri<br>Enterprise Identification Number (UID): CHE-239.273.202<br>Date of Incorporation: January 13, 2026</p>
+            <p class="mb-3"><strong class="text-red-100">Ownership:</strong> Wholly owned subsidiary of Aganthos, Inc. (USA).</p>
+            <p class="mb-3"><strong class="text-red-100">Parent Company (USA):</strong><br>Aganthos, Inc. (A Delaware Corporation)<br>File Number: 10351069<br>Incorporated on: September 30, 2025<br>Registered Agent: Legalinc Corporate Services Inc., Newark, Delaware</p>
+            <h4 class="text-white font-semibold mt-6 mb-2">Disclaimer</h4>
+            <p class="mb-3"><strong class="text-red-100">Liability for Content:</strong> While we strive to keep the information on this website accurate and up-to-date, Aganthos GmbH accepts no liability for the topicality, correctness, completeness, or quality of the information provided.</p>
+            <p class="mb-3"><strong class="text-red-100">Liability for Links:</strong> Our website may contain links to external websites. We have no influence on the content of these external sites and therefore accept no liability for them.</p>
+            <p><strong class="text-red-100">Copyright:</strong> The content and works published on this website are governed by the copyright laws of Switzerland. Any duplication, processing, distribution, or any form of utilization beyond the scope of copyright law shall require the prior written consent of the author or authors in question.</p>
+          </div>
+
+          <div id="legal-privacy" class="hidden bg-ag-900/30 border border-ag-800/30 rounded-xl p-8 mb-8 text-sm text-red-100/60 leading-relaxed">
+            <h3 class="text-lg font-semibold text-white mb-4">Privacy Policy (Datenschutzerkl&auml;rung)</h3>
+            <p class="text-red-200/40 mb-4">Last updated: January 2026</p>
+            <h4 class="text-white font-semibold mt-4 mb-2">1. General Information</h4>
+            <p class="mb-3">We take the protection of your personal data very seriously. Aganthos GmbH (&ldquo;we&rdquo;, &ldquo;us&rdquo;) processes personal data in accordance with the Swiss Federal Act on Data Protection (FADP/nDSG) and, where applicable, the European General Data Protection Regulation (GDPR). This privacy policy explains how we collect and process personal data when you visit our website www.aganthos.com or contact us.</p>
+            <h4 class="text-white font-semibold mt-4 mb-2">2. Controller</h4>
+            <p class="mb-3">Aganthos GmbH<br>c/o Robert M&uuml;ller &amp; Tobias Magnus Schuster<br>Kirchgasse 20, 6490 Andermatt, Switzerland<br>Email: info@aganthos.com<br>Represented by: Robert M&uuml;ller (Chairman)</p>
+            <h4 class="text-white font-semibold mt-4 mb-2">3. Collection and Processing of Data</h4>
+            <p class="mb-2"><strong class="text-red-100">3.1 Server Log Files:</strong> When you visit our website, the hosting provider automatically collects and stores information in server log files: browser type and version, operating system, referrer URL, hostname, time of request, and IP address. This data is not combined with other data sources.</p>
+            <p class="mb-3"><strong class="text-red-100">3.2 Contact Form and Email:</strong> If you send us inquiries via email or contact forms, your details will be stored for the purpose of processing the request. We do not pass on this data without your consent.</p>
+            <h4 class="text-white font-semibold mt-4 mb-2">4. Data Transfer to the USA</h4>
+            <p class="mb-3">Our company is a wholly-owned subsidiary of Aganthos, Inc. (Delaware, USA). If tools or service providers based in the USA are used, your personal data may be transferred to US servers. We ensure that data transfers are protected by appropriate safeguards, such as the Swiss-U.S. Data Privacy Framework or Standard Contractual Clauses (SCCs).</p>
+            <h4 class="text-white font-semibold mt-4 mb-2">5. Cookies and Analytics</h4>
+            <p class="mb-3">Our website may use cookies to enhance user experience. You can set your browser to refuse cookies.</p>
+            <h4 class="text-white font-semibold mt-4 mb-2">6. Data Security</h4>
+            <p class="mb-3">We use SSL/TLS encryption for security reasons and to protect the transmission of confidential content.</p>
+            <h4 class="text-white font-semibold mt-4 mb-2">7. Your Rights</h4>
+            <p class="mb-3">Under the FADP (and GDPR where applicable), you have the right to: access, rectification, deletion, restriction of processing, and data portability. To exercise these rights, contact us at <a href="mailto:info@aganthos.com" class="underline">info@aganthos.com</a>.</p>
+            <h4 class="text-white font-semibold mt-4 mb-2">8. Changes to this Privacy Policy</h4>
+            <p>We reserve the right to adapt this privacy policy to comply with current legal requirements or to reflect changes to our services.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <footer class="border-t border-ag-800/50 mt-12">
+    <div class="max-w-6xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-red-200/40">
+      <p>&copy; <span id="yr"></span> Aganthos GmbH. All rights reserved.</p>
+      <div class="flex gap-6">
+        <a href="#contact" class="hover:text-ag-200 transition" onclick="setTimeout(function(){toggleLegal('impressum')},100)">Impressum</a>
+        <a href="#contact" class="hover:text-ag-200 transition" onclick="setTimeout(function(){toggleLegal('privacy')},100)">Privacy Policy</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('yr').textContent = new Date().getFullYear();
+
+    // SPA navigation
+    function navigate(hash) {
+      var page = hash.replace('#','') || 'home';
+      if (page === 'contact-thanks') {
+        page = 'contact';
+        setTimeout(function(){ document.getElementById('contact-thanks').classList.remove('hidden'); }, 100);
+      }
+      document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+      var target = document.getElementById('page-' + page);
+      if (target) { target.classList.add('active'); } else { document.getElementById('page-home').classList.add('active'); }
+      document.querySelectorAll('.nav-link').forEach(function(l){
+        l.classList.toggle('active', l.getAttribute('href') === '#' + page);
+      });
+      window.scrollTo(0, 0);
+    }
+
+    window.addEventListener('hashchange', function(){ navigate(location.hash); });
+    if (location.hash) navigate(location.hash);
+
+    // Mobile menu
+    document.getElementById('menu-btn').addEventListener('click', function(){
+      document.getElementById('mobile-menu').classList.toggle('hidden');
+    });
+    document.querySelectorAll('.nav-mobile').forEach(function(a){
+      a.addEventListener('click', function(){ document.getElementById('mobile-menu').classList.add('hidden'); });
+    });
+
+    // Legal toggles
+    function toggleLegal(id) {
+      document.getElementById('legal-' + id).classList.toggle('hidden');
+    }
+
+    // Contact form submission
+    document.getElementById('contact-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      var form = this;
+      var errEl = document.getElementById('form-error');
+      var btn = document.getElementById('submit-btn');
+      errEl.classList.add('hidden');
+
+      // Honeypot check
+      if (form.querySelector('[name="website"]').value) return;
+
+      var email = form.querySelector('#email').value.trim();
+      var linkedin = form.querySelector('#linkedin').value.trim();
+      if (!email && !linkedin) {
+        errEl.textContent = 'Please provide either an email address or a LinkedIn profile.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+
+      fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: form.querySelector('#name').value.trim(),
+          role: form.querySelector('#role').value.trim(),
+          email: email,
+          linkedin: linkedin,
+          message: form.querySelector('#message').value.trim()
+        })
+      })
+      .then(function(res) { return res.json().then(function(data) { return { ok: res.ok, data: data }; }); })
+      .then(function(result) {
+        if (result.ok) {
+          form.classList.add('hidden');
+          document.getElementById('contact-thanks').classList.remove('hidden');
+        } else {
+          errEl.textContent = result.data.error || 'Something went wrong. Please try again.';
+          errEl.classList.remove('hidden');
+        }
+      })
+      .catch(function() {
+        errEl.textContent = 'Could not reach server. Please email us directly at info@aganthos.com.';
+        errEl.classList.remove('hidden');
+      })
+      .finally(function() {
+        btn.disabled = false;
+        btn.textContent = 'Send Message';
+      });
+    });
+  </script>
+</body>
+</html>
