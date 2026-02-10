@@ -36,6 +36,12 @@
     .nav-link:hover, .nav-link.active { color: #f87171; border-color: #f87171; }
     .mode-card { transition: transform 0.2s, box-shadow 0.2s; }
     .mode-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(185,28,28,0.15); }
+    .method-card { cursor: pointer; }
+    .method-card.active { border-color: #b91c1c; box-shadow: 0 0 0 1px #b91c1c; }
+    .method-chevron { transition: transform 0.2s; display: inline-block; }
+    .method-card.active .method-chevron { transform: rotate(90deg); }
+    #method-detail-panel { display: none; }
+    #method-detail-panel.open { display: block; }
     .flywheel-arrow { animation: pulse-arrow 2s ease-in-out infinite; }
     @keyframes pulse-arrow { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
     .benefit-tag { font-size: 0.65rem; padding: 2px 8px; border-radius: 9999px; }
@@ -57,7 +63,7 @@
       <div class="hidden md:flex items-center gap-8 text-sm">
         <a href="#home" class="nav-link border-b-2 border-transparent pb-0.5">Home</a>
         <a href="#offering" class="nav-link border-b-2 border-transparent pb-0.5">Offering</a>
-        <a href="#research" class="nav-link border-b-2 border-transparent pb-0.5">Research</a>
+        <a href="#projects" class="nav-link border-b-2 border-transparent pb-0.5">Projects</a>
         <a href="#contact" class="nav-link border-b-2 border-transparent pb-0.5">Contact</a>
       </div>
       <button id="menu-btn" class="md:hidden text-white">
@@ -68,7 +74,7 @@
       <div class="px-6 py-4 flex flex-col gap-4 text-sm">
         <a href="#home" class="nav-link nav-mobile">Home</a>
         <a href="#offering" class="nav-link nav-mobile">Offering</a>
-        <a href="#research" class="nav-link nav-mobile">Research</a>
+        <a href="#projects" class="nav-link nav-mobile">Projects</a>
         <a href="#contact" class="nav-link nav-mobile">Contact</a>
       </div>
     </div>
@@ -83,17 +89,23 @@
         <div class="absolute inset-0 bg-[radial-gradient(60%_40%_at_50%_-10%,rgba(168,40,74,0.15),transparent)]"></div>
         <div class="absolute inset-0 bg-[radial-gradient(40%_30%_at_80%_120%,rgba(26,48,88,0.12),transparent)]"></div>
         <div class="relative max-w-4xl text-center">
-          <p class="text-ag-200 text-sm font-mono tracking-widest uppercase mb-6">Learning from Experience Lab</p>
+          <p class="text-ag-200 text-sm font-mono tracking-widest uppercase mb-6">Research Lab</p>
           <h1 class="text-5xl md:text-7xl font-bold leading-tight text-white">
-            We enable agents to<br><span class="text-red-100">learn from experience</span>
+            AI agents that get<br><span class="text-red-100">better every day</span>
           </h1>
-          <p class="mt-8 text-xl md:text-2xl text-red-100/80 max-w-2xl mx-auto leading-relaxed">
-            Improve performance. Enable privacy. Reduce cost.
+          <p class="mt-8 text-lg md:text-xl text-red-100/70 max-w-2xl mx-auto leading-relaxed">
+            We are a research lab building the methods that make AI agents learn from their own experience &mdash; improving performance, cutting cost, and enabling full data privacy.
           </p>
           <div class="mt-12 flex flex-wrap gap-4 justify-center">
             <a href="#offering" class="px-8 py-3 bg-ag-500 hover:bg-ag-400 text-white font-medium rounded-lg transition">Our Offering</a>
             <a href="#contact" class="px-8 py-3 border border-ag-600 hover:border-ag-400 text-red-100 rounded-lg transition">Get in Touch</a>
           </div>
+        </div>
+      </section>
+
+      <section class="max-w-4xl mx-auto px-6 py-6">
+        <div class="border border-ag-800/40 rounded-lg px-6 py-4 text-center bg-ag-900/30">
+          <p class="text-sm text-red-100/60">Our RL-trained <span class="text-ag-200">Qwen2.5-7B</span> outperforms o4-mini by <span class="text-ag-200">30%</span> on medical benchmarks <a href="#projects" class="text-ag-200 underline hover:text-red-100 transition ml-1">&rarr; Projects</a></p>
         </div>
       </section>
 
@@ -144,149 +156,181 @@
         </div>
       </section>
 
+      <section class="max-w-4xl mx-auto px-6 py-20 text-center">
+        <h3 class="text-2xl md:text-3xl font-bold text-white mb-6">Ready to make your AI agents learn?</h3>
+        <a href="#contact" class="inline-block px-8 py-3 bg-ag-500 hover:bg-ag-400 text-white font-medium rounded-lg transition">Get in Touch</a>
+      </section>
+
     </div>
 
     <!-- ===== OFFERING ===== -->
     <div id="page-offering" class="page">
       <section class="max-w-6xl mx-auto px-6 py-24">
         <p class="text-ag-200 text-sm font-mono tracking-widest uppercase mb-4">Our Offering</p>
-        <h2 class="text-4xl md:text-5xl font-bold mb-6 text-white">How We Enable Learning from Experience</h2>
+        <h2 class="text-4xl md:text-5xl font-bold mb-6 text-white">What&rsquo;s holding your AI agents back?</h2>
         <p class="text-red-100/60 text-lg max-w-3xl mb-8">
-          We reduce AI cost immediately &mdash; then train your own continuously improving agents. Each approach serves different benefits depending on your data and goals.
+          Identify your challenge below. Then see how we solve it.
         </p>
 
-        <!-- Benefit headers -->
+        <!-- Problem cards -->
         <div class="grid md:grid-cols-3 gap-8 mb-20">
           <div class="bg-ag-900/60 border border-red-500/20 rounded-xl p-8 text-center">
             <div class="text-red-400 text-4xl mb-4">&#x2191;</div>
-            <h3 class="text-2xl font-bold text-red-400 mb-3">Performance</h3>
-            <p class="text-red-100/60 text-sm">Higher success rates, fewer escalations, better decisions</p>
+            <h3 class="text-2xl font-bold text-red-400 mb-3">&ldquo;My agents aren&rsquo;t reliable enough&rdquo;</h3>
+            <p class="text-red-100/60 text-sm">Wrong decisions, constant escalations, inconsistent quality. They should be getting better &mdash; not staying stuck.</p>
           </div>
           <div class="bg-ag-900/60 border border-amber-500/20 rounded-xl p-8 text-center">
             <div class="text-amber-400 text-4xl mb-4">&#x2193;</div>
-            <h3 class="text-2xl font-bold text-amber-400 mb-3">Cost Reduction</h3>
-            <p class="text-red-100/60 text-sm">Lower cost per request, lower latency, scalable usage</p>
+            <h3 class="text-2xl font-bold text-amber-400 mb-3">&ldquo;My AI costs keep growing&rdquo;</h3>
+            <p class="text-red-100/60 text-sm">Expensive API calls, oversized models for simple tasks. Costs scale linearly with usage.</p>
           </div>
           <div class="bg-ag-900/60 border border-emerald-500/20 rounded-xl p-8 text-center">
             <div class="text-emerald-400 text-4xl mb-4">&#x1f512;</div>
-            <h3 class="text-2xl font-bold text-emerald-400 mb-3">Privacy</h3>
-            <p class="text-red-100/60 text-sm">Data never leaves your organisation, full compliance</p>
+            <h3 class="text-2xl font-bold text-emerald-400 mb-3">&ldquo;I can&rsquo;t use external AI APIs&rdquo;</h3>
+            <p class="text-red-100/60 text-sm">Sensitive data, regulatory requirements, vendor lock-in. You need AI that runs in-house.</p>
           </div>
         </div>
 
         <!-- Methods -->
-        <div class="grid gap-8">
+        <div id="methods-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
 
-          <div class="mode-card bg-ag-900/50 border border-ag-800/50 rounded-xl p-8 ring-1 ring-red-500/20">
-            <div class="flex items-start justify-between gap-4 mb-3 flex-wrap">
-              <div class="flex items-center gap-3">
-                <h4 class="text-xl font-semibold text-white">Reinforcement Learning on Environments</h4>
-                <span class="text-[10px] font-mono uppercase tracking-wider text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded">Core</span>
-              </div>
-              <div class="flex gap-2 shrink-0">
-                <span class="benefit-tag tag-perf">&#x2191; Performance</span>
-                <span class="benefit-tag tag-cost">&#x2193; Cost</span>
-                <span class="benefit-tag tag-priv">&#x1f512; Privacy</span>
-              </div>
+          <!-- Card 1: RL on Environments [Core] -->
+          <div id="method-rl-env" class="mode-card method-card bg-ag-900/50 border border-ag-800/50 rounded-xl p-5 ring-1 ring-red-500/20" onclick="toggleMethod('rl-env')">
+            <div class="flex items-center gap-2 mb-2">
+              <h4 class="text-base font-semibold text-white">Agents that learn by doing</h4>
+              <span class="text-[10px] font-mono uppercase tracking-wider text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded">Core</span>
+              <span class="method-chevron text-ag-400 ml-auto text-xs">&#x25B8;</span>
             </div>
-            <p class="text-red-100/60 leading-relaxed mb-3">When a training environment or simulator is available, we apply RL directly. The agent explores, receives rewards, and improves through trial and error &mdash; genuine gains beyond imitation.</p>
-            <p class="text-red-300/40 text-xs"><strong class="text-red-200/60">Requires:</strong> Training environment or simulator for the target task.</p>
+            <div class="flex flex-wrap gap-1.5 mb-2">
+              <span class="benefit-tag tag-perf">&#x2191; Performance</span>
+              <span class="benefit-tag tag-cost">&#x2193; Cost</span>
+              <span class="benefit-tag tag-priv">&#x1f512; Privacy</span>
+            </div>
+            <p class="text-red-100/60 text-sm leading-relaxed">Your agent practices in a real or simulated environment &mdash; improving with every iteration.</p>
           </div>
 
-          <div class="mode-card bg-ag-900/50 border border-ag-800/50 rounded-xl p-8">
-            <div class="flex items-start justify-between gap-4 mb-3 flex-wrap">
-              <h4 class="text-xl font-semibold text-white">Dyna-Style RL with Learned World Models</h4>
-              <div class="flex gap-2 shrink-0">
-                <span class="benefit-tag tag-perf">&#x2191; Performance</span>
-                <span class="benefit-tag tag-cost">&#x2193; Cost</span>
-                <span class="benefit-tag tag-priv">&#x1f512; Privacy</span>
-              </div>
+          <!-- Card 2: Dyna-Style RL -->
+          <div id="method-dyna" class="mode-card method-card bg-ag-900/50 border border-ag-800/50 rounded-xl p-5" onclick="toggleMethod('dyna')">
+            <div class="flex items-center gap-2 mb-2">
+              <h4 class="text-base font-semibold text-white">Learn from your existing logs</h4>
+              <span class="method-chevron text-ag-400 ml-auto text-xs">&#x25B8;</span>
             </div>
-            <p class="text-red-100/60 leading-relaxed mb-3">No simulator? We learn a world model from your tool-call traces, then train via RL inside that learned model. The performance gains of RL &mdash; without a pre-built environment.</p>
-            <p class="text-red-300/40 text-xs"><strong class="text-red-200/60">Requires:</strong> Logs of queries, tool inputs &amp; tool responses.</p>
+            <div class="flex flex-wrap gap-1.5 mb-2">
+              <span class="benefit-tag tag-perf">&#x2191; Performance</span>
+              <span class="benefit-tag tag-cost">&#x2193; Cost</span>
+              <span class="benefit-tag tag-priv">&#x1f512; Privacy</span>
+            </div>
+            <p class="text-red-100/60 text-sm leading-relaxed">No simulator? We build a training world from your data, then run RL on it.</p>
           </div>
 
-          <div class="mode-card bg-ag-900/50 border border-ag-800/50 rounded-xl p-8">
-            <div class="flex items-start justify-between gap-4 mb-3 flex-wrap">
-              <h4 class="text-xl font-semibold text-white">In-Context Learning from User Feedback</h4>
-              <div class="flex gap-2 shrink-0">
-                <span class="benefit-tag tag-perf">&#x2191; Performance</span>
-              </div>
+          <!-- Card 3: In-Context Learning -->
+          <div id="method-icl" class="mode-card method-card bg-ag-900/50 border border-ag-800/50 rounded-xl p-5" onclick="toggleMethod('icl')">
+            <div class="flex items-center gap-2 mb-2">
+              <h4 class="text-base font-semibold text-white">Agents that remember and adapt</h4>
+              <span class="method-chevron text-ag-400 ml-auto text-xs">&#x25B8;</span>
             </div>
-            <p class="text-red-100/60 leading-relaxed mb-3">User interactions and corrections feed directly into the agent's context and memory. Immediate adaptation &mdash; no training, no latency, no cost.</p>
-            <p class="text-red-300/40 text-xs"><strong class="text-red-200/60">Requires:</strong> User feedback or interaction logs. No infrastructure needed.</p>
+            <div class="flex flex-wrap gap-1.5 mb-2">
+              <span class="benefit-tag tag-perf">&#x2191; Performance</span>
+            </div>
+            <p class="text-red-100/60 text-sm leading-relaxed">User corrections and system feedback flow into the agent&rsquo;s memory &mdash; immediate improvement, no retraining.</p>
           </div>
 
-          <div class="mode-card bg-ag-900/50 border border-ag-800/50 rounded-xl p-8">
-            <div class="flex items-start justify-between gap-4 mb-3 flex-wrap">
-              <h4 class="text-xl font-semibold text-white">Intelligent Model Routing</h4>
-              <div class="flex gap-2 shrink-0">
-                <span class="benefit-tag tag-cost">&#x2193; Cost</span>
-              </div>
+          <!-- Card 4: Intelligent Model Routing -->
+          <div id="method-routing" class="mode-card method-card bg-ag-900/50 border border-ag-800/50 rounded-xl p-5" onclick="toggleMethod('routing')">
+            <div class="flex items-center gap-2 mb-2">
+              <h4 class="text-base font-semibold text-white">Use cheaper models where possible</h4>
+              <span class="method-chevron text-ag-400 ml-auto text-xs">&#x25B8;</span>
             </div>
-            <p class="text-red-100/60 leading-relaxed mb-3">Analyse production logs to learn which requests can be routed to cheaper, smaller models without quality loss. Immediate savings &mdash; just smarter dispatch.</p>
-            <p class="text-red-300/40 text-xs"><strong class="text-red-200/60">Requires:</strong> Logs of queries and LLM responses.</p>
+            <div class="flex flex-wrap gap-1.5 mb-2">
+              <span class="benefit-tag tag-cost">&#x2193; Cost</span>
+            </div>
+            <p class="text-red-100/60 text-sm leading-relaxed">Automatically route easy requests to smaller models. Same quality, lower bill.</p>
           </div>
 
-          <div class="mode-card bg-ag-900/50 border border-ag-800/50 rounded-xl p-8">
-            <div class="flex items-start justify-between gap-4 mb-3 flex-wrap">
-              <h4 class="text-xl font-semibold text-white">Distillation</h4>
-              <div class="flex gap-2 shrink-0">
-                <span class="benefit-tag tag-cost">&#x2193; Cost</span>
-                <span class="benefit-tag tag-priv">&#x1f512; Privacy</span>
-              </div>
+          <!-- Card 5: Distillation -->
+          <div id="method-distill" class="mode-card method-card bg-ag-900/50 border border-ag-800/50 rounded-xl p-5" onclick="toggleMethod('distill')">
+            <div class="flex items-center gap-2 mb-2">
+              <h4 class="text-base font-semibold text-white">Your own compact expert model</h4>
+              <span class="method-chevron text-ag-400 ml-auto text-xs">&#x25B8;</span>
             </div>
-            <p class="text-red-100/60 leading-relaxed mb-3">Transfer knowledge from large frontier models into compact, locally deployable models. Dramatically lower inference cost while enabling on-premise deployment and data sovereignty.</p>
-            <p class="text-red-300/40 text-xs"><strong class="text-red-200/60">Requires:</strong> Logs or question set with domain access. Optionally: LLM with open logits.</p>
+            <div class="flex flex-wrap gap-1.5 mb-2">
+              <span class="benefit-tag tag-cost">&#x2193; Cost</span>
+              <span class="benefit-tag tag-priv">&#x1f512; Privacy</span>
+            </div>
+            <p class="text-red-100/60 text-sm leading-relaxed">Compress frontier-model knowledge into a small model you own and run yourself.</p>
           </div>
 
-          <div class="mode-card bg-ag-900/50 border border-ag-800/50 rounded-xl p-8">
-            <div class="flex items-start justify-between gap-4 mb-3 flex-wrap">
-              <h4 class="text-xl font-semibold text-white">Local Deployment &amp; Agentic Infrastructure</h4>
-              <div class="flex gap-2 shrink-0">
-                <span class="benefit-tag tag-priv">&#x1f512; Privacy</span>
-              </div>
+          <!-- Card 6: Local Deployment & Agentic Infra -->
+          <div id="method-local" class="mode-card method-card bg-ag-900/50 border border-ag-800/50 rounded-xl p-5" onclick="toggleMethod('local')">
+            <div class="flex items-center gap-2 mb-2">
+              <h4 class="text-base font-semibold text-white">Everything on your infrastructure</h4>
+              <span class="method-chevron text-ag-400 ml-auto text-xs">&#x25B8;</span>
             </div>
-            <p class="text-red-100/60 leading-relaxed mb-3">Distilled and RL-trained models run entirely on your infrastructure via MCP tool access. Your data stays yours, with full regulatory compliance.</p>
-            <p class="text-red-300/40 text-xs"><strong class="text-red-200/60">Requires:</strong> MCP access to your tools and workflows.</p>
+            <div class="flex flex-wrap gap-1.5 mb-2">
+              <span class="benefit-tag tag-priv">&#x1f512; Privacy</span>
+            </div>
+            <p class="text-red-100/60 text-sm leading-relaxed">Trained models run on your servers, connected to your tools. Full data sovereignty.</p>
           </div>
 
         </div>
 
+        <!-- Detail panel (appears below grid when a card is clicked) -->
+        <div id="method-detail-panel" class="mt-6 bg-ag-900/70 border border-ag-700/50 rounded-xl p-8">
+          <div class="flex items-start justify-between mb-4">
+            <div>
+              <h3 id="mdp-title" class="text-xl font-bold text-white mb-1"></h3>
+              <p id="mdp-techname" class="text-ag-400 text-xs font-mono"></p>
+            </div>
+            <button onclick="closeMethodPanel()" class="text-ag-400 hover:text-white transition text-2xl leading-none ml-4">&times;</button>
+          </div>
+          <div class="flex flex-col md:flex-row gap-8 items-start">
+            <div id="mdp-svg" class="flex-shrink-0"></div>
+            <div class="flex-1 min-w-0">
+              <p id="mdp-desc" class="text-red-100/70 text-sm leading-relaxed mb-4"></p>
+              <p id="mdp-requires" class="text-red-300/40 text-xs"><strong class="text-red-200/60">Requires:</strong> <span id="mdp-req-text"></span></p>
+            </div>
+          </div>
+        </div>
+
         <div class="mt-24">
-          <h3 class="text-2xl font-bold mb-12 text-center text-white">How We Work With You</h3>
+          <h3 class="text-2xl font-bold mb-12 text-center text-white">Engagement Model</h3>
           <div class="grid md:grid-cols-4 gap-6">
             <div class="text-center">
               <div class="w-12 h-12 rounded-full bg-ag-800 border border-ag-700 flex items-center justify-center mx-auto mb-4 text-ag-200 font-mono font-bold">1</div>
-              <h4 class="font-semibold mb-2 text-white">Identify</h4>
-              <p class="text-red-100/40 text-sm">Identify processes most suitable for learning from experience</p>
+              <h4 class="font-semibold mb-2 text-white">Scope</h4>
+              <p class="text-red-100/40 text-sm">Define target tasks and success metrics together</p>
             </div>
             <div class="text-center">
               <div class="w-12 h-12 rounded-full bg-ag-800 border border-ag-700 flex items-center justify-center mx-auto mb-4 text-ag-200 font-mono font-bold">2</div>
-              <h4 class="font-semibold mb-2 text-white">Evaluate</h4>
-              <p class="text-red-100/40 text-sm">Test and select the most effective AI models for your organisation</p>
+              <h4 class="font-semibold mb-2 text-white">Instrument</h4>
+              <p class="text-red-100/40 text-sm">Connect to your logs, traces, or environments</p>
             </div>
             <div class="text-center">
               <div class="w-12 h-12 rounded-full bg-ag-800 border border-ag-700 flex items-center justify-center mx-auto mb-4 text-ag-200 font-mono font-bold">3</div>
-              <h4 class="font-semibold mb-2 text-white">Optimise</h4>
-              <p class="text-red-100/40 text-sm">Enhance AI performance with customised training and adjustments</p>
+              <h4 class="font-semibold mb-2 text-white">Train</h4>
+              <p class="text-red-100/40 text-sm">RL, distillation, or routing &mdash; whichever fits</p>
             </div>
             <div class="text-center">
               <div class="w-12 h-12 rounded-full bg-ag-800 border border-ag-700 flex items-center justify-center mx-auto mb-4 text-ag-200 font-mono font-bold">4</div>
-              <h4 class="font-semibold mb-2 text-white">Maintain</h4>
-              <p class="text-red-100/40 text-sm">Launch your AI agent and keep it learning from experience</p>
+              <h4 class="font-semibold mb-2 text-white">Deploy</h4>
+              <p class="text-red-100/40 text-sm">Ship improved models, monitor, repeat</p>
             </div>
           </div>
+        </div>
+
+        <div class="mt-24 text-center">
+          <h3 class="text-2xl md:text-3xl font-bold text-white mb-6">Ready to make your AI agents learn?</h3>
+          <a href="#contact" class="inline-block px-8 py-3 bg-ag-500 hover:bg-ag-400 text-white font-medium rounded-lg transition">Get in Touch</a>
         </div>
 
       </section>
     </div>
 
-    <!-- ===== RESEARCH ===== -->
-    <div id="page-research" class="page">
+    <!-- ===== PROJECTS ===== -->
+    <div id="page-projects" class="page">
       <section class="max-w-4xl mx-auto px-6 py-24">
-        <p class="text-ag-200 text-sm font-mono tracking-widest uppercase mb-4">Research</p>
-        <h2 class="text-4xl md:text-5xl font-bold mb-6 text-white">Pushing the Frontier</h2>
+        <p class="text-ag-200 text-sm font-mono tracking-widest uppercase mb-4">Projects</p>
+        <h2 class="text-4xl md:text-5xl font-bold mb-6 text-white">Projects</h2>
         <p class="text-red-100/60 text-lg max-w-3xl mb-16">
           Our work bridges reinforcement learning research and real-world deployment.
         </p>
@@ -307,7 +351,7 @@
           </div>
         </article>
 
-        <p class="text-red-100/30 text-sm text-center mt-12">More publications coming soon.</p>
+        <p class="text-red-100/30 text-sm text-center mt-12">More projects coming soon.</p>
       </section>
     </div>
 
@@ -368,7 +412,7 @@
             class="px-8 py-3 bg-ag-400 hover:bg-ag-300 text-white font-medium rounded-lg transition w-full md:w-auto">
             Send Message
           </button>
-          <p class="text-red-100/30 text-xs mt-4">Your data stays on our server. We'll get back to you within 1-2 business days.</p>
+          <p class="text-red-100/30 text-xs mt-4">Your submission is stored securely on our servers. We'll get back to you within 1-2 business days.</p>
         </form>
 
         <!-- Thank you -->
@@ -475,6 +519,95 @@
     // Legal toggles
     function toggleLegal(id) {
       document.getElementById('legal-' + id).classList.toggle('hidden');
+    }
+
+    // Method detail panel
+    var methodData = {
+      'rl-env': {
+        title: 'Agents that learn by doing',
+        tech: 'Reinforcement Learning on Environments',
+        desc: 'When a training environment or simulator is available, we apply RL directly. The agent explores, gets rewards, and improves through trial and error.',
+        requires: 'Training environment or simulator.',
+        svg: '<svg viewBox="0 0 280 110" class="w-full max-w-[280px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah1" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#b91c1c"/></marker></defs><rect x="10" y="30" width="80" height="50" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="50" y="58" text-anchor="middle" fill="#fecaca" font-size="11">Agent \u2699</text><rect x="190" y="30" width="80" height="50" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="230" y="58" text-anchor="middle" fill="#fecaca" font-size="11">Environment</text><line x1="90" y1="45" x2="188" y2="45" stroke="#b91c1c" stroke-width="1.5" marker-end="url(#ah1)"/><text x="140" y="40" text-anchor="middle" fill="#f87171" font-size="9">action</text><line x1="190" y1="65" x2="92" y2="65" stroke="#b91c1c" stroke-width="1.5" marker-end="url(#ah1)"/><text x="140" y="78" text-anchor="middle" fill="#f87171" font-size="9">reward</text></svg>'
+      },
+      'dyna': {
+        title: 'Learn from your existing logs',
+        tech: 'Dyna-Style RL with Learned World Models',
+        desc: 'We learn a world model from your tool-call traces, then train via RL inside it. Full RL gains without a pre-built environment.',
+        requires: 'Logs of queries, tool inputs & responses.',
+        svg: '<svg viewBox="0 0 280 110" class="w-full max-w-[280px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#b91c1c"/></marker></defs><rect x="5" y="30" width="70" height="50" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="40" y="53" text-anchor="middle" fill="#fecaca" font-size="10">Your</text><text x="40" y="65" text-anchor="middle" fill="#fecaca" font-size="10">Logs</text><rect x="105" y="30" width="70" height="50" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="140" y="53" text-anchor="middle" fill="#fecaca" font-size="10">World</text><text x="140" y="65" text-anchor="middle" fill="#fecaca" font-size="10">Model</text><rect x="205" y="30" width="70" height="50" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="240" y="58" text-anchor="middle" fill="#fecaca" font-size="11">Agent \u2699</text><line x1="75" y1="55" x2="103" y2="55" stroke="#b91c1c" stroke-width="1.5" marker-end="url(#ah2)"/><text x="89" y="48" text-anchor="middle" fill="#f87171" font-size="9">builds</text><line x1="175" y1="48" x2="203" y2="48" stroke="#b91c1c" stroke-width="1.5" marker-end="url(#ah2)"/><line x1="205" y1="62" x2="177" y2="62" stroke="#b91c1c" stroke-width="1.5" marker-end="url(#ah2)"/><text x="190" y="40" text-anchor="middle" fill="#f87171" font-size="9">RL loop</text></svg>'
+      },
+      'icl': {
+        title: 'Agents that remember and adapt',
+        tech: 'In-Context Learning from Feedback',
+        desc: 'User interactions and corrections feed directly into the agent\u2019s context and memory. Immediate adaptation with no training latency.',
+        requires: 'User feedback or interaction logs.',
+        svg: '<svg viewBox="0 0 280 110" class="w-full max-w-[280px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah3" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#b91c1c"/></marker></defs><rect x="10" y="30" width="70" height="50" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="45" y="58" text-anchor="middle" fill="#fecaca" font-size="11">User</text><rect x="110" y="30" width="70" height="50" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="145" y="58" text-anchor="middle" fill="#fecaca" font-size="11">Memory</text><rect x="210" y="30" width="70" height="50" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="245" y="58" text-anchor="middle" fill="#fecaca" font-size="11">Agent</text><line x1="80" y1="55" x2="108" y2="55" stroke="#b91c1c" stroke-width="1.5" marker-end="url(#ah3)"/><text x="94" y="48" text-anchor="middle" fill="#f87171" font-size="9">feedback</text><line x1="180" y1="55" x2="208" y2="55" stroke="#b91c1c" stroke-width="1.5" marker-end="url(#ah3)"/><text x="194" y="48" text-anchor="middle" fill="#f87171" font-size="9">enriches</text></svg>'
+      },
+      'routing': {
+        title: 'Use cheaper models where possible',
+        tech: 'Intelligent Model Routing',
+        desc: 'Analyse production logs to learn which requests can be handled by cheaper, smaller models without quality loss.',
+        requires: 'Logs of queries and LLM responses.',
+        svg: '<svg viewBox="0 0 280 110" class="w-full max-w-[280px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah4" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#b91c1c"/></marker></defs><rect x="5" y="35" width="70" height="40" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="40" y="59" text-anchor="middle" fill="#fecaca" font-size="11">Request</text><rect x="105" y="35" width="70" height="40" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="140" y="59" text-anchor="middle" fill="#fecaca" font-size="11">Router</text><rect x="205" y="8" width="70" height="36" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="240" y="22" text-anchor="middle" fill="#fecaca" font-size="9">Large</text><text x="240" y="34" text-anchor="middle" fill="#fecaca" font-size="9">Model</text><rect x="205" y="66" width="70" height="36" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="240" y="80" text-anchor="middle" fill="#fecaca" font-size="9">Small</text><text x="240" y="92" text-anchor="middle" fill="#fecaca" font-size="9">Model</text><line x1="75" y1="55" x2="103" y2="55" stroke="#b91c1c" stroke-width="1.5" marker-end="url(#ah4)"/><line x1="175" y1="48" x2="203" y2="30" stroke="#b91c1c" stroke-width="1.5" marker-end="url(#ah4)"/><line x1="175" y1="62" x2="203" y2="80" stroke="#b91c1c" stroke-width="1.5" marker-end="url(#ah4)"/></svg>'
+      },
+      'distill': {
+        title: 'Your own compact expert model',
+        tech: 'Knowledge Distillation',
+        desc: 'Transfer knowledge from large frontier models into compact, locally deployable models. Lower inference cost with full data sovereignty.',
+        requires: 'Logs or question set. Optionally: open-logit LLM.',
+        svg: '<svg viewBox="0 0 280 110" class="w-full max-w-[280px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah5" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#b91c1c"/></marker></defs><rect x="15" y="25" width="100" height="60" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="65" y="53" text-anchor="middle" fill="#fecaca" font-size="10">Frontier</text><text x="65" y="67" text-anchor="middle" fill="#fecaca" font-size="10">Model</text><rect x="175" y="25" width="100" height="60" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="225" y="53" text-anchor="middle" fill="#fecaca" font-size="10">Your</text><text x="225" y="67" text-anchor="middle" fill="#fecaca" font-size="10">Model \u2699</text><line x1="115" y1="55" x2="173" y2="55" stroke="#b91c1c" stroke-width="1.5" marker-end="url(#ah5)"/><text x="145" y="48" text-anchor="middle" fill="#f87171" font-size="8">knowledge transfer</text></svg>'
+      },
+      'local': {
+        title: 'Everything on your infrastructure',
+        tech: 'Local Deployment & Agentic Infrastructure',
+        desc: 'Distilled and RL-trained models run entirely on your infrastructure via MCP tool access.',
+        requires: 'MCP access to your tools and workflows.',
+        svg: '<svg viewBox="0 0 280 110" class="w-full max-w-[280px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah6" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#b91c1c"/></marker></defs><rect x="10" y="8" width="260" height="94" rx="10" fill="none" stroke="#450a0a" stroke-width="1.5" stroke-dasharray="6,3"/><text x="140" y="22" text-anchor="middle" fill="#f87171" font-size="9">Your Infrastructure</text><rect x="35" y="40" width="90" height="50" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="80" y="68" text-anchor="middle" fill="#fecaca" font-size="11">Model \u2699</text><rect x="165" y="40" width="90" height="50" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="210" y="60" text-anchor="middle" fill="#fecaca" font-size="10">Your Tools</text><text x="210" y="74" text-anchor="middle" fill="#fecaca" font-size="10">/ MCP</text><line x1="125" y1="60" x2="163" y2="60" stroke="#b91c1c" stroke-width="1.5" marker-end="url(#ah6)"/><line x1="165" y1="72" x2="127" y2="72" stroke="#b91c1c" stroke-width="1.5" marker-end="url(#ah6)"/></svg>'
+      }
+    };
+
+    var activeMethodId = null;
+
+    function toggleMethod(id) {
+      var panel = document.getElementById('method-detail-panel');
+      var card = document.getElementById('method-' + id);
+
+      // Deselect previous
+      document.querySelectorAll('.method-card.active').forEach(function(c) {
+        c.classList.remove('active');
+      });
+
+      // If clicking same card, close panel
+      if (activeMethodId === id) {
+        panel.classList.remove('open');
+        activeMethodId = null;
+        return;
+      }
+
+      // Populate panel
+      var d = methodData[id];
+      document.getElementById('mdp-title').textContent = d.title;
+      document.getElementById('mdp-techname').textContent = d.tech;
+      document.getElementById('mdp-svg').innerHTML = d.svg;
+      document.getElementById('mdp-desc').textContent = d.desc;
+      document.getElementById('mdp-req-text').textContent = d.requires;
+
+      // Activate
+      card.classList.add('active');
+      panel.classList.add('open');
+      activeMethodId = id;
+
+      // Scroll panel into view
+      setTimeout(function() { panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 50);
+    }
+
+    function closeMethodPanel() {
+      document.getElementById('method-detail-panel').classList.remove('open');
+      document.querySelectorAll('.method-card.active').forEach(function(c) {
+        c.classList.remove('active');
+      });
+      activeMethodId = null;
     }
 
     // Contact form submission
