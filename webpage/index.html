@@ -44,10 +44,17 @@
     #method-detail-panel.open { display: block; }
     .flywheel-arrow { animation: pulse-arrow 2s ease-in-out infinite; }
     @keyframes pulse-arrow { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+    :root { --c-perf: 248,113,113; --c-cost: 251,191,36; --c-priv: 52,211,153; }
     .benefit-tag { font-size: 0.65rem; padding: 2px 8px; border-radius: 9999px; }
-    .tag-perf { background: rgba(248,113,113,0.12); color: #f87171; border: 1px solid rgba(248,113,113,0.3); }
-    .tag-cost { background: rgba(251,191,36,0.1); color: #fbbf24; border: 1px solid rgba(251,191,36,0.25); }
-    .tag-priv { background: rgba(52,211,153,0.1); color: #34d399; border: 1px solid rgba(52,211,153,0.25); }
+    .tag-perf { background: rgba(var(--c-perf),0.12); color: rgb(var(--c-perf)); border: 1px solid rgba(var(--c-perf),0.3); }
+    .tag-cost { background: rgba(var(--c-cost),0.1); color: rgb(var(--c-cost)); border: 1px solid rgba(var(--c-cost),0.25); }
+    .tag-priv { background: rgba(var(--c-priv),0.1); color: rgb(var(--c-priv)); border: 1px solid rgba(var(--c-priv),0.25); }
+    .card-perf { border: 1px solid rgba(var(--c-perf),0.2); }
+    .card-perf h3, .card-perf svg { color: rgb(var(--c-perf)); stroke: rgb(var(--c-perf)); }
+    .card-cost { border: 1px solid rgba(var(--c-cost),0.2); }
+    .card-cost h3, .card-cost svg { color: rgb(var(--c-cost)); stroke: rgb(var(--c-cost)); }
+    .card-priv { border: 1px solid rgba(var(--c-priv),0.2); }
+    .card-priv h3, .card-priv svg { color: rgb(var(--c-priv)); stroke: rgb(var(--c-priv)); }
     input, textarea, select { color-scheme: dark; }
   </style>
 </head>
@@ -94,7 +101,7 @@
             AI agents that get<br><span class="text-red-100">better every day</span>
           </h1>
           <p class="mt-8 text-lg md:text-xl text-red-100/70 max-w-2xl mx-auto leading-relaxed">
-            We are a research lab building the methods that make AI agents learn from their own experience &mdash; improving performance, cutting cost, and enabling full data privacy.
+            We are a research lab building the methods that make AI agents learn from their own experience - improving performance, cutting cost, and enabling full data privacy.
           </p>
           <div class="mt-12 flex flex-wrap gap-4 justify-center">
             <a href="#offering" class="px-8 py-3 bg-ag-500 hover:bg-ag-400 text-white font-medium rounded-lg transition">Our Offering</a>
@@ -113,19 +120,19 @@
         <h2 class="text-3xl md:text-4xl font-bold text-center mb-4 text-white">AI agents hit a wall before becoming productive</h2>
         <p class="text-red-100/60 text-center mb-16 max-w-2xl mx-auto">Unreliable performance, sensitive data concerns, rising model costs. We solve all three.</p>
         <div class="grid md:grid-cols-3 gap-8">
-          <div class="bg-ag-900/60 border border-red-500/20 rounded-xl p-8 text-center">
-            <div class="mb-4"><img src="logo.svg" alt="" class="h-10 w-auto mx-auto opacity-60" style="filter: brightness(0) saturate(100%) invert(47%) sepia(82%) saturate(2878%) hue-rotate(335deg) brightness(95%) contrast(90%);"></div>
-            <h3 class="text-2xl font-bold text-red-400 mb-3">Performance</h3>
+          <div class="bg-ag-900/60 card-perf rounded-xl p-8 text-center">
+            <div class="mb-4 flex justify-center"><svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg></div>
+            <h3 class="text-2xl font-bold mb-3">Performance</h3>
             <p class="text-red-100/60 text-sm leading-relaxed">Higher success rates, fewer human escalations, better decision quality</p>
           </div>
-          <div class="bg-ag-900/60 border border-amber-500/20 rounded-xl p-8 text-center">
-            <div class="mb-4"><img src="logo.svg" alt="" class="h-10 w-auto mx-auto opacity-60" style="filter: brightness(0) saturate(100%) invert(78%) sepia(60%) saturate(500%) hue-rotate(5deg) brightness(100%) contrast(95%);"></div>
-            <h3 class="text-2xl font-bold text-amber-400 mb-3">Cost Reduction</h3>
+          <div class="bg-ag-900/60 card-cost rounded-xl p-8 text-center">
+            <div class="mb-4 flex justify-center"><svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg></div>
+            <h3 class="text-2xl font-bold mb-3">Cost Reduction</h3>
             <p class="text-red-100/60 text-sm leading-relaxed">Intelligent model routing and small model distillation. Lower cost per request, lower latency</p>
           </div>
-          <div class="bg-ag-900/60 border border-emerald-500/20 rounded-xl p-8 text-center">
-            <div class="mb-4"><img src="logo.svg" alt="" class="h-10 w-auto mx-auto opacity-60" style="filter: brightness(0) saturate(100%) invert(68%) sepia(30%) saturate(900%) hue-rotate(100deg) brightness(95%) contrast(90%);"></div>
-            <h3 class="text-2xl font-bold text-emerald-400 mb-3">Privacy</h3>
+          <div class="bg-ag-900/60 card-priv rounded-xl p-8 text-center">
+            <div class="mb-4 flex justify-center"><svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+            <h3 class="text-2xl font-bold mb-3">Privacy</h3>
             <p class="text-red-100/60 text-sm leading-relaxed">Data never leaves your organisation. Vendor independence and regulatory compliance</p>
           </div>
         </div>
@@ -174,19 +181,19 @@
 
         <!-- Problem cards -->
         <div class="grid md:grid-cols-3 gap-8 mb-20">
-          <div class="bg-ag-900/60 border border-red-500/20 rounded-xl p-8 text-center">
-            <div class="mb-4"><img src="logo.svg" alt="" class="h-10 w-auto mx-auto opacity-60" style="filter: brightness(0) saturate(100%) invert(47%) sepia(82%) saturate(2878%) hue-rotate(335deg) brightness(95%) contrast(90%);"></div>
-            <h3 class="text-2xl font-bold text-red-400 mb-3">&ldquo;My agents aren&rsquo;t reliable enough&rdquo;</h3>
-            <p class="text-red-100/60 text-sm">Wrong decisions, constant escalations, inconsistent quality. They should be getting better &mdash; not staying stuck.</p>
+          <div class="bg-ag-900/60 card-perf rounded-xl p-8 text-center">
+            <div class="mb-4 flex justify-center"><svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg></div>
+            <h3 class="text-2xl font-bold mb-3">&ldquo;My agents aren&rsquo;t reliable enough&rdquo;</h3>
+            <p class="text-red-100/60 text-sm">Wrong decisions, constant escalations, inconsistent quality. They should be getting better - not staying stuck.</p>
           </div>
-          <div class="bg-ag-900/60 border border-amber-500/20 rounded-xl p-8 text-center">
-            <div class="mb-4"><img src="logo.svg" alt="" class="h-10 w-auto mx-auto opacity-60" style="filter: brightness(0) saturate(100%) invert(78%) sepia(60%) saturate(500%) hue-rotate(5deg) brightness(100%) contrast(95%);"></div>
-            <h3 class="text-2xl font-bold text-amber-400 mb-3">&ldquo;My AI costs keep growing&rdquo;</h3>
-            <p class="text-red-100/60 text-sm">Expensive API calls, oversized models for simple tasks. Scaling up means paying more &mdash; with no efficiency gains.</p>
+          <div class="bg-ag-900/60 card-cost rounded-xl p-8 text-center">
+            <div class="mb-4 flex justify-center"><svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg></div>
+            <h3 class="text-2xl font-bold mb-3">&ldquo;My AI costs keep growing&rdquo;</h3>
+            <p class="text-red-100/60 text-sm">Expensive API calls, oversized models for simple tasks. Scaling up means paying more - with no efficiency gains.</p>
           </div>
-          <div class="bg-ag-900/60 border border-emerald-500/20 rounded-xl p-8 text-center">
-            <div class="mb-4"><img src="logo.svg" alt="" class="h-10 w-auto mx-auto opacity-60" style="filter: brightness(0) saturate(100%) invert(68%) sepia(30%) saturate(900%) hue-rotate(100deg) brightness(95%) contrast(90%);"></div>
-            <h3 class="text-2xl font-bold text-emerald-400 mb-3">&ldquo;I can&rsquo;t use external AI APIs&rdquo;</h3>
+          <div class="bg-ag-900/60 card-priv rounded-xl p-8 text-center">
+            <div class="mb-4 flex justify-center"><svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+            <h3 class="text-2xl font-bold mb-3">&ldquo;I can&rsquo;t use external AI APIs&rdquo;</h3>
             <p class="text-red-100/60 text-sm">Sensitive data, regulatory requirements, vendor lock-in. You need AI that runs in-house.</p>
           </div>
         </div>
@@ -206,7 +213,7 @@
               <span class="benefit-tag tag-cost">&#x2193; Cost</span>
               <span class="benefit-tag tag-priv"><svg class="inline-block w-[1em] h-[1em]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Privacy</span>
             </div>
-            <p class="text-red-100/60 text-sm leading-relaxed">Your agent practices in a real or simulated environment &mdash; improving with every iteration.</p>
+            <p class="text-red-100/60 text-sm leading-relaxed">Your agent practices in a real or simulated environment - improving with every iteration.</p>
           </div>
 
           <!-- Card 2: Dyna-Style RL -->
@@ -232,7 +239,7 @@
             <div class="flex flex-wrap gap-1.5 mb-2">
               <span class="benefit-tag tag-perf">&#x2191; Performance</span>
             </div>
-            <p class="text-red-100/60 text-sm leading-relaxed">User corrections and system feedback flow into the agent&rsquo;s memory &mdash; immediate improvement, no retraining.</p>
+            <p class="text-red-100/60 text-sm leading-relaxed">User corrections and system feedback flow into the agent&rsquo;s memory - immediate improvement, no retraining.</p>
           </div>
 
           <!-- Card 4: Intelligent Model Routing -->
@@ -308,7 +315,7 @@
             <div class="text-center">
               <div class="w-12 h-12 rounded-full bg-ag-800 border border-ag-700 flex items-center justify-center mx-auto mb-4 text-ag-200 font-mono font-bold">3</div>
               <h4 class="font-semibold mb-2 text-white">Train</h4>
-              <p class="text-red-100/40 text-sm">RL, distillation, or routing &mdash; whichever fits</p>
+              <p class="text-red-100/40 text-sm">RL, distillation, or routing - whichever fits</p>
             </div>
             <div class="text-center">
               <div class="w-12 h-12 rounded-full bg-ag-800 border border-ag-700 flex items-center justify-center mx-auto mb-4 text-ag-200 font-mono font-bold">4</div>
@@ -342,7 +349,7 @@
           </div>
           <h3 class="text-2xl font-semibold mb-4 text-white">RL Post-Trained Medical Model with German University Hospital</h3>
           <p class="text-red-100/60 leading-relaxed mb-6">
-            We applied reinforcement learning post-training to a Qwen2.5-7B model on medical decision-making tasks in collaboration with a large German university hospital. The RL-trained model achieved a <strong class="text-ag-200">+30% improvement over o4-mini</strong> on clinical benchmarks &mdash; demonstrating that small, specialised models can outperform much larger general-purpose models when trained with the right methodology.
+            We applied reinforcement learning post-training to a Qwen2.5-7B model on medical decision-making tasks in collaboration with a large German university hospital. The RL-trained model achieved a <strong class="text-ag-200">+30% improvement over o4-mini</strong> on clinical benchmarks - demonstrating that small, specialised models can outperform much larger general-purpose models when trained with the right methodology.
           </p>
           <div class="flex flex-wrap gap-2">
             <span class="text-xs bg-ag-800/80 text-red-100 px-3 py-1 rounded-full">Qwen2.5-7B</span>
