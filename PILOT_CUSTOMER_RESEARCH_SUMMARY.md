@@ -92,22 +92,22 @@
 ### For RL as a Service
 
 **Insurance Companies (Zurich, Munich Re, Allianz, Liberty Mutual):**
-- "Your claims processing involves sequential decisions—approve, deny, request more info. RL optimizes this decision tree in real-time."
+- "Your claims processing involves sequential decisions-approve, deny, request more info. RL optimizes this decision tree in real-time."
 - "Premium pricing is a continuous optimization problem. RL can learn optimal pricing strategies from your historical claims data."
 - "Underwriting involves trade-offs between risk and revenue. RL finds the optimal balance dynamically."
 
 **Logistics Companies (Kuehne+Nagel, Deutsche Bahn, Samsara, Geotab):**
-- "Your routing decisions have long-term consequences—traffic, weather, driver fatigue. RL optimizes for total journey efficiency, not just next-hop."
+- "Your routing decisions have long-term consequences-traffic, weather, driver fatigue. RL optimizes for total journey efficiency, not just next-hop."
 - "Warehouse automation isn't just about picking items; it's about learning optimal sequences. RL reduces total fulfillment time."
 - "Fleet maintenance is a resource allocation problem. RL schedules maintenance to minimize downtime while maximizing vehicle lifespan."
 
 **Healthcare/MedTech (Dexcom, Insulet, Tandem, Novo Nordisk):**
 - "Glucose control is a continuous decision problem. RL learns personalized insulin delivery strategies for each patient."
 - "Drug discovery involves exploring vast molecular spaces. RL guides search toward promising candidates faster than exhaustive search."
-- "Clinical trial design is sequential—choose sites, enroll patients, adjust protocols. RL optimizes these decisions in real-time."
+- "Clinical trial design is sequential-choose sites, enroll patients, adjust protocols. RL optimizes these decisions in real-time."
 
 **Financial Services (Equifax, LendingClub, Affirm, Stripe):**
-- "Credit decisions aren't binary—approve/deny. RL can learn nuanced strategies: what interest rate, what credit limit, what terms?"
+- "Credit decisions aren't binary-approve/deny. RL can learn nuanced strategies: what interest rate, what credit limit, what terms?"
 - "Fraud detection is an adversarial game. RL adapts to evolving fraud patterns faster than static models."
 - "Trading isn't just prediction; it's action. RL learns optimal execution strategies to minimize market impact."
 
@@ -153,7 +153,7 @@
 - Underwriting involves complex trade-offs
 
 **Aganthos Value:**
-- RL for claims routing: "Approve", "Deny", "Request More Info"—learns optimal sequence
+- RL for claims routing: "Approve", "Deny", "Request More Info"-learns optimal sequence
 - Model distillation for mobile claims apps (agents in the field)
 - Continuous retraining on new claim patterns (fraud evolves)
 - Healthy margins: Claims automation saves $50-$200 per claim
@@ -177,7 +177,7 @@
 - Healthy margins: 5-15% reduction in fuel costs, 10-20% faster deliveries
 
 **Proof Points:**
-- "Kuehne+Nagel won awards for AI programs, but logistics RL requires specialized expertise—that's where we come in."
+- "Kuehne+Nagel won awards for AI programs, but logistics RL requires specialized expertise-that's where we come in."
 - "Your routing decisions have delayed consequences. RL learns to optimize total journey time, not just next hop."
 
 ### Healthcare & MedTech
@@ -214,7 +214,7 @@
 
 **Proof Points:**
 - "LendingClub has 4.8M members. Continuous retraining ensures your models stay fresh as member behavior evolves."
-- "Credit decisions aren't binary. RL learns: what rate? what limit? what terms?—to maximize revenue while minimizing risk."
+- "Credit decisions aren't binary. RL learns: what rate? what limit? what terms?-to maximize revenue while minimizing risk."
 
 ### Retail & E-Commerce
 
@@ -243,7 +243,7 @@
 **Tier 1 Targets (25 companies - HIGH priority):**
 - Send personalized LinkedIn connection requests
 - Mention specific company AI initiatives (see "Why Good Fit" column in Excel)
-- Offer value: "Noticed you launched AI Lab in October—would love to share our approach to continuous RL..."
+- Offer value: "Noticed you launched AI Lab in October-would love to share our approach to continuous RL..."
 
 **Expected Response Rate:** 30-40% (7-10 meetings from 25 contacts)
 
@@ -304,13 +304,13 @@ Aganthos - Learning from Experience Lab
 
 **Response:**
 - "That's great! Most of our clients have ML teams too. But RL and continuous learning infrastructure is specialized. Your team can focus on domain-specific models while we provide the underlying RL training platform."
-- "How many RL specialists do you have? Most companies have 0-2. We have a team dedicated to RL research—it's more cost-effective to partner."
+- "How many RL specialists do you have? Most companies have 0-2. We have a team dedicated to RL research-it's more cost-effective to partner."
 - "In-house teams often struggle with continuous retraining at scale. We've built infrastructure to handle this automatically."
 
 ### "We're already using [OpenAI/Anthropic/Google]"
 
 **Response:**
-- "Perfect! You're already paying for API calls. Our service distills those models into efficient versions you can run in-house—cutting costs by 90%."
+- "Perfect! You're already paying for API calls. Our service distills those models into efficient versions you can run in-house-cutting costs by 90%."
 - "API calls are expensive at scale. How much are you spending monthly? We can replace high-volume endpoints with distilled models."
 - "Those APIs don't learn from your data. We provide continuous retraining so your models improve over time with your specific use cases."
 
@@ -319,7 +319,7 @@ Aganthos - Learning from Experience Lab
 **Response:**
 - "RL is mature in specific domains: recommendation systems (YouTube, Netflix), robotics (Tesla Autopilot), game AI (AlphaGo). We focus on proven use cases."
 - "We've deployed RL in production for healthcare decision-making. Our approach includes safety constraints and continuous validation."
-- "We provide A/B testing frameworks to validate RL performance before full deployment—no 'big bang' rollout."
+- "We provide A/B testing frameworks to validate RL performance before full deployment-no 'big bang' rollout."
 
 ### "Too expensive"
 
@@ -530,7 +530,7 @@ Aganthos - Learning from Experience Lab
 2. **Industry Specialization:** Become known as "the RL company for insurance" or "the distillation experts for MedTech."
 3. **Case Studies:** Every pilot should produce a publishable case study (with customer permission).
 4. **Pricing Flexibility:** Small companies can't afford $500K pilots. Offer $50K entry points.
-5. **Technical Credibility:** Founder's RL expertise is the biggest asset—leverage it in every conversation.
+5. **Technical Credibility:** Founder's RL expertise is the biggest asset-leverage it in every conversation.
 
 ---
 
