@@ -18,9 +18,9 @@
         extend: {
           colors: {
             ag: {
-              950: '#FDF8F0', 900: '#FFFFFF', 800: '#f0e6d6', 700: '#d4c4b0',
-              600: '#780000', 500: '#C1121F', 400: '#a00e19', 300: '#780000',
-              200: '#780000', 100: '#2A1410', 50: '#3B0A0A',
+              950: '#FAF9F0', 900: '#FFFFFF', 800: '#F4F3EE', 700: '#B1ADA1',
+              600: '#C15F3C', 500: '#D97757', 400: '#BF5A3A', 300: '#C15F3C',
+              200: '#C15F3C', 100: '#131314', 50: '#131314',
             }
           }
         }
@@ -29,15 +29,15 @@
   </script>
   <style>
     html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; scroll-behavior: smooth; }
-    body { background: #FDF8F0; }
+    body { background: #FAF9F0; }
     .page { display: none; }
     .page.active { display: block; }
     .nav-link { transition: color 0.2s, border-color 0.2s; }
-    .nav-link:hover, .nav-link.active { color: #C1121F; border-color: #C1121F; }
+    .nav-link:hover, .nav-link.active { color: #D97757; border-color: #D97757; }
     .mode-card { transition: transform 0.2s, box-shadow 0.2s; }
-    .mode-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(120,0,0,0.08); }
+    .mode-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(217,119,87,0.12); }
     .method-card { cursor: pointer; }
-    .method-card.active { border-color: #C1121F; box-shadow: 0 0 0 1px #C1121F; }
+    .method-card.active { border-color: #D97757; box-shadow: 0 0 0 1px #D97757; }
     .method-chevron { transition: transform 0.2s; display: inline-block; }
     .method-card.active .method-chevron { transform: rotate(90deg); }
     #method-detail-panel { display: none; }
@@ -57,42 +57,42 @@
     .card-priv h3, .card-priv svg { color: rgb(var(--c-priv)); stroke: rgb(var(--c-priv)); }
     .challenge-cards .card-perf,
     .challenge-cards .card-cost,
-    .challenge-cards .card-priv { border: 1px solid rgba(193,18,31,0.15); }
-    .challenge-cards .card-perf h3, .challenge-cards .card-cost h3, .challenge-cards .card-priv h3 { color: #780000; }
-    .challenge-cards .card-perf svg, .challenge-cards .card-cost svg, .challenge-cards .card-priv svg { stroke: #C1121F; }
+    .challenge-cards .card-priv { border: 1px solid rgba(193,95,60,0.15); }
+    .challenge-cards .card-perf h3, .challenge-cards .card-cost h3, .challenge-cards .card-priv h3 { color: #C15F3C; }
+    .challenge-cards .card-perf svg, .challenge-cards .card-cost svg, .challenge-cards .card-priv svg { stroke: #D97757; }
     input, textarea, select { color-scheme: light; }
-    /* Cream theme overrides */
-    .text-white { color: #3B0A0A !important; }
-    .text-red-100 { color: #780000 !important; }
-    .text-red-100\/60, [class*="text-red-100\/6"] { color: rgba(42,20,16,0.6) !important; }
-    .text-red-100\/70, [class*="text-red-100\/7"] { color: rgba(42,20,16,0.65) !important; }
-    .text-red-100\/40, [class*="text-red-100\/4"] { color: rgba(42,20,16,0.4) !important; }
-    .text-red-200\/30, [class*="text-red-200\/3"] { color: rgba(42,20,16,0.3) !important; }
-    .text-red-200\/40, [class*="text-red-200\/4"] { color: rgba(42,20,16,0.35) !important; }
-    [class*="text-red-300\/"] { color: rgba(42,20,16,0.25) !important; }
-    .text-red-400 { color: #C1121F !important; }
-    nav { background: rgba(253,248,240,0.95) !important; border-bottom-color: rgba(120,0,0,0.1) !important; }
-    #mobile-menu { background: rgba(253,248,240,0.98) !important; border-top-color: rgba(120,0,0,0.1) !important; }
+    /* Claude theme overrides */
+    .text-white { color: #131314 !important; }
+    .text-red-100 { color: #C15F3C !important; }
+    .text-red-100\/60, [class*="text-red-100\/6"] { color: rgba(19,19,20,0.6) !important; }
+    .text-red-100\/70, [class*="text-red-100\/7"] { color: rgba(19,19,20,0.65) !important; }
+    .text-red-100\/40, [class*="text-red-100\/4"] { color: rgba(19,19,20,0.4) !important; }
+    .text-red-200\/30, [class*="text-red-200\/3"] { color: rgba(19,19,20,0.3) !important; }
+    .text-red-200\/40, [class*="text-red-200\/4"] { color: rgba(19,19,20,0.35) !important; }
+    [class*="text-red-300\/"] { color: rgba(19,19,20,0.25) !important; }
+    .text-red-400 { color: #D97757 !important; }
+    nav { background: rgba(250,249,240,0.95) !important; border-bottom-color: rgba(177,173,161,0.3) !important; }
+    #mobile-menu { background: rgba(250,249,240,0.98) !important; border-top-color: rgba(177,173,161,0.3) !important; }
     [class*="bg-ag-900\/"] { background: rgba(255,255,255,0.7) !important; }
-    [class*="bg-ag-800\/"] { background: rgba(120,0,0,0.04) !important; }
-    [class*="border-ag-800\/"], [class*="border-ag-700\/"] { border-color: rgba(120,0,0,0.1) !important; }
-    [class*="ring-red-500\/"] { --tw-ring-color: rgba(193,18,31,0.15) !important; }
-    [class*="bg-ag-400\/"] { background: rgba(193,18,31,0.08) !important; }
-    [class*="border-ag-500\/"] { border-color: rgba(193,18,31,0.2) !important; }
-    .bg-ag-500 { background: #C1121F !important; }
-    .bg-ag-500:hover, .hover\:bg-ag-400:hover { background: #a00e19 !important; }
-    .hover\:bg-ag-300:hover { background: #8a0c16 !important; }
-    [class*="border-ag-600"] { border-color: rgba(120,0,0,0.25) !important; }
-    [class*="hover\:border-ag-400"]:hover { border-color: #C1121F !important; }
-    [class*="focus\:border-ag-400"] { border-color: #C1121F !important; }
-    input, textarea { background: rgba(253,248,240,0.8) !important; border-color: rgba(120,0,0,0.15) !important; color: #2A1410 !important; }
-    input::placeholder, textarea::placeholder { color: rgba(42,20,16,0.35) !important; }
-    #method-detail-panel { background: rgba(255,255,255,0.9) !important; border-color: rgba(120,0,0,0.1) !important; }
-    footer { color: rgba(42,20,16,0.3) !important; }
-    [id*="legal-"] { background: rgba(255,255,255,0.5) !important; border-color: rgba(120,0,0,0.08) !important; }
+    [class*="bg-ag-800\/"] { background: rgba(217,119,87,0.04) !important; }
+    [class*="border-ag-800\/"], [class*="border-ag-700\/"] { border-color: rgba(177,173,161,0.25) !important; }
+    [class*="ring-red-500\/"] { --tw-ring-color: rgba(217,119,87,0.2) !important; }
+    [class*="bg-ag-400\/"] { background: rgba(217,119,87,0.08) !important; }
+    [class*="border-ag-500\/"] { border-color: rgba(217,119,87,0.25) !important; }
+    .bg-ag-500 { background: #D97757 !important; }
+    .bg-ag-500:hover, .hover\:bg-ag-400:hover { background: #BF5A3A !important; }
+    .hover\:bg-ag-300:hover { background: #A84E33 !important; }
+    [class*="border-ag-600"] { border-color: rgba(193,95,60,0.3) !important; }
+    [class*="hover\:border-ag-400"]:hover { border-color: #D97757 !important; }
+    [class*="focus\:border-ag-400"] { border-color: #D97757 !important; }
+    input, textarea { background: rgba(250,249,240,0.8) !important; border-color: rgba(177,173,161,0.3) !important; color: #131314 !important; }
+    input::placeholder, textarea::placeholder { color: rgba(19,19,20,0.35) !important; }
+    #method-detail-panel { background: rgba(255,255,255,0.9) !important; border-color: rgba(177,173,161,0.25) !important; }
+    footer { color: rgba(19,19,20,0.3) !important; }
+    [id*="legal-"] { background: rgba(255,255,255,0.5) !important; border-color: rgba(177,173,161,0.15) !important; }
   </style>
 </head>
-<body class="min-h-screen" style="color: #2A1410;">
+<body class="min-h-screen" style="color: #131314;">
 
   <!-- Navigation -->
   <nav class="fixed top-0 w-full z-50 bg-ag-950/90 backdrop-blur border-b border-ag-800/50">
@@ -127,8 +127,8 @@
     <div id="page-home" class="page active">
 
       <section class="relative min-h-[90vh] flex items-center justify-center px-6 overflow-hidden">
-        <div class="absolute inset-0 bg-[radial-gradient(60%_40%_at_50%_-10%,rgba(120,0,0,0.06),transparent)]"></div>
-        <div class="absolute inset-0 bg-[radial-gradient(40%_30%_at_80%_120%,rgba(0,48,73,0.04),transparent)]"></div>
+        <div class="absolute inset-0 bg-[radial-gradient(60%_40%_at_50%_-10%,rgba(217,119,87,0.08),transparent)]"></div>
+        <div class="absolute inset-0 bg-[radial-gradient(40%_30%_at_80%_120%,rgba(177,173,161,0.06),transparent)]"></div>
         <div class="relative max-w-4xl text-center">
           <p class="text-ag-200 text-sm font-mono tracking-widest uppercase mb-6">Research Lab</p>
           <h1 class="text-5xl md:text-7xl font-bold leading-tight text-white">
@@ -569,42 +569,42 @@
         tech: 'Reinforcement Learning on Environments',
         desc: 'When a training environment or simulator is available, we apply RL directly. The agent explores, gets rewards, and improves through trial and error.',
         requires: 'Training environment or simulator.',
-        svg: '<svg viewBox="0 0 280 110" class="w-full max-w-[280px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah1" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#b91c1c"/></marker></defs><rect x="10" y="30" width="80" height="50" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="50" y="58" text-anchor="middle" fill="#fecaca" font-size="11">Agent \u2699</text><rect x="190" y="30" width="80" height="50" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="230" y="58" text-anchor="middle" fill="#fecaca" font-size="11">Environment</text><line x1="90" y1="45" x2="188" y2="45" stroke="#b91c1c" stroke-width="1.5" marker-end="url(#ah1)"/><text x="140" y="40" text-anchor="middle" fill="#f87171" font-size="9">action</text><line x1="190" y1="65" x2="92" y2="65" stroke="#b91c1c" stroke-width="1.5" marker-end="url(#ah1)"/><text x="140" y="78" text-anchor="middle" fill="#f87171" font-size="9">reward</text></svg>'
+        svg: '<svg viewBox="0 0 280 110" class="w-full max-w-[280px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah1" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#D97757"/></marker></defs><rect x="10" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="50" y="58" text-anchor="middle" fill="#131314" font-size="11">Agent \u2699</text><rect x="190" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="230" y="58" text-anchor="middle" fill="#131314" font-size="11">Environment</text><line x1="90" y1="45" x2="188" y2="45" stroke="#D97757" stroke-width="1.5" marker-end="url(#ah1)"/><text x="140" y="40" text-anchor="middle" fill="#C15F3C" font-size="9">action</text><line x1="190" y1="65" x2="92" y2="65" stroke="#D97757" stroke-width="1.5" marker-end="url(#ah1)"/><text x="140" y="78" text-anchor="middle" fill="#C15F3C" font-size="9">reward</text></svg>'
       },
       'dyna': {
         title: 'Learn from your existing logs',
         tech: 'Dyna-Style RL with Learned World Models',
         desc: 'We learn a world model from your tool-call traces, then train via RL inside it. Full RL gains without a pre-built environment.',
         requires: 'Logs of queries, tool inputs & responses.',
-        svg: '<svg viewBox="0 0 360 110" class="w-full max-w-[360px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#b91c1c"/></marker></defs><rect x="5" y="30" width="80" height="50" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="45" y="53" text-anchor="middle" fill="#fecaca" font-size="10">Your</text><text x="45" y="65" text-anchor="middle" fill="#fecaca" font-size="10">Logs</text><rect x="140" y="30" width="80" height="50" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="180" y="53" text-anchor="middle" fill="#fecaca" font-size="10">World</text><text x="180" y="65" text-anchor="middle" fill="#fecaca" font-size="10">Model</text><rect x="275" y="30" width="80" height="50" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="315" y="58" text-anchor="middle" fill="#fecaca" font-size="11">Agent \u2699</text><line x1="85" y1="55" x2="138" y2="55" stroke="#b91c1c" stroke-width="1.5" marker-end="url(#ah2)"/><text x="112" y="48" text-anchor="middle" fill="#f87171" font-size="9">builds</text><line x1="220" y1="48" x2="273" y2="48" stroke="#b91c1c" stroke-width="1.5" marker-end="url(#ah2)"/><line x1="275" y1="62" x2="222" y2="62" stroke="#b91c1c" stroke-width="1.5" marker-end="url(#ah2)"/><text x="248" y="40" text-anchor="middle" fill="#f87171" font-size="9">RL loop</text></svg>'
+        svg: '<svg viewBox="0 0 360 110" class="w-full max-w-[360px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#D97757"/></marker></defs><rect x="5" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="45" y="53" text-anchor="middle" fill="#131314" font-size="10">Your</text><text x="45" y="65" text-anchor="middle" fill="#131314" font-size="10">Logs</text><rect x="140" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="180" y="53" text-anchor="middle" fill="#131314" font-size="10">World</text><text x="180" y="65" text-anchor="middle" fill="#131314" font-size="10">Model</text><rect x="275" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="315" y="58" text-anchor="middle" fill="#131314" font-size="11">Agent \u2699</text><line x1="85" y1="55" x2="138" y2="55" stroke="#D97757" stroke-width="1.5" marker-end="url(#ah2)"/><text x="112" y="48" text-anchor="middle" fill="#C15F3C" font-size="9">builds</text><line x1="220" y1="48" x2="273" y2="48" stroke="#D97757" stroke-width="1.5" marker-end="url(#ah2)"/><line x1="275" y1="62" x2="222" y2="62" stroke="#D97757" stroke-width="1.5" marker-end="url(#ah2)"/><text x="248" y="40" text-anchor="middle" fill="#C15F3C" font-size="9">RL loop</text></svg>'
       },
       'icl': {
         title: 'Agents that remember and adapt',
         tech: 'In-Context Learning from Feedback',
         desc: 'User interactions and corrections feed directly into the agent\u2019s context and memory. Immediate adaptation with no training latency.',
         requires: 'User feedback or interaction logs.',
-        svg: '<svg viewBox="0 0 360 110" class="w-full max-w-[360px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah3" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#b91c1c"/></marker></defs><rect x="5" y="30" width="80" height="50" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="45" y="58" text-anchor="middle" fill="#fecaca" font-size="11">User</text><rect x="140" y="30" width="80" height="50" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="180" y="58" text-anchor="middle" fill="#fecaca" font-size="11">Memory</text><rect x="275" y="30" width="80" height="50" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="315" y="58" text-anchor="middle" fill="#fecaca" font-size="11">Agent</text><line x1="85" y1="55" x2="138" y2="55" stroke="#b91c1c" stroke-width="1.5" marker-end="url(#ah3)"/><text x="112" y="48" text-anchor="middle" fill="#f87171" font-size="9">feedback</text><line x1="220" y1="55" x2="273" y2="55" stroke="#b91c1c" stroke-width="1.5" marker-end="url(#ah3)"/><text x="247" y="48" text-anchor="middle" fill="#f87171" font-size="9">enriches</text></svg>'
+        svg: '<svg viewBox="0 0 360 110" class="w-full max-w-[360px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah3" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#D97757"/></marker></defs><rect x="5" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="45" y="58" text-anchor="middle" fill="#131314" font-size="11">User</text><rect x="140" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="180" y="58" text-anchor="middle" fill="#131314" font-size="11">Memory</text><rect x="275" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="315" y="58" text-anchor="middle" fill="#131314" font-size="11">Agent</text><line x1="85" y1="55" x2="138" y2="55" stroke="#D97757" stroke-width="1.5" marker-end="url(#ah3)"/><text x="112" y="48" text-anchor="middle" fill="#C15F3C" font-size="9">feedback</text><line x1="220" y1="55" x2="273" y2="55" stroke="#D97757" stroke-width="1.5" marker-end="url(#ah3)"/><text x="247" y="48" text-anchor="middle" fill="#C15F3C" font-size="9">enriches</text></svg>'
       },
       'routing': {
         title: 'Use cheaper models where possible',
         tech: 'Intelligent Model Routing',
         desc: 'Analyse production logs to learn which requests can be handled by cheaper, smaller models without quality loss.',
         requires: 'Logs of queries and LLM responses.',
-        svg: '<svg viewBox="0 0 280 110" class="w-full max-w-[280px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah4" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#b91c1c"/></marker></defs><rect x="5" y="35" width="70" height="40" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="40" y="59" text-anchor="middle" fill="#fecaca" font-size="11">Request</text><rect x="105" y="35" width="70" height="40" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="140" y="59" text-anchor="middle" fill="#fecaca" font-size="11">Router</text><rect x="205" y="8" width="70" height="36" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="240" y="22" text-anchor="middle" fill="#fecaca" font-size="9">Large</text><text x="240" y="34" text-anchor="middle" fill="#fecaca" font-size="9">Model</text><rect x="205" y="66" width="70" height="36" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="240" y="80" text-anchor="middle" fill="#fecaca" font-size="9">Small</text><text x="240" y="92" text-anchor="middle" fill="#fecaca" font-size="9">Model</text><line x1="75" y1="55" x2="103" y2="55" stroke="#b91c1c" stroke-width="1.5" marker-end="url(#ah4)"/><line x1="175" y1="48" x2="203" y2="30" stroke="#b91c1c" stroke-width="1.5" marker-end="url(#ah4)"/><line x1="175" y1="62" x2="203" y2="80" stroke="#b91c1c" stroke-width="1.5" marker-end="url(#ah4)"/></svg>'
+        svg: '<svg viewBox="0 0 280 110" class="w-full max-w-[280px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah4" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#D97757"/></marker></defs><rect x="5" y="35" width="70" height="40" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="40" y="59" text-anchor="middle" fill="#131314" font-size="11">Request</text><rect x="105" y="35" width="70" height="40" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="140" y="59" text-anchor="middle" fill="#131314" font-size="11">Router</text><rect x="205" y="8" width="70" height="36" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="240" y="22" text-anchor="middle" fill="#131314" font-size="9">Large</text><text x="240" y="34" text-anchor="middle" fill="#131314" font-size="9">Model</text><rect x="205" y="66" width="70" height="36" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="240" y="80" text-anchor="middle" fill="#131314" font-size="9">Small</text><text x="240" y="92" text-anchor="middle" fill="#131314" font-size="9">Model</text><line x1="75" y1="55" x2="103" y2="55" stroke="#D97757" stroke-width="1.5" marker-end="url(#ah4)"/><line x1="175" y1="48" x2="203" y2="30" stroke="#D97757" stroke-width="1.5" marker-end="url(#ah4)"/><line x1="175" y1="62" x2="203" y2="80" stroke="#D97757" stroke-width="1.5" marker-end="url(#ah4)"/></svg>'
       },
       'distill': {
         title: 'Your own compact expert model',
         tech: 'Knowledge Distillation',
         desc: 'Transfer knowledge from large frontier models into compact, locally deployable models. Lower inference cost with full data sovereignty.',
         requires: 'Logs or question set. Optionally: open-logit LLM.',
-        svg: '<svg viewBox="0 0 360 110" class="w-full max-w-[360px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah5" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#b91c1c"/></marker></defs><rect x="10" y="25" width="100" height="60" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="60" y="53" text-anchor="middle" fill="#fecaca" font-size="10">Frontier</text><text x="60" y="67" text-anchor="middle" fill="#fecaca" font-size="10">Model</text><rect x="250" y="25" width="100" height="60" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="300" y="53" text-anchor="middle" fill="#fecaca" font-size="10">Your</text><text x="300" y="67" text-anchor="middle" fill="#fecaca" font-size="10">Model \u2699</text><line x1="110" y1="55" x2="248" y2="55" stroke="#b91c1c" stroke-width="1.5" marker-end="url(#ah5)"/><text x="180" y="48" text-anchor="middle" fill="#f87171" font-size="9">knowledge transfer</text></svg>'
+        svg: '<svg viewBox="0 0 360 110" class="w-full max-w-[360px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah5" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#D97757"/></marker></defs><rect x="10" y="25" width="100" height="60" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="60" y="53" text-anchor="middle" fill="#131314" font-size="10">Frontier</text><text x="60" y="67" text-anchor="middle" fill="#131314" font-size="10">Model</text><rect x="250" y="25" width="100" height="60" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="300" y="53" text-anchor="middle" fill="#131314" font-size="10">Your</text><text x="300" y="67" text-anchor="middle" fill="#131314" font-size="10">Model \u2699</text><line x1="110" y1="55" x2="248" y2="55" stroke="#D97757" stroke-width="1.5" marker-end="url(#ah5)"/><text x="180" y="48" text-anchor="middle" fill="#C15F3C" font-size="9">knowledge transfer</text></svg>'
       },
       'local': {
         title: 'Everything on your infrastructure',
         tech: 'Local Deployment & Agentic Infrastructure',
         desc: 'Distilled and RL-trained models run entirely on your infrastructure via MCP tool access.',
         requires: 'MCP access to your tools and workflows.',
-        svg: '<svg viewBox="0 0 280 110" class="w-full max-w-[280px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah6" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#b91c1c"/></marker></defs><rect x="10" y="8" width="260" height="94" rx="10" fill="none" stroke="#450a0a" stroke-width="1.5" stroke-dasharray="6,3"/><text x="140" y="22" text-anchor="middle" fill="#f87171" font-size="9">Your Infrastructure</text><rect x="35" y="40" width="90" height="50" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="80" y="68" text-anchor="middle" fill="#fecaca" font-size="11">Model \u2699</text><rect x="165" y="40" width="90" height="50" rx="8" fill="#1a0404" stroke="#450a0a" stroke-width="1.5"/><text x="210" y="60" text-anchor="middle" fill="#fecaca" font-size="10">Your Tools</text><text x="210" y="74" text-anchor="middle" fill="#fecaca" font-size="10">/ MCP</text><line x1="125" y1="60" x2="163" y2="60" stroke="#b91c1c" stroke-width="1.5" marker-end="url(#ah6)"/><line x1="165" y1="72" x2="127" y2="72" stroke="#b91c1c" stroke-width="1.5" marker-end="url(#ah6)"/></svg>'
+        svg: '<svg viewBox="0 0 280 110" class="w-full max-w-[280px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah6" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#D97757"/></marker></defs><rect x="10" y="8" width="260" height="94" rx="10" fill="none" stroke="#B1ADA1" stroke-width="1.5" stroke-dasharray="6,3"/><text x="140" y="22" text-anchor="middle" fill="#C15F3C" font-size="9">Your Infrastructure</text><rect x="35" y="40" width="90" height="50" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="80" y="68" text-anchor="middle" fill="#131314" font-size="11">Model \u2699</text><rect x="165" y="40" width="90" height="50" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="210" y="60" text-anchor="middle" fill="#131314" font-size="10">Your Tools</text><text x="210" y="74" text-anchor="middle" fill="#131314" font-size="10">/ MCP</text><line x1="125" y1="60" x2="163" y2="60" stroke="#D97757" stroke-width="1.5" marker-end="url(#ah6)"/><line x1="165" y1="72" x2="127" y2="72" stroke="#D97757" stroke-width="1.5" marker-end="url(#ah6)"/></svg>'
       }
     };
 
