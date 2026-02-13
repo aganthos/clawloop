@@ -561,8 +561,8 @@
     <div class="max-w-6xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-red-200/40">
       <p>&copy; <span id="yr"></span> Aganthos GmbH. All rights reserved.</p>
       <div class="flex gap-6">
-        <a href="#contact" class="hover:text-ag-200 transition" onclick="setTimeout(function(){toggleLegal('impressum')},100)">Impressum</a>
-        <a href="#contact" class="hover:text-ag-200 transition" onclick="setTimeout(function(){toggleLegal('privacy')},100)">Privacy Policy</a>
+        <a href="#contact" class="hover:text-ag-200 transition" onclick="showLegal('impressum')">Impressum</a>
+        <a href="#contact" class="hover:text-ag-200 transition" onclick="showLegal('privacy')">Privacy Policy</a>
       </div>
     </div>
   </footer>
@@ -600,6 +600,14 @@
     // Legal toggles
     function toggleLegal(id) {
       document.getElementById('legal-' + id).classList.toggle('hidden');
+    }
+    function showLegal(id) {
+      navigate('#contact');
+      setTimeout(function(){
+        var el = document.getElementById('legal-' + id);
+        if (el.classList.contains('hidden')) el.classList.remove('hidden');
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 150);
     }
 
     // Method detail panel
