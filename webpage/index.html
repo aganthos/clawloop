@@ -18,9 +18,9 @@
         extend: {
           colors: {
             ag: {
-              950: '#0a0202', 900: '#1a0404', 800: '#2d0808', 700: '#450a0a',
-              600: '#7f1d1d', 500: '#991b1b', 400: '#b91c1c', 300: '#dc2626',
-              200: '#f87171', 100: '#fecaca', 50: '#fef2f2',
+              950: '#FDF8F0', 900: '#FFFFFF', 800: '#f0e6d6', 700: '#d4c4b0',
+              600: '#780000', 500: '#C1121F', 400: '#a00e19', 300: '#780000',
+              200: '#780000', 100: '#2A1410', 50: '#3B0A0A',
             }
           }
         }
@@ -29,36 +29,70 @@
   </script>
   <style>
     html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; scroll-behavior: smooth; }
-    body { background: #0a0202; }
+    body { background: #FDF8F0; }
     .page { display: none; }
     .page.active { display: block; }
     .nav-link { transition: color 0.2s, border-color 0.2s; }
-    .nav-link:hover, .nav-link.active { color: #f87171; border-color: #f87171; }
+    .nav-link:hover, .nav-link.active { color: #C1121F; border-color: #C1121F; }
     .mode-card { transition: transform 0.2s, box-shadow 0.2s; }
-    .mode-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(185,28,28,0.15); }
+    .mode-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(120,0,0,0.08); }
     .method-card { cursor: pointer; }
-    .method-card.active { border-color: #b91c1c; box-shadow: 0 0 0 1px #b91c1c; }
+    .method-card.active { border-color: #C1121F; box-shadow: 0 0 0 1px #C1121F; }
     .method-chevron { transition: transform 0.2s; display: inline-block; }
     .method-card.active .method-chevron { transform: rotate(90deg); }
     #method-detail-panel { display: none; }
     #method-detail-panel.open { display: block; }
     .flywheel-arrow { animation: pulse-arrow 2s ease-in-out infinite; }
     @keyframes pulse-arrow { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
-    :root { --c-perf: 248,113,113; --c-cost: 251,191,36; --c-priv: 52,211,153; }
+    :root { --c-perf: 22,163,74; --c-cost: 13,148,136; --c-priv: 37,99,235; }
     .benefit-tag { font-size: 0.65rem; padding: 2px 8px; border-radius: 9999px; }
-    .tag-perf { background: rgba(var(--c-perf),0.12); color: rgb(var(--c-perf)); border: 1px solid rgba(var(--c-perf),0.3); }
-    .tag-cost { background: rgba(var(--c-cost),0.1); color: rgb(var(--c-cost)); border: 1px solid rgba(var(--c-cost),0.25); }
-    .tag-priv { background: rgba(var(--c-priv),0.1); color: rgb(var(--c-priv)); border: 1px solid rgba(var(--c-priv),0.25); }
+    .tag-perf { background: rgba(var(--c-perf),0.08); color: rgb(var(--c-perf)); border: 1px solid rgba(var(--c-perf),0.2); }
+    .tag-cost { background: rgba(var(--c-cost),0.08); color: rgb(var(--c-cost)); border: 1px solid rgba(var(--c-cost),0.2); }
+    .tag-priv { background: rgba(var(--c-priv),0.08); color: rgb(var(--c-priv)); border: 1px solid rgba(var(--c-priv),0.2); }
     .card-perf { border: 1px solid rgba(var(--c-perf),0.2); }
     .card-perf h3, .card-perf svg { color: rgb(var(--c-perf)); stroke: rgb(var(--c-perf)); }
     .card-cost { border: 1px solid rgba(var(--c-cost),0.2); }
     .card-cost h3, .card-cost svg { color: rgb(var(--c-cost)); stroke: rgb(var(--c-cost)); }
     .card-priv { border: 1px solid rgba(var(--c-priv),0.2); }
     .card-priv h3, .card-priv svg { color: rgb(var(--c-priv)); stroke: rgb(var(--c-priv)); }
-    input, textarea, select { color-scheme: dark; }
+    .challenge-cards .card-perf,
+    .challenge-cards .card-cost,
+    .challenge-cards .card-priv { border: 1px solid rgba(193,18,31,0.15); }
+    .challenge-cards .card-perf h3, .challenge-cards .card-cost h3, .challenge-cards .card-priv h3 { color: #780000; }
+    .challenge-cards .card-perf svg, .challenge-cards .card-cost svg, .challenge-cards .card-priv svg { stroke: #C1121F; }
+    input, textarea, select { color-scheme: light; }
+    /* Cream theme overrides */
+    .text-white { color: #3B0A0A !important; }
+    .text-red-100 { color: #780000 !important; }
+    .text-red-100\/60, [class*="text-red-100\/6"] { color: rgba(42,20,16,0.6) !important; }
+    .text-red-100\/70, [class*="text-red-100\/7"] { color: rgba(42,20,16,0.65) !important; }
+    .text-red-100\/40, [class*="text-red-100\/4"] { color: rgba(42,20,16,0.4) !important; }
+    .text-red-200\/30, [class*="text-red-200\/3"] { color: rgba(42,20,16,0.3) !important; }
+    .text-red-200\/40, [class*="text-red-200\/4"] { color: rgba(42,20,16,0.35) !important; }
+    [class*="text-red-300\/"] { color: rgba(42,20,16,0.25) !important; }
+    .text-red-400 { color: #C1121F !important; }
+    nav { background: rgba(253,248,240,0.95) !important; border-bottom-color: rgba(120,0,0,0.1) !important; }
+    #mobile-menu { background: rgba(253,248,240,0.98) !important; border-top-color: rgba(120,0,0,0.1) !important; }
+    [class*="bg-ag-900\/"] { background: rgba(255,255,255,0.7) !important; }
+    [class*="bg-ag-800\/"] { background: rgba(120,0,0,0.04) !important; }
+    [class*="border-ag-800\/"], [class*="border-ag-700\/"] { border-color: rgba(120,0,0,0.1) !important; }
+    [class*="ring-red-500\/"] { --tw-ring-color: rgba(193,18,31,0.15) !important; }
+    [class*="bg-ag-400\/"] { background: rgba(193,18,31,0.08) !important; }
+    [class*="border-ag-500\/"] { border-color: rgba(193,18,31,0.2) !important; }
+    .bg-ag-500 { background: #C1121F !important; }
+    .bg-ag-500:hover, .hover\:bg-ag-400:hover { background: #a00e19 !important; }
+    .hover\:bg-ag-300:hover { background: #8a0c16 !important; }
+    [class*="border-ag-600"] { border-color: rgba(120,0,0,0.25) !important; }
+    [class*="hover\:border-ag-400"]:hover { border-color: #C1121F !important; }
+    [class*="focus\:border-ag-400"] { border-color: #C1121F !important; }
+    input, textarea { background: rgba(253,248,240,0.8) !important; border-color: rgba(120,0,0,0.15) !important; color: #2A1410 !important; }
+    input::placeholder, textarea::placeholder { color: rgba(42,20,16,0.35) !important; }
+    #method-detail-panel { background: rgba(255,255,255,0.9) !important; border-color: rgba(120,0,0,0.1) !important; }
+    footer { color: rgba(42,20,16,0.3) !important; }
+    [id*="legal-"] { background: rgba(255,255,255,0.5) !important; border-color: rgba(120,0,0,0.08) !important; }
   </style>
 </head>
-<body class="min-h-screen text-white">
+<body class="min-h-screen" style="color: #2A1410;">
 
   <!-- Navigation -->
   <nav class="fixed top-0 w-full z-50 bg-ag-950/90 backdrop-blur border-b border-ag-800/50">
@@ -93,8 +127,8 @@
     <div id="page-home" class="page active">
 
       <section class="relative min-h-[90vh] flex items-center justify-center px-6 overflow-hidden">
-        <div class="absolute inset-0 bg-[radial-gradient(60%_40%_at_50%_-10%,rgba(168,40,74,0.15),transparent)]"></div>
-        <div class="absolute inset-0 bg-[radial-gradient(40%_30%_at_80%_120%,rgba(26,48,88,0.12),transparent)]"></div>
+        <div class="absolute inset-0 bg-[radial-gradient(60%_40%_at_50%_-10%,rgba(120,0,0,0.06),transparent)]"></div>
+        <div class="absolute inset-0 bg-[radial-gradient(40%_30%_at_80%_120%,rgba(0,48,73,0.04),transparent)]"></div>
         <div class="relative max-w-4xl text-center">
           <p class="text-ag-200 text-sm font-mono tracking-widest uppercase mb-6">Research Lab</p>
           <h1 class="text-5xl md:text-7xl font-bold leading-tight text-white">
