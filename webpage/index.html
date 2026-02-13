@@ -174,28 +174,66 @@
         </div>
       </section>
 
-      <section class="max-w-4xl mx-auto px-6 py-24">
+      <section class="max-w-5xl mx-auto px-6 py-24">
         <h2 class="text-3xl md:text-4xl font-bold text-center mb-16 text-white">The Learning Flywheel</h2>
         <div class="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-4">
+          <!-- Box 1: Analyse -->
           <div class="bg-ag-900/50 border border-ag-800/50 rounded-xl px-8 py-6 text-center min-w-[180px]">
-            <p class="text-red-100 font-semibold">Deploy &amp; Collect</p>
-            <p class="text-red-100/40 text-sm mt-1">Logs, traces, feedback</p>
+            <p class="text-red-100 font-semibold">Analyse</p>
+            <p class="text-red-100/40 text-sm mt-1">Understand your workflows</p>
           </div>
           <div class="text-ag-200 text-2xl flywheel-arrow hidden md:block">&#x2192;</div>
           <div class="text-ag-200 text-2xl flywheel-arrow md:hidden">&#x2193;</div>
+          <!-- Box 2: Setup -->
           <div class="bg-ag-900/50 border border-ag-800/50 rounded-xl px-8 py-6 text-center min-w-[180px]">
-            <p class="text-red-100 font-semibold">Train &amp; Improve</p>
-            <p class="text-red-100/40 text-sm mt-1">RL, distillation, ICL</p>
+            <p class="text-red-100 font-semibold">Setup</p>
+            <p class="text-red-100/40 text-sm mt-1">Configure agents &amp; tooling</p>
           </div>
           <div class="text-ag-200 text-2xl flywheel-arrow hidden md:block">&#x2192;</div>
           <div class="text-ag-200 text-2xl flywheel-arrow md:hidden">&#x2193;</div>
-          <div class="bg-ag-900/50 border border-ag-800/50 rounded-xl px-8 py-6 text-center min-w-[180px]">
-            <p class="text-red-100 font-semibold">Deploy &amp; Learn</p>
-            <p class="text-red-100/40 text-sm mt-1">Continuously improving</p>
+          <!-- Deploy & Collect <-> Train & Improve cycle -->
+          <div class="relative flex flex-col items-center">
+            <!-- Top: label + arrow (desktop) -->
+            <div class="hidden md:flex flex-col items-center mb-1">
+              <p class="text-red-100/40 text-xs mb-1">logs, traces, feedback</p>
+              <svg class="w-[396px] h-[28px]" viewBox="0 0 396 28" overflow="visible" xmlns="http://www.w3.org/2000/svg">
+                <defs><marker id="fw-top" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#D97757"/></marker></defs>
+                <path d="M 88,26 C 140,2 256,2 308,26" stroke="#D97757" stroke-width="1.5" fill="none" marker-end="url(#fw-top)"/>
+              </svg>
+            </div>
+            <div class="flex flex-col md:flex-row items-center gap-6 md:gap-8">
+              <!-- Box 3: Deploy & Collect -->
+              <div class="bg-ag-900/50 border border-ag-800/50 rounded-xl px-8 py-6 text-center min-w-[180px]">
+                <p class="text-red-100 font-semibold">Deploy &amp; Collect</p>
+                <p class="text-red-100/40 text-sm mt-1">In production</p>
+              </div>
+              <!-- Mobile arrows -->
+              <div class="text-ag-200 text-2xl flywheel-arrow md:hidden">&#x21C5;</div>
+              <!-- Box 4: Train & Improve -->
+              <div class="bg-ag-900/50 border border-ag-800/50 rounded-xl px-8 py-6 text-center min-w-[180px]">
+                <p class="text-red-100 font-semibold">Train &amp; Improve</p>
+                <p class="text-red-100/40 text-sm mt-1">RL, distillation, ICL</p>
+              </div>
+            </div>
+            <!-- Bottom: arrow + label (desktop) -->
+            <div class="hidden md:flex flex-col items-center mt-1">
+              <svg class="w-[396px] h-[28px]" viewBox="0 0 396 28" overflow="visible" xmlns="http://www.w3.org/2000/svg">
+                <defs><marker id="fw-bot" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#D97757"/></marker></defs>
+                <path d="M 308,2 C 256,26 140,26 88,2" stroke="#D97757" stroke-width="1.5" fill="none" marker-end="url(#fw-bot)"/>
+              </svg>
+              <p class="text-red-100/40 text-xs mt-1">improved model</p>
+            </div>
           </div>
         </div>
-        <div class="text-center mt-8">
-          <div class="text-ag-400 text-sm flywheel-arrow">&#x21bb; cycle repeats</div>
+        <!-- Labels -->
+        <div class="flex flex-col md:flex-row items-stretch justify-center mt-4 gap-6 md:gap-4">
+          <div class="flex items-center justify-center gap-4" style="min-width: calc(360px + 2.5rem + 28px);">
+            <p class="text-red-100/40 text-xs uppercase tracking-wider">Onboarding</p>
+          </div>
+          <div class="hidden md:block" style="width: 28px;"></div>
+          <div class="flex items-center justify-center" style="min-width: 396px;">
+            <p class="text-red-100/40 text-xs uppercase tracking-wider">Continuously Learning</p>
+          </div>
         </div>
       </section>
 
