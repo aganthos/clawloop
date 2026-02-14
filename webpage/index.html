@@ -272,6 +272,11 @@
           </div>
         </div>
 
+        <!-- Bridge caption -->
+        <div class="text-center mb-10">
+          <h3 class="text-2xl md:text-3xl font-bold text-white mb-3">How we solve it</h3>
+        </div>
+
         <!-- Methods -->
         <div id="methods-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
 
@@ -355,8 +360,11 @@
 
         </div>
 
+        <!-- Dynamic caption (appears when a method is selected) -->
+        <p id="methods-caption" class="text-red-100/60 text-sm text-center max-w-2xl mx-auto mt-6" style="display:none;"></p>
+
         <!-- Detail panel (appears below grid when a card is clicked) -->
-        <div id="method-detail-panel" class="mt-6 bg-ag-900/70 border border-ag-700/50 rounded-xl p-8">
+        <div id="method-detail-panel" class="mt-4 bg-ag-900/70 border border-ag-700/50 rounded-xl p-8">
           <div class="flex items-start justify-between mb-4">
             <div>
               <h3 id="mdp-title" class="text-xl font-bold text-white mb-1"></h3>
@@ -617,6 +625,7 @@
         tech: 'Reinforcement Learning on Environments',
         desc: 'When a training environment or simulator is available, we apply RL directly. The agent explores, gets rewards, and improves through trial and error.',
         requires: 'Training environment or simulator.',
+        caption: 'Directly addresses reliability, cost, and privacy. Your agent trains on real tasks and gets better every round.',
         svg: '<svg viewBox="0 0 280 110" class="w-full max-w-[280px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah1" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#780000"/></marker></defs><rect x="10" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="50" y="58" text-anchor="middle" fill="#131314" font-size="11">Agent \u2699</text><rect x="190" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="230" y="58" text-anchor="middle" fill="#131314" font-size="11">Environment</text><line x1="90" y1="45" x2="188" y2="45" stroke="#780000" stroke-width="1.5" marker-end="url(#ah1)"/><text x="140" y="40" text-anchor="middle" fill="#780000" font-size="9">action</text><line x1="190" y1="65" x2="92" y2="65" stroke="#780000" stroke-width="1.5" marker-end="url(#ah1)"/><text x="140" y="78" text-anchor="middle" fill="#780000" font-size="9">reward</text></svg>'
       },
       'dyna': {
@@ -624,6 +633,7 @@
         tech: 'Dyna-Style RL with Learned World Models',
         desc: 'We learn a world model from your tool-call traces, then train via RL inside it. Full RL gains without a pre-built environment.',
         requires: 'Logs of queries, tool inputs & responses.',
+        caption: 'No simulator needed. We turn the data you already have into a training ground for better, cheaper, private agents.',
         svg: '<svg viewBox="0 0 360 110" class="w-full max-w-[360px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#780000"/></marker></defs><rect x="5" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="45" y="53" text-anchor="middle" fill="#131314" font-size="10">Your</text><text x="45" y="65" text-anchor="middle" fill="#131314" font-size="10">Logs</text><rect x="140" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="180" y="53" text-anchor="middle" fill="#131314" font-size="10">World</text><text x="180" y="65" text-anchor="middle" fill="#131314" font-size="10">Model</text><rect x="275" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="315" y="58" text-anchor="middle" fill="#131314" font-size="11">Agent \u2699</text><line x1="85" y1="55" x2="138" y2="55" stroke="#780000" stroke-width="1.5" marker-end="url(#ah2)"/><text x="112" y="48" text-anchor="middle" fill="#780000" font-size="9">builds</text><line x1="220" y1="48" x2="273" y2="48" stroke="#780000" stroke-width="1.5" marker-end="url(#ah2)"/><line x1="275" y1="62" x2="222" y2="62" stroke="#780000" stroke-width="1.5" marker-end="url(#ah2)"/><text x="248" y="40" text-anchor="middle" fill="#780000" font-size="9">RL loop</text></svg>'
       },
       'icl': {
@@ -631,6 +641,7 @@
         tech: 'In-Context Learning from Feedback',
         desc: 'User interactions and corrections feed directly into the agent\u2019s context and memory. Immediate adaptation with no training latency.',
         requires: 'User feedback or interaction logs.',
+        caption: 'Instant reliability gains. Every correction makes the agent smarter without waiting for a training cycle.',
         svg: '<svg viewBox="0 0 360 110" class="w-full max-w-[360px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah3" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#780000"/></marker></defs><rect x="5" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="45" y="58" text-anchor="middle" fill="#131314" font-size="11">User</text><rect x="140" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="180" y="58" text-anchor="middle" fill="#131314" font-size="11">Memory</text><rect x="275" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="315" y="58" text-anchor="middle" fill="#131314" font-size="11">Agent</text><line x1="85" y1="55" x2="138" y2="55" stroke="#780000" stroke-width="1.5" marker-end="url(#ah3)"/><text x="112" y="48" text-anchor="middle" fill="#780000" font-size="9">feedback</text><line x1="220" y1="55" x2="273" y2="55" stroke="#780000" stroke-width="1.5" marker-end="url(#ah3)"/><text x="247" y="48" text-anchor="middle" fill="#780000" font-size="9">enriches</text></svg>'
       },
       'routing': {
@@ -638,6 +649,7 @@
         tech: 'Intelligent Model Routing',
         desc: 'Analyse production logs to learn which requests can be handled by cheaper, smaller models without quality loss.',
         requires: 'Logs of queries and LLM responses.',
+        caption: 'Cuts your AI bill immediately. Simple requests go to small models, hard ones stay on the big one.',
         svg: '<svg viewBox="0 0 280 110" class="w-full max-w-[280px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah4" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#780000"/></marker></defs><rect x="5" y="35" width="70" height="40" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="40" y="59" text-anchor="middle" fill="#131314" font-size="11">Request</text><rect x="105" y="35" width="70" height="40" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="140" y="59" text-anchor="middle" fill="#131314" font-size="11">Router</text><rect x="205" y="8" width="70" height="36" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="240" y="22" text-anchor="middle" fill="#131314" font-size="9">Large</text><text x="240" y="34" text-anchor="middle" fill="#131314" font-size="9">Model</text><rect x="205" y="66" width="70" height="36" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="240" y="80" text-anchor="middle" fill="#131314" font-size="9">Small</text><text x="240" y="92" text-anchor="middle" fill="#131314" font-size="9">Model</text><line x1="75" y1="55" x2="103" y2="55" stroke="#780000" stroke-width="1.5" marker-end="url(#ah4)"/><line x1="175" y1="48" x2="203" y2="30" stroke="#780000" stroke-width="1.5" marker-end="url(#ah4)"/><line x1="175" y1="62" x2="203" y2="80" stroke="#780000" stroke-width="1.5" marker-end="url(#ah4)"/></svg>'
       },
       'distill': {
@@ -645,6 +657,7 @@
         tech: 'Knowledge Distillation',
         desc: 'Transfer knowledge from large frontier models into compact, locally deployable models. Lower inference cost with full data sovereignty.',
         requires: 'Logs or question set. Optionally: open-logit LLM.',
+        caption: 'Lower cost and full data sovereignty. A small model that knows what the big one knows, running on your hardware.',
         svg: '<svg viewBox="0 0 360 110" class="w-full max-w-[360px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah5" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#780000"/></marker></defs><rect x="10" y="25" width="100" height="60" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="60" y="53" text-anchor="middle" fill="#131314" font-size="10">Frontier</text><text x="60" y="67" text-anchor="middle" fill="#131314" font-size="10">Model</text><rect x="250" y="25" width="100" height="60" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="300" y="53" text-anchor="middle" fill="#131314" font-size="10">Your</text><text x="300" y="67" text-anchor="middle" fill="#131314" font-size="10">Model \u2699</text><line x1="110" y1="55" x2="248" y2="55" stroke="#780000" stroke-width="1.5" marker-end="url(#ah5)"/><text x="180" y="48" text-anchor="middle" fill="#780000" font-size="9">knowledge transfer</text></svg>'
       },
       'local': {
@@ -652,6 +665,7 @@
         tech: 'Local Deployment & Agentic Infrastructure',
         desc: 'Distilled and RL-trained models run entirely on your infrastructure via MCP tool access.',
         requires: 'MCP access to your tools and workflows.',
+        caption: 'Complete data sovereignty. Nothing leaves your servers. Your models, your tools, your control.',
         svg: '<svg viewBox="0 0 280 110" class="w-full max-w-[280px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah6" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#780000"/></marker></defs><rect x="10" y="8" width="260" height="94" rx="10" fill="none" stroke="#B1ADA1" stroke-width="1.5" stroke-dasharray="6,3"/><text x="140" y="22" text-anchor="middle" fill="#780000" font-size="9">Your Infrastructure</text><rect x="35" y="40" width="90" height="50" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="80" y="68" text-anchor="middle" fill="#131314" font-size="11">Model \u2699</text><rect x="165" y="40" width="90" height="50" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="210" y="60" text-anchor="middle" fill="#131314" font-size="10">Your Tools</text><text x="210" y="74" text-anchor="middle" fill="#131314" font-size="10">/ MCP</text><line x1="125" y1="60" x2="163" y2="60" stroke="#780000" stroke-width="1.5" marker-end="url(#ah6)"/><line x1="165" y1="72" x2="127" y2="72" stroke="#780000" stroke-width="1.5" marker-end="url(#ah6)"/></svg>'
       }
     };
@@ -661,6 +675,7 @@
     function toggleMethod(id) {
       var panel = document.getElementById('method-detail-panel');
       var card = document.getElementById('method-' + id);
+      var captionEl = document.getElementById('methods-caption');
 
       // Deselect previous
       document.querySelectorAll('.method-card.active').forEach(function(c) {
@@ -671,6 +686,7 @@
       if (activeMethodId === id) {
         panel.classList.remove('open');
         activeMethodId = null;
+        captionEl.style.display = 'none';
         return;
       }
 
@@ -686,6 +702,8 @@
       card.classList.add('active');
       panel.classList.add('open');
       activeMethodId = id;
+      captionEl.textContent = d.caption;
+      captionEl.style.display = 'block';
 
       // Scroll panel into view
       setTimeout(function() { panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 50);
@@ -697,6 +715,7 @@
         c.classList.remove('active');
       });
       activeMethodId = null;
+      document.getElementById('methods-caption').style.display = 'none';
     }
 
     // Contact form submission
