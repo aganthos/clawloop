@@ -1,14 +1,17 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Aganthos - Learning from Experience Lab</title>
-  <meta name="description" content="Aganthos enables AI agents to learn from experience. We improve performance, enable privacy, and reduce cost through reinforcement learning, distillation, and model routing.">
+  <meta name="description"
+    content="Aganthos enables AI agents to learn from experience. We improve performance, enable privacy, and reduce cost through reinforcement learning, distillation, and model routing.">
   <link rel="canonical" href="https://aganthos.com/" />
   <link rel="icon" href="/logo.svg" type="image/svg+xml">
   <meta property="og:title" content="Aganthos - Learning from Experience Lab">
-  <meta property="og:description" content="We enable AI agents to learn from experience. RL post-training, distillation, model routing, and agentic deployment.">
+  <meta property="og:description"
+    content="We enable AI agents to learn from experience. RL post-training, distillation, model routing, and agentic deployment.">
   <meta property="og:url" content="https://aganthos.com/">
   <meta property="og:image" content="https://aganthos.com/logo.svg">
   <script src="https://cdn.tailwindcss.com"></script>
@@ -28,72 +31,313 @@
     }
   </script>
   <style>
-    html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; scroll-behavior: smooth; }
-    body { background: #FAF9F0; }
-    .page { display: none; }
-    .page.active { display: block; }
-    .nav-link { transition: color 0.2s, border-color 0.2s; }
-    .nav-link:hover, .nav-link.active { color: #780000; border-color: #780000; }
-    .mode-card { transition: transform 0.2s, box-shadow 0.2s; }
-    .mode-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(120,0,0,0.12); }
-    .method-card { cursor: pointer; }
-    .method-card.active { border-color: #780000; box-shadow: 0 0 0 1px #780000; }
-    .method-chevron { transition: transform 0.2s; display: inline-block; }
-    .method-card.active .method-chevron { transform: rotate(90deg); }
-    #method-detail-panel { display: none; }
-    #method-detail-panel.open { display: block; }
-    .flywheel-arrow { animation: pulse-arrow 2s ease-in-out infinite; }
-    @keyframes pulse-arrow { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
-    :root { --c-perf: 203,128,68; --c-cost: 106,173,120; --c-priv: 92,133,168; }
-    .benefit-tag { font-size: 0.65rem; padding: 2px 8px; border-radius: 9999px; }
-    .tag-perf { background: rgba(var(--c-perf),0.08); color: rgb(var(--c-perf)); border: 1px solid rgba(var(--c-perf),0.2); }
-    .tag-cost { background: rgba(var(--c-cost),0.08); color: rgb(var(--c-cost)); border: 1px solid rgba(var(--c-cost),0.2); }
-    .tag-priv { background: rgba(var(--c-priv),0.08); color: rgb(var(--c-priv)); border: 1px solid rgba(var(--c-priv),0.2); }
-    .card-perf { border: 1px solid rgba(var(--c-perf),0.2); }
-    .card-perf h3, .card-perf svg { color: rgb(var(--c-perf)); stroke: rgb(var(--c-perf)); }
-    .card-cost { border: 1px solid rgba(var(--c-cost),0.2); }
-    .card-cost h3, .card-cost svg { color: rgb(var(--c-cost)); stroke: rgb(var(--c-cost)); }
-    .card-priv { border: 1px solid rgba(var(--c-priv),0.2); }
-    .card-priv h3, .card-priv svg { color: rgb(var(--c-priv)); stroke: rgb(var(--c-priv)); }
+    html {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background: #FAF9F0;
+    }
+
+    .page {
+      display: none;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    .nav-link {
+      transition: color 0.2s, border-color 0.2s;
+    }
+
+    .nav-link:hover,
+    .nav-link.active {
+      color: #780000;
+      border-color: #780000;
+    }
+
+    .mode-card {
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .mode-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(120, 0, 0, 0.12);
+    }
+
+    .method-card {
+      cursor: pointer;
+    }
+
+    .method-card.active {
+      border-color: #780000;
+      box-shadow: 0 0 0 1px #780000;
+    }
+
+    .method-chevron {
+      transition: transform 0.2s;
+      display: inline-block;
+    }
+
+    .method-card.active .method-chevron {
+      transform: rotate(90deg);
+    }
+
+    #method-detail-panel {
+      display: none;
+    }
+
+    #method-detail-panel.open {
+      display: block;
+    }
+
+    .flywheel-arrow {
+      animation: pulse-arrow 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-arrow {
+
+      0%,
+      100% {
+        opacity: 0.5;
+      }
+
+      50% {
+        opacity: 1;
+      }
+    }
+
+    :root {
+      --c-perf: 203, 128, 68;
+      --c-cost: 106, 173, 120;
+      --c-priv: 92, 133, 168;
+    }
+
+    .benefit-tag {
+      font-size: 0.65rem;
+      padding: 2px 8px;
+      border-radius: 9999px;
+    }
+
+    .tag-perf {
+      background: rgba(var(--c-perf), 0.08);
+      color: rgb(var(--c-perf));
+      border: 1px solid rgba(var(--c-perf), 0.2);
+    }
+
+    .tag-cost {
+      background: rgba(var(--c-cost), 0.08);
+      color: rgb(var(--c-cost));
+      border: 1px solid rgba(var(--c-cost), 0.2);
+    }
+
+    .tag-priv {
+      background: rgba(var(--c-priv), 0.08);
+      color: rgb(var(--c-priv));
+      border: 1px solid rgba(var(--c-priv), 0.2);
+    }
+
+    .card-perf {
+      border: 1px solid rgba(var(--c-perf), 0.2);
+    }
+
+    .card-perf h3,
+    .card-perf svg {
+      color: rgb(var(--c-perf));
+      stroke: rgb(var(--c-perf));
+    }
+
+    .card-cost {
+      border: 1px solid rgba(var(--c-cost), 0.2);
+    }
+
+    .card-cost h3,
+    .card-cost svg {
+      color: rgb(var(--c-cost));
+      stroke: rgb(var(--c-cost));
+    }
+
+    .card-priv {
+      border: 1px solid rgba(var(--c-priv), 0.2);
+    }
+
+    .card-priv h3,
+    .card-priv svg {
+      color: rgb(var(--c-priv));
+      stroke: rgb(var(--c-priv));
+    }
+
     .challenge-cards .card-perf,
     .challenge-cards .card-cost,
-    .challenge-cards .card-priv { border: 1px solid rgba(120,0,0,0.15); }
-    .challenge-cards .card-perf h3, .challenge-cards .card-cost h3, .challenge-cards .card-priv h3 { color: #780000; }
-    .challenge-cards .card-perf svg, .challenge-cards .card-cost svg, .challenge-cards .card-priv svg { stroke: #780000; }
-    input, textarea, select { color-scheme: light; }
+    .challenge-cards .card-priv {
+      border: 1px solid rgba(120, 0, 0, 0.15);
+    }
+
+    .challenge-cards .card-perf h3,
+    .challenge-cards .card-cost h3,
+    .challenge-cards .card-priv h3 {
+      color: #780000;
+    }
+
+    .challenge-cards .card-perf svg,
+    .challenge-cards .card-cost svg,
+    .challenge-cards .card-priv svg {
+      stroke: #780000;
+    }
+
+    input,
+    textarea,
+    select {
+      color-scheme: light;
+    }
+
     /* Claude theme overrides */
-    .text-white { color: #131314 !important; }
-    .text-red-100 { color: #780000 !important; }
-    .text-red-100\/60, [class*="text-red-100\/6"] { color: rgba(19,19,20,0.6) !important; }
-    .text-red-100\/70, [class*="text-red-100\/7"] { color: rgba(19,19,20,0.65) !important; }
-    .text-red-100\/40, [class*="text-red-100\/4"] { color: rgba(19,19,20,0.4) !important; }
-    .text-red-200\/30, [class*="text-red-200\/3"] { color: rgba(19,19,20,0.3) !important; }
-    .text-red-200\/40, [class*="text-red-200\/4"] { color: rgba(19,19,20,0.35) !important; }
-    [class*="text-red-300\/"] { color: rgba(19,19,20,0.25) !important; }
-    .text-red-400 { color: #780000 !important; }
-    nav { background: rgba(250,249,240,0.95) !important; border-bottom-color: rgba(177,173,161,0.3) !important; }
-    #mobile-menu { background: rgba(250,249,240,0.98) !important; border-top-color: rgba(177,173,161,0.3) !important; }
-    [class*="bg-ag-900\/"] { background: rgba(255,255,255,0.7) !important; }
-    [class*="bg-ag-800\/"] { background: rgba(120,0,0,0.04) !important; }
-    [class*="border-ag-800\/"], [class*="border-ag-700\/"] { border-color: rgba(177,173,161,0.25) !important; }
-    [class*="ring-red-500\/"] { --tw-ring-color: rgba(120,0,0,0.2) !important; }
-    [class*="bg-ag-400\/"] { background: rgba(120,0,0,0.08) !important; }
-    [class*="border-ag-500\/"] { border-color: rgba(120,0,0,0.25) !important; }
-    .bg-ag-500, .bg-ag-400 { background: #780000 !important; color: #FAF9F0 !important; }
-    .bg-ag-500:hover, .bg-ag-400:hover, .hover\:bg-ag-400:hover { background: #5a0000 !important; }
-    .hover\:bg-ag-300:hover { background: #450000 !important; }
-    [class*="border-ag-600"] { border-color: rgba(120,0,0,0.3) !important; }
-    [class*="hover\:border-ag-400"]:hover { border-color: #780000 !important; }
-    [class*="focus\:border-ag-400"] { border-color: #780000 !important; }
-    input, textarea { background: rgba(250,249,240,0.8) !important; border-color: rgba(177,173,161,0.3) !important; color: #131314 !important; }
-    input::placeholder, textarea::placeholder { color: rgba(19,19,20,0.45) !important; }
-    label, [class*="text-red-100\/8"] { color: #131314 !important; }
-    label span, [class*="text-red-200\/5"], [class*="text-red-200\/4"] { color: rgba(19,19,20,0.5) !important; }
-    #method-detail-panel { background: rgba(255,255,255,0.9) !important; border-color: rgba(177,173,161,0.25) !important; }
-    footer { color: rgba(19,19,20,0.3) !important; }
-    [id*="legal-"] { background: rgba(255,255,255,0.5) !important; border-color: rgba(177,173,161,0.15) !important; }
+    .text-white {
+      color: #131314 !important;
+    }
+
+    .text-red-100 {
+      color: #780000 !important;
+    }
+
+    .text-red-100\/60,
+    [class*="text-red-100\/6"] {
+      color: rgba(19, 19, 20, 0.6) !important;
+    }
+
+    .text-red-100\/70,
+    [class*="text-red-100\/7"] {
+      color: rgba(19, 19, 20, 0.65) !important;
+    }
+
+    .text-red-100\/40,
+    [class*="text-red-100\/4"] {
+      color: rgba(19, 19, 20, 0.4) !important;
+    }
+
+    .text-red-200\/30,
+    [class*="text-red-200\/3"] {
+      color: rgba(19, 19, 20, 0.3) !important;
+    }
+
+    .text-red-200\/40,
+    [class*="text-red-200\/4"] {
+      color: rgba(19, 19, 20, 0.35) !important;
+    }
+
+    [class*="text-red-300\/"] {
+      color: rgba(19, 19, 20, 0.25) !important;
+    }
+
+    .text-red-400 {
+      color: #780000 !important;
+    }
+
+    nav {
+      background: rgba(250, 249, 240, 0.95) !important;
+      border-bottom-color: rgba(177, 173, 161, 0.3) !important;
+    }
+
+    #mobile-menu {
+      background: rgba(250, 249, 240, 0.98) !important;
+      border-top-color: rgba(177, 173, 161, 0.3) !important;
+    }
+
+    [class*="bg-ag-900\/"] {
+      background: rgba(255, 255, 255, 0.7) !important;
+    }
+
+    [class*="bg-ag-800\/"] {
+      background: rgba(120, 0, 0, 0.04) !important;
+    }
+
+    [class*="border-ag-800\/"],
+    [class*="border-ag-700\/"] {
+      border-color: rgba(177, 173, 161, 0.25) !important;
+    }
+
+    [class*="ring-red-500\/"] {
+      --tw-ring-color: rgba(120, 0, 0, 0.2) !important;
+    }
+
+    [class*="bg-ag-400\/"] {
+      background: rgba(120, 0, 0, 0.08) !important;
+    }
+
+    [class*="border-ag-500\/"] {
+      border-color: rgba(120, 0, 0, 0.25) !important;
+    }
+
+    .bg-ag-500,
+    .bg-ag-400 {
+      background: #780000 !important;
+      color: #FAF9F0 !important;
+    }
+
+    .bg-ag-500:hover,
+    .bg-ag-400:hover,
+    .hover\:bg-ag-400:hover {
+      background: #5a0000 !important;
+    }
+
+    .hover\:bg-ag-300:hover {
+      background: #450000 !important;
+    }
+
+    [class*="border-ag-600"] {
+      border-color: rgba(120, 0, 0, 0.3) !important;
+    }
+
+    [class*="hover\:border-ag-400"]:hover {
+      border-color: #780000 !important;
+    }
+
+    [class*="focus\:border-ag-400"] {
+      border-color: #780000 !important;
+    }
+
+    input,
+    textarea {
+      background: rgba(250, 249, 240, 0.8) !important;
+      border-color: rgba(177, 173, 161, 0.3) !important;
+      color: #131314 !important;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: rgba(19, 19, 20, 0.45) !important;
+    }
+
+    label,
+    [class*="text-red-100\/8"] {
+      color: #131314 !important;
+    }
+
+    label span,
+    [class*="text-red-200\/5"],
+    [class*="text-red-200\/4"] {
+      color: rgba(19, 19, 20, 0.5) !important;
+    }
+
+    #method-detail-panel {
+      background: rgba(255, 255, 255, 0.9) !important;
+      border-color: rgba(177, 173, 161, 0.25) !important;
+    }
+
+    footer {
+      color: rgba(19, 19, 20, 0.3) !important;
+    }
+
+    [id*="legal-"] {
+      background: rgba(255, 255, 255, 0.5) !important;
+      border-color: rgba(177, 173, 161, 0.15) !important;
+    }
   </style>
 </head>
+
 <body class="min-h-screen" style="color: #131314;">
 
   <!-- Navigation -->
@@ -110,7 +354,9 @@
         <a href="#contact" class="nav-link border-b-2 border-transparent pb-0.5">Contact</a>
       </div>
       <button id="menu-btn" class="md:hidden text-white">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
       </button>
     </div>
     <div id="mobile-menu" class="hidden md:hidden border-t border-ag-800/50 bg-ag-950/95 backdrop-blur">
@@ -130,46 +376,73 @@
 
       <section class="relative min-h-[90vh] flex items-center justify-center px-6 overflow-hidden">
         <div class="absolute inset-0 bg-[radial-gradient(60%_40%_at_50%_-10%,rgba(120,0,0,0.08),transparent)]"></div>
-        <div class="absolute inset-0 bg-[radial-gradient(40%_30%_at_80%_120%,rgba(177,173,161,0.06),transparent)]"></div>
+        <div class="absolute inset-0 bg-[radial-gradient(40%_30%_at_80%_120%,rgba(177,173,161,0.06),transparent)]">
+        </div>
         <div class="relative max-w-4xl text-center">
           <p class="text-ag-200 text-sm font-mono tracking-widest uppercase mb-6">Research Lab</p>
           <h1 class="text-5xl md:text-7xl font-bold leading-tight text-white">
             AI agents that get<br><span class="text-red-100">better every day</span>
           </h1>
           <p class="mt-8 text-lg md:text-xl text-red-100/70 max-w-2xl mx-auto leading-relaxed">
-            We are a research lab building the methods that make AI agents learn from their own experience - improving performance, cutting cost, and enabling full data privacy.
+            We are a research lab building the methods that make AI agents learn from their own experience - improving
+            performance, cutting cost, and enabling full data privacy.
           </p>
           <div class="mt-12 flex flex-wrap gap-4 justify-center">
-            <a href="#offering" class="px-8 py-3 font-medium rounded-lg transition" style="background:#780000; color:#FAF9F0;" onmouseover="this.style.background='#5a0000'" onmouseout="this.style.background='#780000'">Our Offering</a>
-            <a href="#contact" class="px-8 py-3 border border-ag-600 hover:border-ag-400 text-red-100 rounded-lg transition">Get in Touch</a>
+            <a href="#offering" class="px-8 py-3 font-medium rounded-lg transition"
+              style="background:#780000; color:#FAF9F0;" onmouseover="this.style.background='#5a0000'"
+              onmouseout="this.style.background='#780000'">Our Offering</a>
+            <a href="#contact"
+              class="px-8 py-3 border border-ag-600 hover:border-ag-400 text-red-100 rounded-lg transition">Get in
+              Touch</a>
           </div>
         </div>
       </section>
 
+      <!-- Banner hidden while project is coming soon
       <section class="max-w-4xl mx-auto px-6 py-6">
         <div class="border border-ag-800/40 rounded-lg px-6 py-4 text-center bg-ag-900/30">
-          <p class="text-sm text-red-100/60">Our RL-trained <span class="text-ag-200">Qwen2.5-7B</span> outperforms o4-mini by <span class="text-ag-200">30%</span> on medical benchmarks <a href="#projects" class="text-ag-200 underline hover:text-red-100 transition ml-1">&rarr; Projects</a></p>
+          <p class="text-sm text-red-100/60">Our RL-trained <span class="text-ag-200">Qwen2.5-7B</span> outperforms
+            o4-mini by <span class="text-ag-200">30%</span> on medical benchmarks <a href="#projects"
+              class="text-ag-200 underline hover:text-red-100 transition ml-1">&rarr; Projects</a></p>
         </div>
       </section>
+      -->
 
       <section class="max-w-6xl mx-auto px-6 py-24">
-        <h2 class="text-3xl md:text-4xl font-bold text-center mb-4 text-white">AI agents hit a wall before becoming productive</h2>
-        <p class="text-red-100/60 text-center mb-16 max-w-2xl mx-auto">Unreliable performance, sensitive data concerns, rising model costs. We solve all three.</p>
+        <h2 class="text-3xl md:text-4xl font-bold text-center mb-4 text-white">AI agents hit a wall before becoming
+          productive</h2>
+        <p class="text-red-100/60 text-center mb-16 max-w-2xl mx-auto">Unreliable performance, sensitive data concerns,
+          rising model costs. We solve all three.</p>
         <div class="grid md:grid-cols-3 gap-8">
           <div class="bg-ag-900/60 card-perf rounded-xl p-8 text-center">
-            <div class="mb-4 flex justify-center"><svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg></div>
+            <div class="mb-4 flex justify-center"><svg class="w-10 h-10" viewBox="0 0 24 24" fill="none"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="19" x2="12" y2="5" />
+                <polyline points="5 12 12 5 19 12" />
+              </svg></div>
             <h3 class="text-2xl font-bold mb-3">Performance</h3>
-            <p class="text-red-100/60 text-sm leading-relaxed">Higher success rates, fewer human escalations, better decision quality</p>
+            <p class="text-red-100/60 text-sm leading-relaxed">Higher success rates, fewer human escalations, better
+              decision quality</p>
           </div>
           <div class="bg-ag-900/60 card-cost rounded-xl p-8 text-center">
-            <div class="mb-4 flex justify-center"><svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg></div>
+            <div class="mb-4 flex justify-center"><svg class="w-10 h-10" viewBox="0 0 24 24" fill="none"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <polyline points="19 12 12 19 5 12" />
+              </svg></div>
             <h3 class="text-2xl font-bold mb-3">Cost Reduction</h3>
-            <p class="text-red-100/60 text-sm leading-relaxed">Intelligent model routing and small model distillation. Lower cost per request, lower latency</p>
+            <p class="text-red-100/60 text-sm leading-relaxed">Intelligent model routing and small model distillation.
+              Lower cost per request, lower latency</p>
           </div>
           <div class="bg-ag-900/60 card-priv rounded-xl p-8 text-center">
-            <div class="mb-4 flex justify-center"><svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+            <div class="mb-4 flex justify-center"><svg class="w-10 h-10" viewBox="0 0 24 24" fill="none"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg></div>
             <h3 class="text-2xl font-bold mb-3">Privacy</h3>
-            <p class="text-red-100/60 text-sm leading-relaxed">Data never leaves your organisation. Vendor independence and regulatory compliance</p>
+            <p class="text-red-100/60 text-sm leading-relaxed">Data never leaves your organisation. Vendor independence
+              and regulatory compliance</p>
           </div>
         </div>
       </section>
@@ -196,9 +469,15 @@
             <!-- Top: label + arrow (desktop) -->
             <div class="hidden md:flex flex-col items-center mb-1">
               <p class="text-red-100/40 text-xs mb-1">logs, traces, feedback</p>
-              <svg class="w-[396px] h-[28px]" viewBox="0 0 396 28" overflow="visible" xmlns="http://www.w3.org/2000/svg">
-                <defs><marker id="fw-top" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#780000"/></marker></defs>
-                <path d="M 88,26 C 140,2 256,2 308,26" stroke="#780000" stroke-width="1.5" fill="none" marker-end="url(#fw-top)"/>
+              <svg class="w-[396px] h-[28px]" viewBox="0 0 396 28" overflow="visible"
+                xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <marker id="fw-top" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                    <path d="M0,0 L8,3 L0,6" fill="#780000" />
+                  </marker>
+                </defs>
+                <path d="M 88,26 C 140,2 256,2 308,26" stroke="#780000" stroke-width="1.5" fill="none"
+                  marker-end="url(#fw-top)" />
               </svg>
             </div>
             <div class="flex flex-col md:flex-row items-center gap-6 md:gap-8">
@@ -217,9 +496,15 @@
             </div>
             <!-- Bottom: arrow + label (desktop) -->
             <div class="hidden md:flex flex-col items-center mt-1">
-              <svg class="w-[396px] h-[28px]" viewBox="0 0 396 28" overflow="visible" xmlns="http://www.w3.org/2000/svg">
-                <defs><marker id="fw-bot" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#780000"/></marker></defs>
-                <path d="M 308,2 C 256,26 140,26 88,2" stroke="#780000" stroke-width="1.5" fill="none" marker-end="url(#fw-bot)"/>
+              <svg class="w-[396px] h-[28px]" viewBox="0 0 396 28" overflow="visible"
+                xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <marker id="fw-bot" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                    <path d="M0,0 L8,3 L0,6" fill="#780000" />
+                  </marker>
+                </defs>
+                <path d="M 308,2 C 256,26 140,26 88,2" stroke="#780000" stroke-width="1.5" fill="none"
+                  marker-end="url(#fw-bot)" />
               </svg>
               <p class="text-red-100/40 text-xs mt-1">improved model</p>
             </div>
@@ -239,7 +524,9 @@
 
       <section class="max-w-4xl mx-auto px-6 py-20 text-center">
         <h3 class="text-2xl md:text-3xl font-bold text-white mb-6">Ready to make your AI agents learn?</h3>
-        <a href="#contact" class="inline-block px-8 py-3 bg-ag-500 hover:bg-ag-400 text-white font-medium rounded-lg transition">Get in Touch</a>
+        <a href="#contact"
+          class="inline-block px-8 py-3 bg-ag-500 hover:bg-ag-400 text-white font-medium rounded-lg transition">Get in
+          Touch</a>
       </section>
 
     </div>
@@ -256,19 +543,34 @@
         <!-- Problem cards -->
         <div class="challenge-cards grid md:grid-cols-3 gap-8 mb-20">
           <div class="bg-ag-900/60 card-perf rounded-xl p-8 text-center">
-            <div class="mb-4 flex justify-center"><svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg></div>
+            <div class="mb-4 flex justify-center"><svg class="w-10 h-10" viewBox="0 0 24 24" fill="none"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="19" x2="12" y2="5" />
+                <polyline points="5 12 12 5 19 12" />
+              </svg></div>
             <h3 class="text-2xl font-bold mb-3">&ldquo;My agents aren&rsquo;t reliable enough&rdquo;</h3>
-            <p class="text-red-100/60 text-sm">Wrong decisions, constant escalations, inconsistent quality. They should be getting better - not staying stuck.</p>
+            <p class="text-red-100/60 text-sm">Wrong decisions, constant escalations, inconsistent quality. They should
+              be getting better - not staying stuck.</p>
           </div>
           <div class="bg-ag-900/60 card-cost rounded-xl p-8 text-center">
-            <div class="mb-4 flex justify-center"><svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg></div>
+            <div class="mb-4 flex justify-center"><svg class="w-10 h-10" viewBox="0 0 24 24" fill="none"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <polyline points="19 12 12 19 5 12" />
+              </svg></div>
             <h3 class="text-2xl font-bold mb-3">&ldquo;My AI costs keep growing&rdquo;</h3>
-            <p class="text-red-100/60 text-sm">Expensive API calls, oversized models for simple tasks. Scaling up means paying more - with no efficiency gains.</p>
+            <p class="text-red-100/60 text-sm">Expensive API calls, oversized models for simple tasks. Scaling up means
+              paying more - with no efficiency gains.</p>
           </div>
           <div class="bg-ag-900/60 card-priv rounded-xl p-8 text-center">
-            <div class="mb-4 flex justify-center"><svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+            <div class="mb-4 flex justify-center"><svg class="w-10 h-10" viewBox="0 0 24 24" fill="none"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg></div>
             <h3 class="text-2xl font-bold mb-3">&ldquo;I can&rsquo;t use external AI APIs&rdquo;</h3>
-            <p class="text-red-100/60 text-sm">Sensitive data, regulatory requirements, vendor lock-in. You need AI that runs in-house.</p>
+            <p class="text-red-100/60 text-sm">Sensitive data, regulatory requirements, vendor lock-in. You need AI that
+              runs in-house.</p>
           </div>
         </div>
 
@@ -281,22 +583,31 @@
         <div id="methods-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
 
           <!-- Card 1: RL on Environments [Core] -->
-          <div id="method-rl-env" class="mode-card method-card bg-ag-900/50 border border-ag-800/50 rounded-xl p-5 ring-1 ring-red-500/20" onclick="toggleMethod('rl-env')">
+          <div id="method-rl-env"
+            class="mode-card method-card bg-ag-900/50 border border-ag-800/50 rounded-xl p-5 ring-1 ring-red-500/20"
+            onclick="toggleMethod('rl-env')">
             <div class="flex items-center gap-2 mb-2">
               <h4 class="text-base font-semibold text-white">Agents that learn by doing</h4>
-              <span class="text-[10px] font-mono uppercase tracking-wider text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded">Core</span>
+              <span
+                class="text-[10px] font-mono uppercase tracking-wider text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded">Core</span>
               <span class="method-chevron text-ag-400 ml-auto text-xs">&#x25B8;</span>
             </div>
             <div class="flex flex-wrap gap-1.5 mb-2">
               <span class="benefit-tag tag-perf">&#x2191; Performance</span>
               <span class="benefit-tag tag-cost">&#x2193; Cost</span>
-              <span class="benefit-tag tag-priv"><svg class="inline-block w-[1em] h-[1em]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Privacy</span>
+              <span class="benefit-tag tag-priv"><svg class="inline-block w-[1em] h-[1em]" viewBox="0 0 24 24"
+                  fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg> Privacy</span>
             </div>
-            <p class="text-red-100/60 text-sm leading-relaxed">Your agent practices in a real or simulated environment - improving with every iteration.</p>
+            <p class="text-red-100/60 text-sm leading-relaxed">Your agent practices in a real or simulated environment -
+              improving with every iteration.</p>
           </div>
 
           <!-- Card 2: Dyna-Style RL -->
-          <div id="method-dyna" class="mode-card method-card bg-ag-900/50 border border-ag-800/50 rounded-xl p-5" onclick="toggleMethod('dyna')">
+          <div id="method-dyna" class="mode-card method-card bg-ag-900/50 border border-ag-800/50 rounded-xl p-5"
+            onclick="toggleMethod('dyna')">
             <div class="flex items-center gap-2 mb-2">
               <h4 class="text-base font-semibold text-white">Learn from your existing logs</h4>
               <span class="method-chevron text-ag-400 ml-auto text-xs">&#x25B8;</span>
@@ -304,13 +615,19 @@
             <div class="flex flex-wrap gap-1.5 mb-2">
               <span class="benefit-tag tag-perf">&#x2191; Performance</span>
               <span class="benefit-tag tag-cost">&#x2193; Cost</span>
-              <span class="benefit-tag tag-priv"><svg class="inline-block w-[1em] h-[1em]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Privacy</span>
+              <span class="benefit-tag tag-priv"><svg class="inline-block w-[1em] h-[1em]" viewBox="0 0 24 24"
+                  fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg> Privacy</span>
             </div>
-            <p class="text-red-100/60 text-sm leading-relaxed">No simulator? We build a training world from your data, then run RL on it.</p>
+            <p class="text-red-100/60 text-sm leading-relaxed">No simulator? We build a training world from your data,
+              then run RL on it.</p>
           </div>
 
           <!-- Card 3: In-Context Learning -->
-          <div id="method-icl" class="mode-card method-card bg-ag-900/50 border border-ag-800/50 rounded-xl p-5" onclick="toggleMethod('icl')">
+          <div id="method-icl" class="mode-card method-card bg-ag-900/50 border border-ag-800/50 rounded-xl p-5"
+            onclick="toggleMethod('icl')">
             <div class="flex items-center gap-2 mb-2">
               <h4 class="text-base font-semibold text-white">Agents that remember and adapt</h4>
               <span class="method-chevron text-ag-400 ml-auto text-xs">&#x25B8;</span>
@@ -318,11 +635,13 @@
             <div class="flex flex-wrap gap-1.5 mb-2">
               <span class="benefit-tag tag-perf">&#x2191; Performance</span>
             </div>
-            <p class="text-red-100/60 text-sm leading-relaxed">User corrections and system feedback flow into the agent&rsquo;s memory - immediate improvement, no retraining.</p>
+            <p class="text-red-100/60 text-sm leading-relaxed">User corrections and system feedback flow into the
+              agent&rsquo;s memory - immediate improvement, no retraining.</p>
           </div>
 
           <!-- Card 4: Intelligent Model Routing -->
-          <div id="method-routing" class="mode-card method-card bg-ag-900/50 border border-ag-800/50 rounded-xl p-5" onclick="toggleMethod('routing')">
+          <div id="method-routing" class="mode-card method-card bg-ag-900/50 border border-ag-800/50 rounded-xl p-5"
+            onclick="toggleMethod('routing')">
             <div class="flex items-center gap-2 mb-2">
               <h4 class="text-base font-semibold text-white">Use cheaper models where possible</h4>
               <span class="method-chevron text-ag-400 ml-auto text-xs">&#x25B8;</span>
@@ -330,38 +649,52 @@
             <div class="flex flex-wrap gap-1.5 mb-2">
               <span class="benefit-tag tag-cost">&#x2193; Cost</span>
             </div>
-            <p class="text-red-100/60 text-sm leading-relaxed">Automatically route easy requests to smaller models. Same quality, lower bill.</p>
+            <p class="text-red-100/60 text-sm leading-relaxed">Automatically route easy requests to smaller models. Same
+              quality, lower bill.</p>
           </div>
 
           <!-- Card 5: Distillation -->
-          <div id="method-distill" class="mode-card method-card bg-ag-900/50 border border-ag-800/50 rounded-xl p-5" onclick="toggleMethod('distill')">
+          <div id="method-distill" class="mode-card method-card bg-ag-900/50 border border-ag-800/50 rounded-xl p-5"
+            onclick="toggleMethod('distill')">
             <div class="flex items-center gap-2 mb-2">
               <h4 class="text-base font-semibold text-white">Your own compact expert model</h4>
               <span class="method-chevron text-ag-400 ml-auto text-xs">&#x25B8;</span>
             </div>
             <div class="flex flex-wrap gap-1.5 mb-2">
               <span class="benefit-tag tag-cost">&#x2193; Cost</span>
-              <span class="benefit-tag tag-priv"><svg class="inline-block w-[1em] h-[1em]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Privacy</span>
+              <span class="benefit-tag tag-priv"><svg class="inline-block w-[1em] h-[1em]" viewBox="0 0 24 24"
+                  fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg> Privacy</span>
             </div>
-            <p class="text-red-100/60 text-sm leading-relaxed">Compress frontier-model knowledge into a small model you own and run yourself.</p>
+            <p class="text-red-100/60 text-sm leading-relaxed">Compress frontier-model knowledge into a small model you
+              own and run yourself.</p>
           </div>
 
           <!-- Card 6: Local Deployment & Agentic Infra -->
-          <div id="method-local" class="mode-card method-card bg-ag-900/50 border border-ag-800/50 rounded-xl p-5" onclick="toggleMethod('local')">
+          <div id="method-local" class="mode-card method-card bg-ag-900/50 border border-ag-800/50 rounded-xl p-5"
+            onclick="toggleMethod('local')">
             <div class="flex items-center gap-2 mb-2">
               <h4 class="text-base font-semibold text-white">Everything on your infrastructure</h4>
               <span class="method-chevron text-ag-400 ml-auto text-xs">&#x25B8;</span>
             </div>
             <div class="flex flex-wrap gap-1.5 mb-2">
-              <span class="benefit-tag tag-priv"><svg class="inline-block w-[1em] h-[1em]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Privacy</span>
+              <span class="benefit-tag tag-priv"><svg class="inline-block w-[1em] h-[1em]" viewBox="0 0 24 24"
+                  fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg> Privacy</span>
             </div>
-            <p class="text-red-100/60 text-sm leading-relaxed">Trained models run on your servers, connected to your tools. Full data sovereignty.</p>
+            <p class="text-red-100/60 text-sm leading-relaxed">Trained models run on your servers, connected to your
+              tools. Full data sovereignty.</p>
           </div>
 
         </div>
 
         <!-- Dynamic caption (appears when a method is selected) -->
-        <p id="methods-caption" class="text-red-100/60 text-sm text-center max-w-2xl mx-auto mt-6" style="display:none;"></p>
+        <p id="methods-caption" class="text-red-100/60 text-sm text-center max-w-2xl mx-auto mt-6"
+          style="display:none;"></p>
 
         <!-- Detail panel (appears below grid when a card is clicked) -->
         <div id="method-detail-panel" class="mt-4 bg-ag-900/70 border border-ag-700/50 rounded-xl p-8">
@@ -370,13 +703,16 @@
               <h3 id="mdp-title" class="text-xl font-bold text-white mb-1"></h3>
               <p id="mdp-techname" class="text-ag-400 text-xs"></p>
             </div>
-            <button onclick="closeMethodPanel()" class="text-ag-400 hover:text-white transition text-2xl leading-none ml-4">&times;</button>
+            <button onclick="closeMethodPanel()"
+              class="text-ag-400 hover:text-white transition text-2xl leading-none ml-4">&times;</button>
           </div>
           <div class="flex flex-col md:flex-row gap-8 items-start">
             <div id="mdp-svg" class="flex-shrink-0"></div>
             <div class="flex-1 min-w-0">
               <p id="mdp-desc" class="text-red-100/70 text-sm leading-relaxed mb-4"></p>
-              <p id="mdp-requires" class="text-red-300/40 text-xs"><strong class="text-red-200/60">Requires:</strong> <span id="mdp-req-text"></span></p>
+              <p id="mdp-requires" class="text-red-300/40 text-xs"><strong class="text-red-200/60">Requires:</strong>
+                <span id="mdp-req-text"></span>
+              </p>
             </div>
           </div>
         </div>
@@ -385,22 +721,30 @@
           <h3 class="text-2xl font-bold mb-12 text-center text-white">Engagement Model</h3>
           <div class="grid md:grid-cols-4 gap-6">
             <div class="text-center">
-              <div class="w-12 h-12 rounded-full bg-ag-800 border border-ag-700 flex items-center justify-center mx-auto mb-4 text-ag-200 font-mono font-bold">1</div>
+              <div
+                class="w-12 h-12 rounded-full bg-ag-800 border border-ag-700 flex items-center justify-center mx-auto mb-4 text-ag-200 font-mono font-bold">
+                1</div>
               <h4 class="font-semibold mb-2 text-white">Scope</h4>
               <p class="text-red-100/40 text-sm">Define target tasks and success metrics together</p>
             </div>
             <div class="text-center">
-              <div class="w-12 h-12 rounded-full bg-ag-800 border border-ag-700 flex items-center justify-center mx-auto mb-4 text-ag-200 font-mono font-bold">2</div>
+              <div
+                class="w-12 h-12 rounded-full bg-ag-800 border border-ag-700 flex items-center justify-center mx-auto mb-4 text-ag-200 font-mono font-bold">
+                2</div>
               <h4 class="font-semibold mb-2 text-white">Instrument</h4>
               <p class="text-red-100/40 text-sm">Connect to your logs, traces, or environments</p>
             </div>
             <div class="text-center">
-              <div class="w-12 h-12 rounded-full bg-ag-800 border border-ag-700 flex items-center justify-center mx-auto mb-4 text-ag-200 font-mono font-bold">3</div>
+              <div
+                class="w-12 h-12 rounded-full bg-ag-800 border border-ag-700 flex items-center justify-center mx-auto mb-4 text-ag-200 font-mono font-bold">
+                3</div>
               <h4 class="font-semibold mb-2 text-white">Train</h4>
               <p class="text-red-100/40 text-sm">RL, distillation, or routing - whichever fits</p>
             </div>
             <div class="text-center">
-              <div class="w-12 h-12 rounded-full bg-ag-800 border border-ag-700 flex items-center justify-center mx-auto mb-4 text-ag-200 font-mono font-bold">4</div>
+              <div
+                class="w-12 h-12 rounded-full bg-ag-800 border border-ag-700 flex items-center justify-center mx-auto mb-4 text-ag-200 font-mono font-bold">
+                4</div>
               <h4 class="font-semibold mb-2 text-white">Deploy</h4>
               <p class="text-red-100/40 text-sm">Ship improved models, monitor, repeat</p>
             </div>
@@ -409,7 +753,9 @@
 
         <div class="mt-24 text-center">
           <h3 class="text-2xl md:text-3xl font-bold text-white mb-6">Ready to make your AI agents learn?</h3>
-          <a href="#contact" class="inline-block px-8 py-3 bg-ag-500 hover:bg-ag-400 text-white font-medium rounded-lg transition">Get in Touch</a>
+          <a href="#contact"
+            class="inline-block px-8 py-3 bg-ag-500 hover:bg-ag-400 text-white font-medium rounded-lg transition">Get in
+            Touch</a>
         </div>
 
       </section>
@@ -424,6 +770,7 @@
           Our work bridges reinforcement learning research and real-world deployment.
         </p>
 
+        <!-- Project temporarily hidden
         <article class="bg-ag-900/50 border border-ag-800/50 rounded-xl p-8 mb-8">
           <div class="flex items-center gap-3 mb-4">
             <span class="text-xs bg-ag-400/20 text-ag-200 px-3 py-1 rounded-full border border-ag-500/30">New</span>
@@ -439,8 +786,9 @@
             <span class="text-xs bg-ag-800/80 text-red-100 px-3 py-1 rounded-full">Medical AI</span>
           </div>
         </article>
+        -->
 
-        <p class="text-red-100/30 text-sm text-center mt-12">More projects coming soon.</p>
+        <p class="text-red-100/60 text-sm text-center mt-12">Coming soon, stay tuned.</p>
       </section>
     </div>
 
@@ -475,13 +823,15 @@
 
           <div class="grid md:grid-cols-2 gap-6 mb-6">
             <div>
-              <label for="email" class="block text-sm text-red-100/80 mb-2">Email <span class="text-red-200/40">(email or LinkedIn required)</span></label>
+              <label for="email" class="block text-sm text-red-100/80 mb-2">Email <span class="text-red-200/40">(email
+                  or LinkedIn required)</span></label>
               <input type="email" id="email" name="email"
                 class="w-full px-4 py-3 bg-ag-800/50 border border-ag-700/50 rounded-lg text-white placeholder-red-200/30 focus:outline-none focus:border-ag-400/50 transition"
                 placeholder="you@company.com">
             </div>
             <div>
-              <label for="linkedin" class="block text-sm text-red-100/80 mb-2">LinkedIn <span class="text-red-200/40">(email or LinkedIn required)</span></label>
+              <label for="linkedin" class="block text-sm text-red-100/80 mb-2">LinkedIn <span
+                  class="text-red-200/40">(email or LinkedIn required)</span></label>
               <input type="url" id="linkedin" name="linkedin"
                 class="w-full px-4 py-3 bg-ag-800/50 border border-ag-700/50 rounded-lg text-white placeholder-red-200/30 focus:outline-none focus:border-ag-400/50 transition"
                 placeholder="https://linkedin.com/in/...">
@@ -501,7 +851,8 @@
             class="px-8 py-3 bg-ag-400 hover:bg-ag-300 text-white font-medium rounded-lg transition w-full md:w-auto">
             Send Message
           </button>
-          <p class="text-red-100/30 text-xs mt-4">Your submission is stored securely on our servers. We'll get back to you within 1-2 business days.</p>
+          <p class="text-red-100/30 text-xs mt-4">Your submission is stored securely on our servers. We'll get back to
+            you within 1-2 business days.</p>
         </form>
 
         <!-- Thank you -->
@@ -512,51 +863,89 @@
 
         <div class="text-center mb-16">
           <p class="text-red-200/50 text-sm">Or email us directly at
-            <a href="mailto:info@aganthos.com" class="text-ag-200 underline hover:text-red-100 transition">info@aganthos.com</a>
+            <a href="mailto:info@aganthos.com"
+              class="text-ag-200 underline hover:text-red-100 transition">info@aganthos.com</a>
           </p>
         </div>
 
         <!-- Legal -->
         <div class="border-t border-ag-800/50 pt-12">
           <div class="flex gap-6 text-sm text-red-200/50 mb-8">
-            <button onclick="toggleLegal('impressum')" class="hover:text-ag-200 transition underline">Legal Notice (Impressum)</button>
-            <button onclick="toggleLegal('privacy')" class="hover:text-ag-200 transition underline">Privacy Policy</button>
+            <button onclick="toggleLegal('impressum')" class="hover:text-ag-200 transition underline">Legal Notice
+              (Impressum)</button>
+            <button onclick="toggleLegal('privacy')" class="hover:text-ag-200 transition underline">Privacy
+              Policy</button>
           </div>
 
-          <div id="legal-impressum" class="hidden bg-ag-900/30 border border-ag-800/30 rounded-xl p-8 mb-8 text-sm text-red-100/60 leading-relaxed">
+          <div id="legal-impressum"
+            class="hidden bg-ag-900/30 border border-ag-800/30 rounded-xl p-8 mb-8 text-sm text-red-100/60 leading-relaxed">
             <h3 class="text-lg font-semibold text-white mb-4">Legal Notice (Impressum)</h3>
-            <p class="mb-3"><strong class="text-red-100">Operator and Contact:</strong><br>Aganthos GmbH<br>c/o Robert M&uuml;ller &amp; Tobias Magnus Schuster<br>Kirchgasse 20<br>6490 Andermatt, Switzerland</p>
-            <p class="mb-3"><strong class="text-red-100">Represented by:</strong> Robert M&uuml;ller, Chairman of the Management Board (Vorsitzender der Gesch&auml;ftsf&uuml;hrung)</p>
-            <p class="mb-3"><strong class="text-red-100">Contact:</strong> <a href="mailto:info@aganthos.com" class="underline">info@aganthos.com</a> &middot; www.aganthos.com</p>
-            <p class="mb-3"><strong class="text-red-100">Commercial Register (Switzerland):</strong><br>Registered Company Name: Aganthos GmbH<br>Commercial Register Office: Canton of Uri<br>Enterprise Identification Number (UID): CHE-239.273.202<br>Date of Incorporation: January 13, 2026</p>
-            <p class="mb-3"><strong class="text-red-100">Ownership:</strong> Wholly owned subsidiary of Aganthos, Inc. (USA).</p>
-            <p class="mb-3"><strong class="text-red-100">Parent Company (USA):</strong><br>Aganthos, Inc. (A Delaware Corporation)<br>File Number: 10351069<br>Incorporated on: September 30, 2025<br>Registered Agent: Legalinc Corporate Services Inc., Newark, Delaware</p>
+            <p class="mb-3"><strong class="text-red-100">Operator and Contact:</strong><br>Aganthos GmbH<br>c/o Robert
+              M&uuml;ller &amp; Tobias Magnus Schuster<br>Kirchgasse 20<br>6490 Andermatt, Switzerland</p>
+            <p class="mb-3"><strong class="text-red-100">Represented by:</strong> Robert M&uuml;ller, Chairman of the
+              Management Board (Vorsitzender der Gesch&auml;ftsf&uuml;hrung)</p>
+            <p class="mb-3"><strong class="text-red-100">Contact:</strong> <a href="mailto:info@aganthos.com"
+                class="underline">info@aganthos.com</a> &middot; www.aganthos.com</p>
+            <p class="mb-3"><strong class="text-red-100">Commercial Register (Switzerland):</strong><br>Registered
+              Company Name: Aganthos GmbH<br>Commercial Register Office: Canton of Uri<br>Enterprise Identification
+              Number (UID): CHE-239.273.202<br>Date of Incorporation: January 13, 2026</p>
+            <p class="mb-3"><strong class="text-red-100">Ownership:</strong> Wholly owned subsidiary of Aganthos, Inc.
+              (USA).</p>
+            <p class="mb-3"><strong class="text-red-100">Parent Company (USA):</strong><br>Aganthos, Inc. (A Delaware
+              Corporation)<br>File Number: 10351069<br>Incorporated on: September 30, 2025<br>Registered Agent: Legalinc
+              Corporate Services Inc., Newark, Delaware</p>
             <h4 class="text-white font-semibold mt-6 mb-2">Disclaimer</h4>
-            <p class="mb-3"><strong class="text-red-100">Liability for Content:</strong> While we strive to keep the information on this website accurate and up-to-date, Aganthos GmbH accepts no liability for the topicality, correctness, completeness, or quality of the information provided.</p>
-            <p class="mb-3"><strong class="text-red-100">Liability for Links:</strong> Our website may contain links to external websites. We have no influence on the content of these external sites and therefore accept no liability for them.</p>
-            <p><strong class="text-red-100">Copyright:</strong> The content and works published on this website are governed by the copyright laws of Switzerland. Any duplication, processing, distribution, or any form of utilization beyond the scope of copyright law shall require the prior written consent of the author or authors in question.</p>
+            <p class="mb-3"><strong class="text-red-100">Liability for Content:</strong> While we strive to keep the
+              information on this website accurate and up-to-date, Aganthos GmbH accepts no liability for the
+              topicality, correctness, completeness, or quality of the information provided.</p>
+            <p class="mb-3"><strong class="text-red-100">Liability for Links:</strong> Our website may contain links to
+              external websites. We have no influence on the content of these external sites and therefore accept no
+              liability for them.</p>
+            <p><strong class="text-red-100">Copyright:</strong> The content and works published on this website are
+              governed by the copyright laws of Switzerland. Any duplication, processing, distribution, or any form of
+              utilization beyond the scope of copyright law shall require the prior written consent of the author or
+              authors in question.</p>
           </div>
 
-          <div id="legal-privacy" class="hidden bg-ag-900/30 border border-ag-800/30 rounded-xl p-8 mb-8 text-sm text-red-100/60 leading-relaxed">
+          <div id="legal-privacy"
+            class="hidden bg-ag-900/30 border border-ag-800/30 rounded-xl p-8 mb-8 text-sm text-red-100/60 leading-relaxed">
             <h3 class="text-lg font-semibold text-white mb-4">Privacy Policy (Datenschutzerkl&auml;rung)</h3>
             <p class="text-red-200/40 mb-4">Last updated: January 2026</p>
             <h4 class="text-white font-semibold mt-4 mb-2">1. General Information</h4>
-            <p class="mb-3">We take the protection of your personal data very seriously. Aganthos GmbH (&ldquo;we&rdquo;, &ldquo;us&rdquo;) processes personal data in accordance with the Swiss Federal Act on Data Protection (FADP/nDSG) and, where applicable, the European General Data Protection Regulation (GDPR). This privacy policy explains how we collect and process personal data when you visit our website www.aganthos.com or contact us.</p>
+            <p class="mb-3">We take the protection of your personal data very seriously. Aganthos GmbH
+              (&ldquo;we&rdquo;, &ldquo;us&rdquo;) processes personal data in accordance with the Swiss Federal Act on
+              Data Protection (FADP/nDSG) and, where applicable, the European General Data Protection Regulation (GDPR).
+              This privacy policy explains how we collect and process personal data when you visit our website
+              www.aganthos.com or contact us.</p>
             <h4 class="text-white font-semibold mt-4 mb-2">2. Controller</h4>
-            <p class="mb-3">Aganthos GmbH<br>c/o Robert M&uuml;ller &amp; Tobias Magnus Schuster<br>Kirchgasse 20, 6490 Andermatt, Switzerland<br>Email: info@aganthos.com<br>Represented by: Robert M&uuml;ller (Chairman)</p>
+            <p class="mb-3">Aganthos GmbH<br>c/o Robert M&uuml;ller &amp; Tobias Magnus Schuster<br>Kirchgasse 20, 6490
+              Andermatt, Switzerland<br>Email: info@aganthos.com<br>Represented by: Robert M&uuml;ller (Chairman)</p>
             <h4 class="text-white font-semibold mt-4 mb-2">3. Collection and Processing of Data</h4>
-            <p class="mb-2"><strong class="text-red-100">3.1 Server Log Files:</strong> When you visit our website, the hosting provider automatically collects and stores information in server log files: browser type and version, operating system, referrer URL, hostname, time of request, and IP address. This data is not combined with other data sources.</p>
-            <p class="mb-3"><strong class="text-red-100">3.2 Contact Form and Email:</strong> If you send us inquiries via email or contact forms, your details will be stored for the purpose of processing the request. We do not pass on this data without your consent.</p>
+            <p class="mb-2"><strong class="text-red-100">3.1 Server Log Files:</strong> When you visit our website, the
+              hosting provider automatically collects and stores information in server log files: browser type and
+              version, operating system, referrer URL, hostname, time of request, and IP address. This data is not
+              combined with other data sources.</p>
+            <p class="mb-3"><strong class="text-red-100">3.2 Contact Form and Email:</strong> If you send us inquiries
+              via email or contact forms, your details will be stored for the purpose of processing the request. We do
+              not pass on this data without your consent.</p>
             <h4 class="text-white font-semibold mt-4 mb-2">4. Data Transfer to the USA</h4>
-            <p class="mb-3">Our company is a wholly-owned subsidiary of Aganthos, Inc. (Delaware, USA). If tools or service providers based in the USA are used, your personal data may be transferred to US servers. We ensure that data transfers are protected by appropriate safeguards, such as the Swiss-U.S. Data Privacy Framework or Standard Contractual Clauses (SCCs).</p>
+            <p class="mb-3">Our company is a wholly-owned subsidiary of Aganthos, Inc. (Delaware, USA). If tools or
+              service providers based in the USA are used, your personal data may be transferred to US servers. We
+              ensure that data transfers are protected by appropriate safeguards, such as the Swiss-U.S. Data Privacy
+              Framework or Standard Contractual Clauses (SCCs).</p>
             <h4 class="text-white font-semibold mt-4 mb-2">5. Cookies and Analytics</h4>
-            <p class="mb-3">Our website may use cookies to enhance user experience. You can set your browser to refuse cookies.</p>
+            <p class="mb-3">Our website may use cookies to enhance user experience. You can set your browser to refuse
+              cookies.</p>
             <h4 class="text-white font-semibold mt-4 mb-2">6. Data Security</h4>
-            <p class="mb-3">We use SSL/TLS encryption for security reasons and to protect the transmission of confidential content.</p>
+            <p class="mb-3">We use SSL/TLS encryption for security reasons and to protect the transmission of
+              confidential content.</p>
             <h4 class="text-white font-semibold mt-4 mb-2">7. Your Rights</h4>
-            <p class="mb-3">Under the FADP (and GDPR where applicable), you have the right to: access, rectification, deletion, restriction of processing, and data portability. To exercise these rights, contact us at <a href="mailto:info@aganthos.com" class="underline">info@aganthos.com</a>.</p>
+            <p class="mb-3">Under the FADP (and GDPR where applicable), you have the right to: access, rectification,
+              deletion, restriction of processing, and data portability. To exercise these rights, contact us at <a
+                href="mailto:info@aganthos.com" class="underline">info@aganthos.com</a>.</p>
             <h4 class="text-white font-semibold mt-4 mb-2">8. Changes to this Privacy Policy</h4>
-            <p>We reserve the right to adapt this privacy policy to comply with current legal requirements or to reflect changes to our services.</p>
+            <p>We reserve the right to adapt this privacy policy to comply with current legal requirements or to reflect
+              changes to our services.</p>
           </div>
         </div>
       </section>
@@ -566,7 +955,8 @@
 
   <!-- Footer -->
   <footer class="border-t border-ag-800/50 mt-12">
-    <div class="max-w-6xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-red-200/40">
+    <div
+      class="max-w-6xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-red-200/40">
       <p>&copy; <span id="yr"></span> Aganthos GmbH. All rights reserved.</p>
       <div class="flex gap-6">
         <a href="#contact" class="hover:text-ag-200 transition" onclick="showLegal('impressum')">Impressum</a>
@@ -580,29 +970,29 @@
 
     // SPA navigation
     function navigate(hash) {
-      var page = hash.replace('#','') || 'home';
+      var page = hash.replace('#', '') || 'home';
       if (page === 'contact-thanks') {
         page = 'contact';
-        setTimeout(function(){ document.getElementById('contact-thanks').classList.remove('hidden'); }, 100);
+        setTimeout(function () { document.getElementById('contact-thanks').classList.remove('hidden'); }, 100);
       }
-      document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+      document.querySelectorAll('.page').forEach(function (p) { p.classList.remove('active'); });
       var target = document.getElementById('page-' + page);
       if (target) { target.classList.add('active'); } else { document.getElementById('page-home').classList.add('active'); }
-      document.querySelectorAll('.nav-link').forEach(function(l){
+      document.querySelectorAll('.nav-link').forEach(function (l) {
         l.classList.toggle('active', l.getAttribute('href') === '#' + page);
       });
       window.scrollTo(0, 0);
     }
 
-    window.addEventListener('hashchange', function(){ navigate(location.hash); });
+    window.addEventListener('hashchange', function () { navigate(location.hash); });
     if (location.hash) navigate(location.hash);
 
     // Mobile menu
-    document.getElementById('menu-btn').addEventListener('click', function(){
+    document.getElementById('menu-btn').addEventListener('click', function () {
       document.getElementById('mobile-menu').classList.toggle('hidden');
     });
-    document.querySelectorAll('.nav-mobile').forEach(function(a){
-      a.addEventListener('click', function(){ document.getElementById('mobile-menu').classList.add('hidden'); });
+    document.querySelectorAll('.nav-mobile').forEach(function (a) {
+      a.addEventListener('click', function () { document.getElementById('mobile-menu').classList.add('hidden'); });
     });
 
     // Legal toggles
@@ -611,7 +1001,7 @@
     }
     function showLegal(id) {
       navigate('#contact');
-      setTimeout(function(){
+      setTimeout(function () {
         var el = document.getElementById('legal-' + id);
         if (el.classList.contains('hidden')) el.classList.remove('hidden');
         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -678,7 +1068,7 @@
       var captionEl = document.getElementById('methods-caption');
 
       // Deselect previous
-      document.querySelectorAll('.method-card.active').forEach(function(c) {
+      document.querySelectorAll('.method-card.active').forEach(function (c) {
         c.classList.remove('active');
       });
 
@@ -706,12 +1096,12 @@
       captionEl.style.display = 'block';
 
       // Scroll panel into view
-      setTimeout(function() { panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 50);
+      setTimeout(function () { panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 50);
     }
 
     function closeMethodPanel() {
       document.getElementById('method-detail-panel').classList.remove('open');
-      document.querySelectorAll('.method-card.active').forEach(function(c) {
+      document.querySelectorAll('.method-card.active').forEach(function (c) {
         c.classList.remove('active');
       });
       activeMethodId = null;
@@ -719,7 +1109,7 @@
     }
 
     // Contact form submission
-    document.getElementById('contact-form').addEventListener('submit', function(e) {
+    document.getElementById('contact-form').addEventListener('submit', function (e) {
       e.preventDefault();
       var form = this;
       var errEl = document.getElementById('form-error');
@@ -751,25 +1141,26 @@
           message: form.querySelector('#message').value.trim()
         })
       })
-      .then(function(res) { return res.json().then(function(data) { return { ok: res.ok, data: data }; }); })
-      .then(function(result) {
-        if (result.ok) {
-          form.classList.add('hidden');
-          document.getElementById('contact-thanks').classList.remove('hidden');
-        } else {
-          errEl.textContent = result.data.error || 'Something went wrong. Please try again.';
+        .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+        .then(function (result) {
+          if (result.ok) {
+            form.classList.add('hidden');
+            document.getElementById('contact-thanks').classList.remove('hidden');
+          } else {
+            errEl.textContent = result.data.error || 'Something went wrong. Please try again.';
+            errEl.classList.remove('hidden');
+          }
+        })
+        .catch(function () {
+          errEl.textContent = 'Could not reach server. Please email us directly at info@aganthos.com.';
           errEl.classList.remove('hidden');
-        }
-      })
-      .catch(function() {
-        errEl.textContent = 'Could not reach server. Please email us directly at info@aganthos.com.';
-        errEl.classList.remove('hidden');
-      })
-      .finally(function() {
-        btn.disabled = false;
-        btn.textContent = 'Send Message';
-      });
+        })
+        .finally(function () {
+          btn.disabled = false;
+          btn.textContent = 'Send Message';
+        });
     });
   </script>
 </body>
+
 </html>
