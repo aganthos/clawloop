@@ -3,3 +3,13 @@
 *.pdf
 *.xlsx
 swiss_genai_price/
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+
+#coding agent repos
+.kd
+.claude
