@@ -237,11 +237,20 @@ class Insight:
     deltas.
     """
 
+    VALID_ACTIONS = frozenset({"add", "update", "remove"})
+
     content: str
     source_episode_ids: list[str] = field(default_factory=list)
     tags: list[str] = field(default_factory=list)
     action: str = "add"  # "add" | "update" | "remove"
     target_entry_id: str | None = None  # for update/remove
+
+    def __post_init__(self) -> None:
+        if self.action not in self.VALID_ACTIONS:
+            raise ValueError(
+                f"Invalid insight action {self.action!r}, "
+                f"must be one of {sorted(self.VALID_ACTIONS)}"
+            )
 
 
 # -- Harness layer --
@@ -284,6 +293,16 @@ class Harness:
         """Curator step: apply reflector insights as playbook deltas.
 
         Returns the number of deltas applied.
+
+        .. warning:: Security — indirect prompt injection
+
+            Insights originate from LLM-based Reflectors that analyse episode
+            traces.  A malicious or adversarial episode could cause the
+            Reflector to emit a poisoned insight that persists in the playbook
+            and therefore in all future system prompts.  Before using this in
+            production, callers MUST gate insights through a validation layer
+            (schema check, content policy filter, or human-in-the-loop
+            approval).  See PR #1 review for context.
         """
         applied = 0
         for insight in insights:

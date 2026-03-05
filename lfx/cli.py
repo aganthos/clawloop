@@ -8,9 +8,7 @@ import logging
 import sys
 from typing import Any
 
-from lfx.core.gate import gate_for_deploy
 from lfx.core.loop import AgentState, learning_loop
-from lfx.core.state import StateID
 
 log = logging.getLogger("lfx")
 
@@ -42,6 +40,7 @@ def _build_parser() -> argparse.ArgumentParser:
     eval_p.add_argument(
         "--episodes", type=int, default=10, help="Number of episodes"
     )
+    eval_p.add_argument("--config", type=str, default=None, help="Config JSON file")
 
     # -- compare --
     cmp_p = sub.add_parser(
@@ -63,20 +62,25 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+ADAPTER_REGISTRY: dict[str, tuple[str, str]] = {
+    "entropic": ("lfx.adapters.entropic", "EntropicAdapter"),
+    "car": ("lfx.adapters.car", "CARAdapter"),
+    "tau2": ("lfx.adapters.tau2", "Tau2Adapter"),
+}
+
+
 def _get_adapter(bench: str) -> Any:
     """Resolve a benchmark name to its adapter (lazy import)."""
-    if bench == "entropic":
-        from lfx.adapters.entropic import EntropicAdapter
-        return EntropicAdapter()
-    elif bench == "car":
-        from lfx.adapters.car import CARAdapter
-        return CARAdapter()
-    elif bench == "tau2":
-        from lfx.adapters.tau2 import Tau2Adapter
-        return Tau2Adapter()
-    else:
+    import importlib
+
+    if bench not in ADAPTER_REGISTRY:
         print(f"Unknown benchmark: {bench}", file=sys.stderr)
         sys.exit(1)
+
+    module_name, class_name = ADAPTER_REGISTRY[bench]
+    module = importlib.import_module(module_name)
+    adapter_class = getattr(module, class_name)
+    return adapter_class()
 
 
 def cmd_run(args: argparse.Namespace) -> None:
@@ -90,7 +94,7 @@ def cmd_run(args: argparse.Namespace) -> None:
     agent_state = AgentState()
     tasks = adapter.list_tasks()
 
-    result_state, state_id = learning_loop(
+    _, state_id = learning_loop(
         adapter=adapter,
         agent_state=agent_state,
         tasks=tasks,
@@ -102,7 +106,11 @@ def cmd_run(args: argparse.Namespace) -> None:
 
 def cmd_eval(args: argparse.Namespace) -> None:
     adapter = _get_adapter(args.bench)
-    adapter.setup({})
+    config: dict[str, Any] = {}
+    if args.config:
+        with open(args.config) as f:
+            config = json.load(f)
+    adapter.setup(config)
     agent_state = AgentState()
     tasks = adapter.list_tasks()
 
