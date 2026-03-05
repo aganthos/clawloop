@@ -3,21 +3,21 @@
 ## Server
 
 - **Provider:** Hetzner
-- **IP:** 78.47.141.140
+- **IP:** 91.98.117.161
 - **OS:** Ubuntu 24.04.3 LTS
 - **Hostname:** magentic
 
 ### Connect
 
 ```bash
-ssh root@78.47.141.140
+ssh root@91.98.117.161
 ```
 
 SSH key auth is configured. The key was added from Robert's MacBook via `ssh-copy-id`. SSH config entry (`~/.ssh/config`):
 
 ```
-Host 78.47.141.140
-  HostName 78.47.141.140
+Host 91.98.117.161
+  HostName 91.98.117.161
   User root
   ForwardAgent yes
 ```
@@ -253,14 +253,14 @@ From local machine:
 
 ```bash
 # Copy updated files to server
-scp webpage/index.html webpage/logo.svg root@78.47.141.140:/home/landingpage/
+scp webpage/index.html webpage/logo.svg root@91.98.117.161:/home/landingpage/
 
 # If contact_api.py changed, also restart the service:
-scp webpage/contact_api.py root@78.47.141.140:/home/landingpage/
-ssh root@78.47.141.140 "systemctl restart contact-api"
+scp webpage/contact_api.py root@91.98.117.161:/home/landingpage/
+ssh root@91.98.117.161 "systemctl restart contact-api"
 
 # If nginx config changed:
-ssh root@78.47.141.140 "nginx -t && systemctl reload nginx"
+ssh root@91.98.117.161 "nginx -t && systemctl reload nginx"
 ```
 
 ---
@@ -269,7 +269,7 @@ ssh root@78.47.141.140 "nginx -t && systemctl reload nginx"
 
 | What | Command |
 |---|---|
-| SSH in | `ssh root@78.47.141.140` |
+| SSH in | `ssh root@91.98.117.161` |
 | Test nginx config | `nginx -t` |
 | Reload nginx | `systemctl reload nginx` |
 | Restart contact API | `systemctl restart contact-api` |
