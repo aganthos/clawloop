@@ -10,7 +10,7 @@ from email.mime.text import MIMEText
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 LISTEN_PORT = 5000
-MAILTO = "info@aganthos.com"
+MAILTO = ["info@aganthos.com", "tobias@aganthos.com"]
 LOG_FILE = "/home/landingpage/contact_submissions.json"
 
 def is_valid_email(email):
@@ -90,7 +90,7 @@ class ContactHandler(BaseHTTPRequestHandler):
             msg = MIMEText(body_text, "plain", "utf-8")
             msg["Subject"] = subject
             msg["From"] = f"Aganthos Website <noreply@aganthos.com>"
-            msg["To"] = MAILTO
+            msg["To"] = ", ".join(MAILTO)
             if email:
                 msg["Reply-To"] = email
 

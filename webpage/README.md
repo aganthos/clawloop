@@ -1,4 +1,4 @@
-# Aganthos Website — Deployment & Infrastructure
+# Aganthos Website - Deployment & Infrastructure
 
 ## Server
 
@@ -196,7 +196,7 @@ server {
 
 ## Contact Form API
 
-Self-hosted Python HTTP server. No third-party services — form data stays on the server.
+Self-hosted Python HTTP server. No third-party services - form data stays on the server.
 
 ### How it works
 
