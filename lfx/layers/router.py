@@ -15,7 +15,6 @@ historical reward.  Aligned with RouteLLM/LLMRouter/ClawRouter:
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -50,16 +49,31 @@ class QueryFeatures:
     tool_calls_expected: int = 0
     conversation_depth: int = 0  # number of prior turns
 
+    # Canonical key order — must match DEFAULT_SCORE_WEIGHTS keys.
+    FEATURE_KEYS: tuple[str, ...] = (
+        "token_count",
+        "has_code",
+        "reasoning_markers",
+        "technical_terms",
+        "tool_calls_expected",
+        "conversation_depth",
+    )
+
+    def to_dict(self) -> dict[str, float]:
+        """Named feature map for score computation."""
+        return {
+            "token_count": float(self.token_count) / 1000.0,
+            "has_code": float(self.has_code),
+            "reasoning_markers": float(self.reasoning_markers),
+            "technical_terms": float(self.technical_terms) / 10.0,
+            "tool_calls_expected": float(self.tool_calls_expected),
+            "conversation_depth": float(self.conversation_depth),
+        }
+
     def to_vector(self) -> list[float]:
-        """Flatten to a numeric feature vector for the classifier."""
-        return [
-            float(self.token_count) / 1000.0,  # normalize
-            float(self.has_code),
-            float(self.reasoning_markers),
-            float(self.technical_terms) / 10.0,
-            float(self.tool_calls_expected),
-            float(self.conversation_depth),
-        ]
+        """Flatten to a numeric feature vector (canonical key order)."""
+        d = self.to_dict()
+        return [d[k] for k in self.FEATURE_KEYS]
 
 
 # -- Scoring weights --
@@ -221,15 +235,18 @@ class Router:
         return deltas
 
     def _compute_score(self, features: QueryFeatures) -> float:
-        """Weighted complexity score in [0, 1]."""
-        vec = features.to_vector()
-        keys = list(self.score_weights.keys())
+        """Weighted complexity score in [0, 1].
+
+        Feature values are already normalized by ``QueryFeatures.to_dict()``
+        and weights sum to 1.0, so the dot product is naturally bounded.
+        We clamp to [0, 1] to guard against extreme feature values.
+        """
+        feat = features.to_dict()
         raw = sum(
-            self.score_weights.get(keys[i], 0.0) * vec[i]
-            for i in range(min(len(keys), len(vec)))
+            self.score_weights.get(key, 0.0) * feat.get(key, 0.0)
+            for key in QueryFeatures.FEATURE_KEYS
         )
-        # Sigmoid to [0, 1]
-        return 1.0 / (1.0 + math.exp(-raw))
+        return max(0.0, min(1.0, raw))
 
     def to_dict(self) -> dict[str, Any]:
         return {

@@ -55,8 +55,15 @@ class SkyRLExporter(TraceExporter):
 
     tokenizer: Any = None  # set at init; typed loosely to avoid HF dependency
 
-    def export(self, episodes: list[Episode]) -> dict[str, Any]:
-        """Export a batch of episodes as a single GeneratorOutput."""
+    def export(self, episodes: list[Episode], repetition_offset: int = 0) -> dict[str, Any]:
+        """Export a batch of episodes as a single GeneratorOutput.
+
+        Parameters
+        ----------
+        repetition_offset:
+            Starting repetition index.  When exporting multiple batches for
+            the same task pool, increment this to avoid trajectory ID collisions.
+        """
         prompt_token_ids: list[list[int]] = []
         response_ids: list[list[int]] = []
         rewards: list[float] = []
@@ -64,8 +71,8 @@ class SkyRLExporter(TraceExporter):
         trajectory_ids: list[TrajectoryID] = []
         is_last_step: list[bool] = []
 
-        for ep in episodes:
-            result = self._episode_to_transitions(ep)
+        for ep_idx, ep in enumerate(episodes):
+            result = self._episode_to_transitions(ep, repetition_id=repetition_offset + ep_idx)
             prompt_token_ids.extend(result["prompt_token_ids"])
             response_ids.extend(result["response_ids"])
             rewards.extend(result["rewards"])
@@ -88,12 +95,14 @@ class SkyRLExporter(TraceExporter):
     def export_one(self, episode: Episode) -> dict[str, Any]:
         return self.export([episode])
 
-    def _episode_to_transitions(self, episode: Episode) -> dict[str, Any]:
+    def _episode_to_transitions(self, episode: Episode, repetition_id: int = 0) -> dict[str, Any]:
         """Convert a single episode into per-transition SkyRL arrays.
 
-        For each step *t*, the *prompt* is ``messages[:step_boundaries[t]]``
-        and the *response* is
-        ``messages[step_boundaries[t]:step_boundaries[t+1]]`` (or end).
+        For each step *t*, ``step_boundaries[t]`` marks the start of the user
+        turn.  The **prompt** includes everything up to and including the user
+        message(s) — i.e. the context the model sees at inference time.  The
+        **response** is only the assistant (and tool-result) messages that
+        follow, which is what the policy actually generates.
 
         Only the terminal step carries the episode reward; all others get 0.0.
         """
@@ -107,17 +116,29 @@ class SkyRLExporter(TraceExporter):
         n_steps = len(episode.steps)
 
         for t in range(n_steps):
-            # Prompt = all messages before this step
-            prompt_end = episode.step_boundaries[t]
-            prompt_msgs = [m.to_openai_dict() for m in episode.messages[:prompt_end]]
-
-            # Response = messages in this step
-            resp_start = episode.step_boundaries[t]
+            # Determine the end of this step's messages
             if t + 1 < len(episode.step_boundaries):
-                resp_end = episode.step_boundaries[t + 1]
+                step_end = episode.step_boundaries[t + 1]
             else:
-                resp_end = len(episode.messages)
-            resp_msgs = [m.to_openai_dict() for m in episode.messages[resp_start:resp_end]]
+                step_end = len(episode.messages)
+
+            # Find the first assistant message in this step — that's where
+            # the response begins.  Everything before it is prompt context.
+            step_start = episode.step_boundaries[t]
+            resp_start = step_start
+            for idx in range(step_start, step_end):
+                if episode.messages[idx].role == "assistant":
+                    resp_start = idx
+                    break
+
+            # Prompt = all messages up to (but not including) the first
+            # assistant message in this step.  This includes the system
+            # prompt, prior turns, AND the current user message — matching
+            # what the model sees at inference time.
+            prompt_msgs = [m.to_openai_dict() for m in episode.messages[:resp_start]]
+
+            # Response = assistant (and tool-result) messages only
+            resp_msgs = [m.to_openai_dict() for m in episode.messages[resp_start:step_end]]
 
             # Tokenize prompt
             if prompt_msgs:
@@ -136,12 +157,25 @@ class SkyRLExporter(TraceExporter):
             l_mask: list[int] = []
             for msg in resp_msgs:
                 text = msg.get("content", "") or ""
+                # For assistant messages with tool_calls, serialize the
+                # tool call payload so the model learns to emit them.
+                if msg["role"] == "assistant" and msg.get("tool_calls"):
+                    tc_parts = []
+                    if text:
+                        tc_parts.append(text)
+                    for tc in msg["tool_calls"]:
+                        fn = tc.get("function", {})
+                        tc_parts.append(
+                            f'{{"name":"{fn.get("name", "")}",'
+                            f'"arguments":{fn.get("arguments", "")}}}'
+                        )
+                    text = " ".join(tc_parts)
                 tokens = self.tokenizer.encode(text, add_special_tokens=False)
                 r_ids.extend(tokens)
                 if msg["role"] == "assistant":
                     l_mask.extend([1] * len(tokens))
                 else:
-                    # user / system / tool tokens are masked out
+                    # tool-result tokens are masked out
                     l_mask.extend([0] * len(tokens))
 
             prompt_token_ids.append(list(p_ids))
@@ -154,7 +188,7 @@ class SkyRLExporter(TraceExporter):
             is_last_step_flags.append(is_terminal)
 
             trajectory_ids.append(
-                TrajectoryID(instance_id=episode.task_id, repetition_id=0)
+                TrajectoryID(instance_id=episode.task_id, repetition_id=repetition_id)
             )
 
         return {
