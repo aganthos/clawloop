@@ -101,16 +101,30 @@ class TestSkyRLExporter:
 
         assert result["is_last_step"] == [False, False, True]
 
-    def test_loss_masks_nonzero_for_assistant(self) -> None:
+    def test_loss_masks_all_ones_for_assistant_only_response(self) -> None:
         ep = _make_episode(n_steps=1, reward=1.0)
         result = self.exporter.export([ep])
 
-        # The response contains user + assistant messages
-        # User tokens should have mask=0, assistant tokens should have mask=1
+        # Response should only contain assistant tokens (user is in prompt)
         mask = result["loss_masks"][0]
-        # There should be some 1s (assistant tokens) and some 0s (user tokens)
-        assert 1 in mask
-        assert 0 in mask
+        assert len(mask) > 0
+        assert all(m == 1 for m in mask)
+
+    def test_prompt_includes_user_message(self) -> None:
+        """The prompt must include the user turn so the model is conditioned
+        on the same context it sees at inference time."""
+        ep = _make_episode(n_steps=2, reward=1.0)
+        result = self.exporter.export([ep])
+
+        # Step 0: prompt = system + user ("Do step 0")
+        # Step 1: prompt = system + user + assistant + user ("Do step 1")
+        # Both prompts must be non-empty (they include at least the user msg)
+        for p in result["prompt_token_ids"]:
+            assert len(p) > 0
+
+        # Response should only contain assistant tokens -> all-1 masks
+        for mask in result["loss_masks"]:
+            assert all(m == 1 for m in mask)
 
     def test_trajectory_ids(self) -> None:
         ep = _make_episode(n_steps=2)
@@ -120,6 +134,15 @@ class TestSkyRLExporter:
             assert isinstance(tid, TrajectoryID)
             assert tid.instance_id == "task-xyz"
 
+    def test_trajectory_ids_distinct_per_episode(self) -> None:
+        ep1 = _make_episode(n_steps=1, reward=0.5)
+        ep2 = _make_episode(n_steps=1, reward=0.7)
+        result = self.exporter.export([ep1, ep2])
+
+        # Two episodes of the same task must have different repetition_ids
+        assert result["trajectory_ids"][0].repetition_id == 0
+        assert result["trajectory_ids"][1].repetition_id == 1
+
     def test_multiple_episodes(self) -> None:
         ep1 = _make_episode(n_steps=2, reward=0.5)
         ep2 = _make_episode(n_steps=3, reward=0.7)
@@ -128,6 +151,46 @@ class TestSkyRLExporter:
         # 2 + 3 = 5 transitions total
         assert len(result["prompt_token_ids"]) == 5
         assert len(result["rewards"]) == 5
+
+    def test_tool_call_tokens_in_response(self) -> None:
+        """Assistant tool-call messages must produce non-empty response tokens."""
+        from lfx.core.episode import ToolCall
+
+        messages = [
+            Message(role="system", content="You are helpful."),
+            Message(role="user", content="Search for X"),
+            Message(
+                role="assistant",
+                content="",
+                tool_calls=[
+                    ToolCall(
+                        id="tc-1",
+                        name="search",
+                        arguments='{"q": "X"}',
+                    )
+                ],
+            ),
+            Message(role="tool", content="Found X", name="search", tool_call_id="tc-1"),
+            Message(role="assistant", content="Here is X."),
+        ]
+        ep = Episode(
+            id="ep-tc",
+            state_id="s",
+            task_id="task-tc",
+            bench="test",
+            messages=messages,
+            step_boundaries=[1],  # user msg at index 1
+            steps=[StepMeta(t=0, reward=1.0, done=True, timing_ms=10.0)],
+            summary=EpisodeSummary(total_reward=1.0),
+        )
+        result = self.exporter.export([ep])
+
+        # Response tokens must be non-empty (tool call serialized)
+        assert len(result["response_ids"][0]) > 0
+        # Loss mask: assistant tokens = 1, tool result = 0
+        mask = result["loss_masks"][0]
+        assert 1 in mask
+        assert 0 in mask
 
     def test_prompt_grows_with_steps(self) -> None:
         ep = _make_episode(n_steps=3)

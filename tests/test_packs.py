@@ -222,6 +222,12 @@ class TestRouter:
         tier = r.classify(features)
         assert tier in Tier.ALL
 
+    def test_trivial_query_routes_light(self) -> None:
+        """A zero-feature query must classify as LIGHT, not HEAVY."""
+        r = Router()
+        tier = r.classify(QueryFeatures())
+        assert tier == Tier.LIGHT
+
     def test_route_with_models(self) -> None:
         r = Router(tier_models={
             Tier.LIGHT: "haiku",
