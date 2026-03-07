@@ -83,13 +83,24 @@ def _get_adapter(bench: str) -> Any:
     return adapter_class()
 
 
+def _load_config(path: str | None) -> dict[str, Any]:
+    """Load a JSON config file, returning {} if no path given."""
+    if not path:
+        return {}
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print(f"Error: Config file not found: {path}", file=sys.stderr)
+        sys.exit(1)
+    except json.JSONDecodeError as e:
+        print(f"Error: Invalid JSON in config file {path}: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
 def cmd_run(args: argparse.Namespace) -> None:
     adapter = _get_adapter(args.bench)
-    config: dict[str, Any] = {}
-    if args.config:
-        with open(args.config) as f:
-            config = json.load(f)
-    adapter.setup(config)
+    adapter.setup(_load_config(args.config))
 
     agent_state = AgentState()
     tasks = adapter.list_tasks()
@@ -106,11 +117,7 @@ def cmd_run(args: argparse.Namespace) -> None:
 
 def cmd_eval(args: argparse.Namespace) -> None:
     adapter = _get_adapter(args.bench)
-    config: dict[str, Any] = {}
-    if args.config:
-        with open(args.config) as f:
-            config = json.load(f)
-    adapter.setup(config)
+    adapter.setup(_load_config(args.config))
     agent_state = AgentState()
     tasks = adapter.list_tasks()
 

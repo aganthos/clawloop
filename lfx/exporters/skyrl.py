@@ -167,7 +167,7 @@ class SkyRLExporter(TraceExporter):
                         fn = tc.get("function", {})
                         tc_parts.append(
                             f'{{"name":"{fn.get("name", "")}",'
-                            f'"arguments":{fn.get("arguments", "")}}}'
+                            f'"arguments":{fn.get("arguments", "{}")}}}'
                         )
                     text = " ".join(tc_parts)
                 tokens = self.tokenizer.encode(text, add_special_tokens=False)

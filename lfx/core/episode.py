@@ -11,7 +11,7 @@ from __future__ import annotations
 import time
 import uuid
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Literal
 
 
 @dataclass
@@ -31,7 +31,7 @@ class ToolCall:
 class Message:
     """OpenAI-format chat message with optional tool-call metadata."""
 
-    role: str  # "system" | "user" | "assistant" | "tool"
+    role: Literal["system", "user", "assistant", "tool"]
     content: str
     name: str | None = None  # tool name when role="tool"
     tool_calls: list[ToolCall] | None = None
@@ -149,10 +149,10 @@ class Episode:
 class LearningUpdate:
     """A proposed modification to one of the three learning layers."""
 
-    layer_type: str  # "harness" | "router" | "weights"
+    layer_type: Literal["harness", "router", "weights"]
     state_id_before: str
     state_id_after: str
     proposal: dict[str, Any]  # diff-like payload
     evidence: list[Episode]
-    decision: str  # "accept" | "reject" | "defer"
+    decision: Literal["accept", "reject", "defer"]
     created_at: float = field(default_factory=time.time)

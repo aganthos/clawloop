@@ -175,7 +175,7 @@ class Router:
     ) -> None:
         """Record a routing outcome for future training."""
         self.training_samples.append({
-            "features": features.to_vector(),
+            "features": features.to_dict(),
             "model_id": model_id,
             "cost": cost,
             "reward": reward,

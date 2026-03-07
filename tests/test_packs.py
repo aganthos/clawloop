@@ -1,5 +1,7 @@
 """Tests for lfx.layers (harness, router, weights)."""
 
+import json
+
 from lfx.layers.harness import (
     Harness,
     Insight,
@@ -199,8 +201,6 @@ class TestHarness:
         assert len(d["tool_configs"]) == 1
 
     def test_to_dict_deterministic(self) -> None:
-        import json
-
         h = Harness(system_prompts={"b": "2", "a": "1"})
         s1 = json.dumps(h.to_dict(), sort_keys=True)
         s2 = json.dumps(h.to_dict(), sort_keys=True)

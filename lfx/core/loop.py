@@ -135,16 +135,19 @@ def learning_loop(
 
 
 def _apply_update(agent_state: AgentState, update: LearningUpdate) -> AgentState:
-    """Apply a single accepted update to the agent state.
+    """Apply a single accepted update, returning a new AgentState.
 
     The actual mutation logic lives in the proposers which produce fully-formed
     replacement layers via the ``proposal`` dict.
     """
     proposal = update.proposal
+    harness = agent_state.harness
+    router = agent_state.router
+    weights = agent_state.weights
     if update.layer_type == "harness" and "harness" in proposal:
-        agent_state.harness = proposal["harness"]
+        harness = proposal["harness"]
     elif update.layer_type == "router" and "router" in proposal:
-        agent_state.router = proposal["router"]
+        router = proposal["router"]
     elif update.layer_type == "weights" and "weights" in proposal:
-        agent_state.weights = proposal["weights"]
-    return agent_state
+        weights = proposal["weights"]
+    return AgentState(harness=harness, router=router, weights=weights)
