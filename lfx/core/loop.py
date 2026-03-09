@@ -1,18 +1,21 @@
-"""Main learning loop: collect episodes -> propose updates -> apply -> repeat.
+"""Learning loop: collect episodes -> forward_backward -> optim_step -> repeat.
 
-The loop is benchmark-agnostic.  It delegates episode collection to an
-``EnvAdapter`` and update proposals to per-layer proposers.  Gating (regression
-checks) is intentionally *not* part of the inner loop — see ``gate.py``.
+The loop is benchmark-agnostic. It delegates episode collection to an
+``AdapterLike`` and learning to the Layer protocol on each layer.
+Gating (regression checks) is intentionally *not* part of the inner
+loop -- see ``gate.py``.
 """
 
 from __future__ import annotations
 
 import logging
+import random
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
-from lfx.core.episode import Episode, LearningUpdate
+from lfx.core.episode import Episode
 from lfx.core.state import StateID
+from lfx.core.types import Datum, FBResult, Future, OptimResult
 from lfx.layers.harness import Harness
 from lfx.layers.router import Router
 from lfx.layers.weights import Weights
@@ -20,7 +23,7 @@ from lfx.layers.weights import Weights
 log = logging.getLogger(__name__)
 
 
-# -- Agent state bundle --
+LAYER_NAMES = ("harness", "router", "weights")
 
 
 @dataclass
@@ -34,24 +37,18 @@ class AgentState:
     def state_id(self) -> StateID:
         return StateID.from_layers(self.harness, self.router, self.weights)
 
-
-# -- Proposer protocol --
-
-
-class Proposer(Protocol):
-    """Callable that inspects episodes and proposes layer mutations."""
-
-    def propose(self, episodes: list[Episode], layer: Any) -> list[LearningUpdate]: ...
-
-
-# -- Adapter protocol (mirrors adapters/base.py ABC) --
+    def get_layers(
+        self, active: list[str] | None = None,
+    ) -> list[tuple[str, Any]]:
+        """Return (name, layer) pairs, filtered by *active* if given."""
+        all_layers = [(name, getattr(self, name)) for name in LAYER_NAMES]
+        if active is None:
+            return all_layers
+        return [(n, l) for n, l in all_layers if n in active]
 
 
 class AdapterLike(Protocol):
     def run_episode(self, task: Any, agent_state: AgentState) -> Episode: ...
-
-
-# -- Learning loop --
 
 
 def learning_loop(
@@ -61,9 +58,7 @@ def learning_loop(
     n_episodes: int,
     n_iterations: int,
     *,
-    harness_proposer: Proposer | None = None,
-    router_proposer: Proposer | None = None,
-    weights_proposer: Proposer | None = None,
+    active_layers: list[str] | None = None,
 ) -> tuple[AgentState, StateID]:
     """Run the unified learning loop.
 
@@ -79,9 +74,8 @@ def learning_loop(
         Number of episodes to collect per iteration.
     n_iterations:
         Number of learning iterations.
-    harness_proposer, router_proposer, weights_proposer:
-        Optional proposers for each layer.  ``None`` means that layer is
-        not updated.
+    active_layers:
+        Which layers to train. None means all three.
 
     Returns
     -------
@@ -89,17 +83,24 @@ def learning_loop(
         The final agent state and its content-addressed state ID.
     """
     state_id = agent_state.state_id()
+    layers = agent_state.get_layers(active_layers)
     log.info("Starting learning loop — initial state: %s", state_id.combined_hash[:12])
 
     for iteration in range(n_iterations):
         log.info("Iteration %d/%d", iteration + 1, n_iterations)
 
         # 1. Collect episodes
-        selected_tasks = tasks[:n_episodes]
-        episodes: list[Episode] = []
-        for task in selected_tasks:
-            ep = adapter.run_episode(task, agent_state)
-            episodes.append(ep)
+        if not tasks or n_episodes <= 0:
+            episodes: list[Episode] = []
+        else:
+            if n_episodes <= len(tasks):
+                selected_tasks = random.sample(tasks, n_episodes)
+            else:
+                selected_tasks = random.choices(tasks, k=n_episodes)
+            episodes = []
+            for task in selected_tasks:
+                ep = adapter.run_episode(task, agent_state)
+                episodes.append(ep)
 
         avg_reward = (
             sum(ep.summary.total_reward for ep in episodes) / len(episodes)
@@ -108,46 +109,41 @@ def learning_loop(
         )
         log.info("  Collected %d episodes, avg reward: %.4f", len(episodes), avg_reward)
 
-        # 2. Propose updates
-        updates: list[LearningUpdate] = []
-        if harness_proposer is not None:
-            updates.extend(harness_proposer.propose(episodes, agent_state.harness))
-        if router_proposer is not None:
-            updates.extend(router_proposer.propose(episodes, agent_state.router))
-        if weights_proposer is not None:
-            updates.extend(weights_proposer.propose(episodes, agent_state.weights))
+        # 2. Build Datum
+        datum = Datum(episodes=episodes)
 
-        # 3. Apply accepted updates (no gating during iteration)
-        for update in updates:
-            if update.decision == "accept":
-                agent_state = _apply_update(agent_state, update)
+        # 3. Phase 1: forward_backward (all active layers)
+        fb_results: dict[str, FBResult] = {}
+        for name, layer in layers:
+            try:
+                fut = layer.forward_backward(datum)
+                fb_results[name] = fut.result()
+            except Exception:
+                log.exception("forward_backward failed for %s", name)
+                fb_results[name] = FBResult(status="error")
+                # Clear any partially-accumulated pending state so it doesn't
+                # leak into a future optim_step.
+                layer.clear_pending_state()
+
+        for name, result in fb_results.items():
+            log.info("  fb %s: %s %s", name, result.status, result.metrics)
+
+        # 4. Phase 2: optim_step (only layers whose fb succeeded)
+        for name, layer in layers:
+            if fb_results.get(name, FBResult(status="error")).status == "error":
+                log.warning("  skipping optim_step for %s (fb failed)", name)
+                continue
+            try:
+                result = layer.optim_step().result()
                 log.info(
-                    "  Applied %s update: %s -> %s",
-                    update.layer_type,
-                    update.state_id_before[:12],
-                    update.state_id_after[:12],
+                    "  optim %s: %s, %d updates",
+                    name, result.status, result.updates_applied,
                 )
+            except Exception:
+                log.exception("optim_step failed for %s", name)
 
+        # 5. Recompute state identity
         state_id = agent_state.state_id()
 
     log.info("Loop complete — final state: %s", state_id.combined_hash[:12])
     return agent_state, state_id
-
-
-def _apply_update(agent_state: AgentState, update: LearningUpdate) -> AgentState:
-    """Apply a single accepted update, returning a new AgentState.
-
-    The actual mutation logic lives in the proposers which produce fully-formed
-    replacement layers via the ``proposal`` dict.
-    """
-    proposal = update.proposal
-    harness = agent_state.harness
-    router = agent_state.router
-    weights = agent_state.weights
-    if update.layer_type == "harness" and "harness" in proposal:
-        harness = proposal["harness"]
-    elif update.layer_type == "router" and "router" in proposal:
-        router = proposal["router"]
-    elif update.layer_type == "weights" and "weights" in proposal:
-        weights = proposal["weights"]
-    return AgentState(harness=harness, router=router, weights=weights)

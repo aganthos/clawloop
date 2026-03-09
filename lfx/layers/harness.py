@@ -20,9 +20,34 @@ Learning strategy combines three mechanisms:
 
 from __future__ import annotations
 
+import copy
 import uuid
 from dataclasses import dataclass, field
 from typing import Any
+
+from lfx.core.types import (
+    Datum, FBResult, Future, LoadResult, OptimResult,
+    SampleContext, SampleResult, SaveResult,
+)
+
+import logging
+import re
+
+log = logging.getLogger(__name__)
+
+# Reward threshold for classifying playbook entries as helpful vs harmful.
+_HELPFUL_REWARD_THRESHOLD = 0.5
+
+# Max content length for insights (character count).
+_MAX_INSIGHT_CONTENT_LENGTH = 2000
+
+# Patterns that may indicate prompt injection attempts in insight content.
+_INJECTION_PATTERNS = [
+    re.compile(r"ignore\s+(all\s+)?previous\s+instructions", re.IGNORECASE),
+    re.compile(r"you\s+are\s+now\b", re.IGNORECASE),
+    re.compile(r"system\s*:\s*", re.IGNORECASE),
+    re.compile(r"<\s*/?\s*system\s*>", re.IGNORECASE),
+]
 
 
 # -- Tool configuration --
@@ -253,6 +278,17 @@ class Insight:
             )
 
 
+# -- Pending accumulator --
+
+
+@dataclass
+class _HarnessPending:
+    """Accumulator for forward_backward signals. Drained by optim_step."""
+    playbook_signals: dict[str, tuple[int, int]] = field(default_factory=dict)
+    insights: list[Insight] = field(default_factory=list)
+    candidates: dict[str, list[PromptCandidate]] = field(default_factory=dict)
+
+
 # -- Harness layer --
 
 
@@ -280,6 +316,9 @@ class Harness:
 
     # Output validators
     validators: dict[str, Any] = field(default_factory=dict)
+
+    # Internal: pending signals accumulated by forward_backward, drained by optim_step
+    _pending: _HarnessPending = field(default_factory=_HarnessPending)
 
     def system_prompt(self, bench: str) -> str:
         """Resolve the system prompt for a bench, including playbook."""
@@ -325,6 +364,30 @@ class Harness:
                     applied += 1
         return applied
 
+    @staticmethod
+    def _validate_insights(insights: list[Insight]) -> list[Insight]:
+        """Filter insights that fail basic safety checks.
+
+        Guards against indirect prompt injection by rejecting insights whose
+        content is suspiciously long or matches known injection patterns.
+        Production deployments should layer a full content-policy filter or
+        human-in-the-loop approval on top of this.
+        """
+        safe: list[Insight] = []
+        for insight in insights:
+            if len(insight.content) > _MAX_INSIGHT_CONTENT_LENGTH:
+                log.warning(
+                    "Dropping insight (length %d exceeds %d)",
+                    len(insight.content),
+                    _MAX_INSIGHT_CONTENT_LENGTH,
+                )
+                continue
+            if any(p.search(insight.content) for p in _INJECTION_PATTERNS):
+                log.warning("Dropping insight — matches injection pattern")
+                continue
+            safe.append(insight)
+        return safe
+
     def update_pareto(
         self, bench: str, candidate: PromptCandidate
     ) -> None:
@@ -339,7 +402,7 @@ class Harness:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "system_prompts": self.system_prompts,
+            "system_prompts": dict(self.system_prompts),
             "pareto_fronts": {
                 k: v.to_dict() for k, v in self.pareto_fronts.items()
             },
@@ -347,3 +410,155 @@ class Harness:
             "tool_configs": [tc.to_dict() for tc in self.tool_configs],
             "validators": self.validators,
         }
+
+    # -- Layer protocol methods --
+
+    def forward_backward(self, data: Datum) -> Future[FBResult]:
+        """Analyse episodes and accumulate signals without mutating observable state.
+
+        For each episode, for each playbook entry, tallies helpful/harmful
+        based on reward (>0.5 = helpful, else harmful).  Results are written
+        to ``self._pending.playbook_signals`` — a dict of
+        entry_id -> (helpful_delta, harmful_delta).
+        """
+        for episode in data.episodes:
+            reward = episode.summary.total_reward
+            for entry in self.playbook.entries:
+                prev_h, prev_harm = self._pending.playbook_signals.get(
+                    entry.id, (0, 0)
+                )
+                if reward > _HELPFUL_REWARD_THRESHOLD:
+                    self._pending.playbook_signals[entry.id] = (prev_h + 1, prev_harm)
+                else:
+                    self._pending.playbook_signals[entry.id] = (prev_h, prev_harm + 1)
+        metrics = {
+            "episodes_processed": len(data.episodes),
+            "entries_signaled": len(self._pending.playbook_signals),
+        }
+        return Future.immediate(FBResult(status="ok", metrics=metrics))
+
+    def optim_step(self) -> Future[OptimResult]:
+        """Apply accumulated signals with snapshot-rollback for atomicity.
+
+        Uses deepcopy to snapshot playbook, system_prompts, and pareto_fronts
+        before applying.  On failure, rolls back to the snapshot.
+        """
+        pending = self._pending
+        has_signals = bool(pending.playbook_signals)
+        has_insights = bool(pending.insights)
+        has_candidates = bool(pending.candidates)
+
+        if not (has_signals or has_insights or has_candidates):
+            return Future.immediate(OptimResult(status="ok", updates_applied=0))
+
+        # Snapshot for rollback
+        snap_playbook = copy.deepcopy(self.playbook)
+        snap_system_prompts = copy.deepcopy(self.system_prompts)
+        snap_pareto_fronts = copy.deepcopy(self.pareto_fronts)
+
+        try:
+            updates = 0
+
+            # Apply playbook signals
+            for entry_id, (h_delta, harm_delta) in pending.playbook_signals.items():
+                entry = self.playbook.lookup(entry_id)
+                if entry is not None:
+                    entry.helpful += h_delta
+                    entry.harmful += harm_delta
+                    updates += 1
+
+            # Apply pending insights
+            if pending.insights:
+                updates += self.apply_insights(
+                    self._validate_insights(pending.insights)
+                )
+
+            # Apply pending Pareto candidates
+            for bench, candidates in pending.candidates.items():
+                for candidate in candidates:
+                    self.update_pareto(bench, candidate)
+                    updates += 1
+
+            # Drain pending
+            self._pending = _HarnessPending()
+            return Future.immediate(OptimResult(status="ok", updates_applied=updates))
+
+        except Exception:
+            # Rollback
+            self.playbook = snap_playbook
+            self.system_prompts = snap_system_prompts
+            self.pareto_fronts = snap_pareto_fronts
+            self._pending = _HarnessPending()
+            return Future.immediate(OptimResult(status="error", updates_applied=0))
+
+    def clear_pending_state(self) -> None:
+        """Reset the internal pending accumulator."""
+        self._pending = _HarnessPending()
+
+    def sample(self, ctx: SampleContext) -> Future[SampleResult]:
+        """Return the resolved system prompt for the given bench."""
+        output = self.system_prompt(ctx.bench)
+        return Future.immediate(SampleResult(output=output))
+
+    def save_state(self, name: str) -> Future[SaveResult]:
+        """Persist a named checkpoint (actual storage is handled externally)."""
+        return Future.immediate(SaveResult(name=name, status="ok"))
+
+    def load_state(self, state_dict: dict) -> Future[LoadResult]:
+        """Restore harness state from a serialized dict.
+
+        Rebuilds system_prompts, playbook (from entries), pareto_fronts
+        (from candidate dicts), tool_configs, and validators.  Clears _pending.
+        """
+        self.system_prompts = state_dict.get("system_prompts", {})
+
+        # Restore playbook
+        pb_data = state_dict.get("playbook", {})
+        entries = [
+            PlaybookEntry(
+                id=e["id"],
+                content=e["content"],
+                helpful=e.get("helpful", 0),
+                harmful=e.get("harmful", 0),
+                tags=e.get("tags", []),
+            )
+            for e in pb_data.get("entries", [])
+        ]
+        self.playbook = Playbook(entries=entries)
+
+        # Restore pareto fronts
+        pf_data = state_dict.get("pareto_fronts", {})
+        self.pareto_fronts = {}
+        for bench, front_dict in pf_data.items():
+            candidates = [
+                PromptCandidate(
+                    id=c["id"],
+                    text=c["text"],
+                    per_task_scores=c.get("per_task_scores", {}),
+                    generation=c.get("generation", 0),
+                    parent_id=c.get("parent_id"),
+                )
+                for c in front_dict.get("candidates", [])
+            ]
+            self.pareto_fronts[bench] = ParetoFront(candidates=candidates)
+
+        # Restore tool configs
+        tc_data = state_dict.get("tool_configs", [])
+        self.tool_configs = [
+            ToolConfig(
+                name=tc["name"],
+                schema=tc["schema"],
+                owner=tc["owner"],
+                mutable=tc["mutable"],
+                sandbox_required=tc.get("sandbox_required", False),
+            )
+            for tc in tc_data
+        ]
+
+        # Restore validators
+        self.validators = state_dict.get("validators", {})
+
+        # Clear pending
+        self._pending = _HarnessPending()
+
+        return Future.immediate(LoadResult(status="ok"))
