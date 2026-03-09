@@ -18,6 +18,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from lfx.core.types import (
+    Datum, FBResult, Future, LoadResult, OptimResult,
+    SampleContext, SampleResult, SaveResult,
+)
+
 
 # -- Complexity tiers --
 
@@ -96,6 +101,13 @@ DEFAULT_TIER_THRESHOLDS: dict[str, float] = {
 }
 
 
+@dataclass
+class _RouterPending:
+    """Accumulator for forward_backward signals. Drained by optim_step.
+    Stores (QueryFeatures, model_id, cost, reward) tuples."""
+    samples: list[tuple[QueryFeatures, str, float, float]] = field(default_factory=list)
+
+
 # -- Router layer --
 
 
@@ -141,6 +153,9 @@ class Router:
 
     # Training history
     training_samples: list[dict[str, Any]] = field(default_factory=list)
+
+    # Pending forward_backward accumulator (not part of observable state)
+    _pending: _RouterPending = field(default_factory=_RouterPending)
 
     def classify(self, features: QueryFeatures) -> str:
         """Score a query and return the complexity tier."""
@@ -257,3 +272,111 @@ class Router:
             "token_budgets": self.token_budgets,
             "cost_weights": self.cost_weights,
         }
+
+    # -- Layer protocol methods --
+
+    def forward_backward(self, data: Datum) -> Future[FBResult]:
+        """Extract routing signals from episodes and accumulate in _pending.
+
+        MUST NOT mutate observable state (score_weights, training_samples,
+        tier_thresholds, etc.).
+        """
+        for episode in data.episodes:
+            # Find model_id from first assistant message with model set
+            model_id = ""
+            for msg in episode.messages:
+                if msg.role == "assistant" and msg.model:
+                    model_id = msg.model
+                    break
+
+            # Compute cost from token_usage in summary
+            cost = 0.0
+            if episode.summary.token_usage is not None:
+                cost = float(episode.summary.token_usage.total_tokens)
+
+            # Get reward from summary
+            reward = episode.summary.total_reward
+
+            # Build QueryFeatures with token_count from user messages
+            token_count = sum(
+                msg.token_count or len(msg.content.split())
+                for msg in episode.messages
+                if msg.role == "user"
+            )
+            features = QueryFeatures(token_count=token_count)
+
+            self._pending.samples.append((features, model_id, cost, reward))
+
+        return Future.immediate(FBResult(status="ok"))
+
+    def optim_step(self) -> Future[OptimResult]:
+        """Apply pending samples via record_outcome + update_weights.
+
+        Uses snapshot-rollback: if update_weights fails, restore state.
+        """
+        if not self._pending.samples:
+            return Future.immediate(OptimResult(status="ok", updates_applied=0))
+
+        # Snapshot
+        snapshot_training = list(self.training_samples)
+        snapshot_weights = dict(self.score_weights)
+
+        try:
+            # Feed samples via record_outcome (adds tier key)
+            for features, model_id, cost, reward in self._pending.samples:
+                self.record_outcome(features, model_id, cost, reward)
+
+            # Update weights
+            deltas = self.update_weights()
+
+            # Drain pending
+            self._pending.samples.clear()
+
+            return Future.immediate(
+                OptimResult(status="ok", updates_applied=len(deltas))
+            )
+        except Exception:
+            # Rollback
+            self.training_samples = snapshot_training
+            self.score_weights = snapshot_weights
+            self._pending.samples.clear()
+            return Future.immediate(OptimResult(status="error", updates_applied=0))
+
+    def sample(self, ctx: SampleContext) -> Future[SampleResult]:
+        """Route a query to a model based on query features."""
+        raw = ctx.query_features
+        if isinstance(raw, QueryFeatures):
+            features = raw
+        else:
+            # Reconstruct QueryFeatures from raw dict with int() casts
+            features = QueryFeatures(
+                token_count=int(raw.get("token_count", 0)),
+                has_code=bool(raw.get("has_code", False)),
+                reasoning_markers=int(raw.get("reasoning_markers", 0)),
+                technical_terms=int(raw.get("technical_terms", 0)),
+                tool_calls_expected=int(raw.get("tool_calls_expected", 0)),
+                conversation_depth=int(raw.get("conversation_depth", 0)),
+            )
+
+        model_id = self.route(features)
+        tier = self.classify(features)
+        return Future.immediate(
+            SampleResult(output=model_id, metadata={"tier": tier})
+        )
+
+    def save_state(self, name: str = "") -> Future[SaveResult]:
+        """Save current state."""
+        return Future.immediate(SaveResult(name=name, status="ok"))
+
+    def load_state(self, state: dict[str, Any]) -> Future[LoadResult]:
+        """Restore state from a saved dict."""
+        self.tier_models = state.get("tier_models", {})
+        self.score_weights = state.get("score_weights", dict(DEFAULT_SCORE_WEIGHTS))
+        self.tier_thresholds = state.get("tier_thresholds", dict(DEFAULT_TIER_THRESHOLDS))
+        self.fallback_chains = state.get("fallback_chains", [])
+        self.token_budgets = state.get("token_budgets", {})
+        self.cost_weights = state.get("cost_weights", {})
+        # Clear training state and pending
+        self.training_samples.clear()
+        self._pending = _RouterPending()
+        return Future.immediate(LoadResult(status="ok"))
