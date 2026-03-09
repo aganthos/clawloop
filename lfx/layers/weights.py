@@ -102,6 +102,10 @@ class Weights:
 
     # -- Layer protocol methods --
 
+    def clear_pending_state(self) -> None:
+        """Reset the internal pending accumulator."""
+        self._pending = _WeightsPending()
+
     def forward_backward(self, data: Datum) -> Future[FBResult]:
         """Compute GRPO advantages without mutating observable state."""
         # Group episodes by task_id

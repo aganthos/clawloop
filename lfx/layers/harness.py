@@ -30,6 +30,25 @@ from lfx.core.types import (
     SampleContext, SampleResult, SaveResult,
 )
 
+import logging
+import re
+
+log = logging.getLogger(__name__)
+
+# Reward threshold for classifying playbook entries as helpful vs harmful.
+_HELPFUL_REWARD_THRESHOLD = 0.5
+
+# Max content length for insights (character count).
+_MAX_INSIGHT_CONTENT_LENGTH = 2000
+
+# Patterns that may indicate prompt injection attempts in insight content.
+_INJECTION_PATTERNS = [
+    re.compile(r"ignore\s+(all\s+)?previous\s+instructions", re.IGNORECASE),
+    re.compile(r"you\s+are\s+now\b", re.IGNORECASE),
+    re.compile(r"system\s*:\s*", re.IGNORECASE),
+    re.compile(r"<\s*/?\s*system\s*>", re.IGNORECASE),
+]
+
 
 # -- Tool configuration --
 
@@ -345,6 +364,30 @@ class Harness:
                     applied += 1
         return applied
 
+    @staticmethod
+    def _validate_insights(insights: list[Insight]) -> list[Insight]:
+        """Filter insights that fail basic safety checks.
+
+        Guards against indirect prompt injection by rejecting insights whose
+        content is suspiciously long or matches known injection patterns.
+        Production deployments should layer a full content-policy filter or
+        human-in-the-loop approval on top of this.
+        """
+        safe: list[Insight] = []
+        for insight in insights:
+            if len(insight.content) > _MAX_INSIGHT_CONTENT_LENGTH:
+                log.warning(
+                    "Dropping insight (length %d exceeds %d)",
+                    len(insight.content),
+                    _MAX_INSIGHT_CONTENT_LENGTH,
+                )
+                continue
+            if any(p.search(insight.content) for p in _INJECTION_PATTERNS):
+                log.warning("Dropping insight — matches injection pattern")
+                continue
+            safe.append(insight)
+        return safe
+
     def update_pareto(
         self, bench: str, candidate: PromptCandidate
     ) -> None:
@@ -384,7 +427,7 @@ class Harness:
                 prev_h, prev_harm = self._pending.playbook_signals.get(
                     entry.id, (0, 0)
                 )
-                if reward > 0.5:
+                if reward > _HELPFUL_REWARD_THRESHOLD:
                     self._pending.playbook_signals[entry.id] = (prev_h + 1, prev_harm)
                 else:
                     self._pending.playbook_signals[entry.id] = (prev_h, prev_harm + 1)
@@ -426,7 +469,9 @@ class Harness:
 
             # Apply pending insights
             if pending.insights:
-                updates += self.apply_insights(pending.insights)
+                updates += self.apply_insights(
+                    self._validate_insights(pending.insights)
+                )
 
             # Apply pending Pareto candidates
             for bench, candidates in pending.candidates.items():
@@ -445,6 +490,10 @@ class Harness:
             self.pareto_fronts = snap_pareto_fronts
             self._pending = _HarnessPending()
             return Future.immediate(OptimResult(status="error", updates_applied=0))
+
+    def clear_pending_state(self) -> None:
+        """Reset the internal pending accumulator."""
+        self._pending = _HarnessPending()
 
     def sample(self, ctx: SampleContext) -> Future[SampleResult]:
         """Return the resolved system prompt for the given bench."""

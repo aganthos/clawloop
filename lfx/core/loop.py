@@ -41,11 +41,7 @@ class AgentState:
         self, active: list[str] | None = None,
     ) -> list[tuple[str, Any]]:
         """Return (name, layer) pairs, filtered by *active* if given."""
-        all_layers = [
-            ("harness", self.harness),
-            ("router", self.router),
-            ("weights", self.weights),
-        ]
+        all_layers = [(name, getattr(self, name)) for name in LAYER_NAMES]
         if active is None:
             return all_layers
         return [(n, l) for n, l in all_layers if n in active]
@@ -127,8 +123,7 @@ def learning_loop(
                 fb_results[name] = FBResult(status="error")
                 # Clear any partially-accumulated pending state so it doesn't
                 # leak into a future optim_step.
-                if hasattr(layer, "_pending"):
-                    layer._pending = type(layer._pending)()
+                layer.clear_pending_state()
 
         for name, result in fb_results.items():
             log.info("  fb %s: %s %s", name, result.status, result.metrics)

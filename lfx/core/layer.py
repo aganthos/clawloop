@@ -64,6 +64,15 @@ class Layer(Protocol):
         """Restore layer state from *state_dict*."""
         ...
 
+    def clear_pending_state(self) -> None:
+        """Reset the internal pending accumulator.
+
+        Called by the learning loop on the ``forward_backward`` error path
+        to prevent partially-accumulated deltas from leaking into future
+        iterations.
+        """
+        ...
+
     def to_dict(self) -> dict[str, Any]:
         """Serialise the layer configuration for hashing and logging."""
         ...

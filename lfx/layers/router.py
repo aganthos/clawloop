@@ -275,6 +275,10 @@ class Router:
 
     # -- Layer protocol methods --
 
+    def clear_pending_state(self) -> None:
+        """Reset the internal pending accumulator."""
+        self._pending = _RouterPending()
+
     def forward_backward(self, data: Datum) -> Future[FBResult]:
         """Extract routing signals from episodes and accumulate in _pending.
 
