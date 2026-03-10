@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aganthos — Learning from Experience Lab</title>
+
+    <!-- Font: Aptos (Microsoft system font, installed via Office) with fallbacks -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        /* ===========================================
+           CSS CUSTOM PROPERTIES (AGANTHOS THEME)
+           Dark red / black with warm accents
+           =========================================== */
+        :root {
+            /* Brand Colors */
+            --bg-primary: #0a0202;
+            --bg-secondary: #110404;
+            --bg-card: rgba(22, 8, 8, 0.85);
+            --bg-card-hover: rgba(35, 12, 12, 0.9);
+            --text-primary: #f0ebe7;
+            --text-secondary: rgba(240, 235, 231, 0.55);
+            --text-muted: rgba(240, 235, 231, 0.35);
+            --accent-red: #c43e3e;
+            --accent-warm: #e8a87c;
+            --accent-green: #6ecf80;
+            --accent-blue: #7eb3cf;
+            --accent-glow: rgba(196, 62, 62, 0.15);
+            --border-subtle: rgba(240, 235, 231, 0.07);
+            --border-accent: rgba(232, 168, 124, 0.25);
+
+            /* Typography — Aptos (system) with Inter fallback */
+            --font-display: 'Aptos Display', 'Aptos', 'Inter', 'Segoe UI', sans-serif;
+            --font-body: 'Aptos', 'Inter', 'Segoe UI', sans-serif;
+            --title-size: clamp(1.8rem, 4.5vw, 4.5rem);
+            --h2-size: clamp(1.4rem, 3.2vw, 3.25rem);
+            --h3-size: clamp(0.95rem, 1.75vw, 1.75rem);
+            --body-size: clamp(0.75rem, 1.2vw, 1.375rem);
+            --small-size: clamp(0.6rem, 0.95vw, 1.1rem);
+            --label-size: clamp(0.55rem, 0.78vw, 0.875rem);
+
+            /* Spacing */
+            --slide-padding: clamp(1.5rem, 5vw, 6rem);
+            --content-gap: clamp(0.75rem, 2vw, 2.5rem);
+            --element-gap: clamp(0.3rem, 1vw, 1.25rem);
+
+            /* Animation */
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+            --duration-normal: 0.7s;
+            --duration-slow: 1.2s;
+        }
+
+        /* ===========================================
+           VIEWPORT FITTING: MANDATORY BASE STYLES
+           =========================================== */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body { height: 100%; overflow-x: hidden; }
+        html { scroll-snap-type: y mandatory; scroll-behavior: smooth; }
+
+        .slide {
+            width: 100vw; height: 100vh; height: 100dvh;
+            overflow: hidden;
+            scroll-snap-align: start;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            position: relative;
+        }
+
+        .slide-content {
+            /* Lock to 16:9 aspect ratio */
+            aspect-ratio: 16 / 9;
+            width: min(100vw, calc(100dvh * 16 / 9));
+            max-height: 100dvh;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            overflow: hidden;
+            padding: var(--slide-padding);
+            position: relative; z-index: 2;
+        }
+
+        img, .image-container {
+            max-width: 100%;
+            max-height: min(50vh, 540px);
+            object-fit: contain;
+        }
+
+        /* Short viewports */
+        @media (max-height: 700px) {
+            :root {
+                --slide-padding: clamp(0.75rem, 3vw, 2rem);
+                --content-gap: clamp(0.4rem, 1.5vw, 1rem);
+                --title-size: clamp(1.4rem, 4.5vw, 2.4rem);
+                --h2-size: clamp(1.1rem, 3vw, 1.8rem);
+            }
+        }
+        @media (max-height: 600px) {
+            :root {
+                --slide-padding: clamp(0.5rem, 2.5vw, 1.5rem);
+                --content-gap: clamp(0.3rem, 1vw, 0.75rem);
+                --title-size: clamp(1.2rem, 4vw, 2rem);
+                --body-size: clamp(0.65rem, 1.1vw, 0.9rem);
+            }
+            .nav-dots, .decorative { display: none; }
+        }
+        @media (max-height: 500px) {
+            :root {
+                --slide-padding: clamp(0.4rem, 2vw, 1rem);
+                --title-size: clamp(1rem, 3.5vw, 1.5rem);
+                --h2-size: clamp(0.9rem, 2.5vw, 1.25rem);
+                --body-size: clamp(0.6rem, 1vw, 0.8rem);
+            }
+        }
+        @media (max-width: 600px) {
+            :root { --title-size: clamp(1.3rem, 7vw, 2.5rem); }
+            .grid, .card-row { grid-template-columns: 1fr !important; }
+            .two-col { flex-direction: column !important; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.2s !important;
+            }
+            html { scroll-behavior: auto; }
+        }
+
+        /* ===========================================
+           GLOBAL STYLES
+           =========================================== */
+        body {
+            font-family: var(--font-body);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        h1, h2, h3 { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.02em; }
+        h1 { font-size: var(--title-size); line-height: 1.1; }
+        h2 { font-size: var(--h2-size); line-height: 1.15; }
+        h3 { font-size: var(--h3-size); line-height: 1.3; }
+        p, li { font-size: var(--body-size); line-height: 1.6; }
+
+        /* ===========================================
+           BACKGROUNDS
+           =========================================== */
+        .bg-brand {
+            background:
+                radial-gradient(ellipse at 15% 50%, rgba(140, 20, 20, 0.2) 0%, transparent 60%),
+                radial-gradient(ellipse at 85% 80%, rgba(100, 15, 15, 0.12) 0%, transparent 50%),
+                linear-gradient(160deg, #0a0202 0%, #150505 40%, #0a0202 100%);
+        }
+        .bg-deep {
+            background:
+                radial-gradient(ellipse at 80% 20%, rgba(120, 15, 15, 0.15) 0%, transparent 55%),
+                #0c0c0c;
+        }
+        .bg-warm {
+            background:
+                radial-gradient(ellipse at 20% 30%, rgba(160, 25, 25, 0.18) 0%, transparent 50%),
+                radial-gradient(ellipse at 90% 90%, rgba(130, 20, 20, 0.1) 0%, transparent 45%),
+                linear-gradient(135deg, #0d0303 0%, #1a0606 50%, #0d0303 100%);
+        }
+
+        /* Noise overlay for texture */
+        .slide::after {
+            content: '';
+            position: absolute; inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.03'/%3E%3C/svg%3E");
+            pointer-events: none; z-index: 1;
+            opacity: 0.4;
+        }
+
+        /* ===========================================
+           ANIMATIONS
+           =========================================== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(clamp(15px, 3vh, 30px));
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+        .reveal-scale {
+            opacity: 0;
+            transform: scale(0.92);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+        .reveal-left {
+            opacity: 0;
+            transform: translateX(clamp(-30px, -3vw, -50px));
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+        .slide.visible .reveal,
+        .slide.visible .reveal-scale,
+        .slide.visible .reveal-left {
+            opacity: 1;
+            transform: translateY(0) translateX(0) scale(1);
+        }
+        /* Stagger */
+        .reveal:nth-child(2), .reveal-scale:nth-child(2) { transition-delay: 0.1s; }
+        .reveal:nth-child(3), .reveal-scale:nth-child(3) { transition-delay: 0.2s; }
+        .reveal:nth-child(4), .reveal-scale:nth-child(4) { transition-delay: 0.3s; }
+        .reveal:nth-child(5) { transition-delay: 0.4s; }
+        .reveal:nth-child(6) { transition-delay: 0.5s; }
+
+        /* ===========================================
+           LOGO
+           =========================================== */
+        .logo-mark {
+            width: clamp(36px, 4vw, 56px);
+            height: auto;
+            opacity: 0.7;
+        }
+        .logo-corner {
+            position: absolute;
+            top: clamp(16px, 2.5vh, 28px);
+            right: clamp(20px, 3vw, 36px);
+            width: clamp(20px, 2.5vw, 30px);
+            height: auto;
+            opacity: 0.35;
+            z-index: 5;
+        }
+        .logo-wordmark {
+            font-family: var(--font-display);
+            font-size: clamp(2.5rem, 7vw, 5rem);
+            font-weight: 800;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+        }
+
+        /* ===========================================
+           SLIDE NUMBER
+           =========================================== */
+        .slide-num {
+            position: absolute;
+            top: clamp(16px, 2.5vh, 28px);
+            left: clamp(20px, 3vw, 36px);
+            font-family: var(--font-display);
+            font-size: var(--small-size);
+            font-weight: 700;
+            color: var(--text-muted);
+            letter-spacing: 0.08em;
+            z-index: 5;
+        }
+
+        /* ===========================================
+           CARDS
+           =========================================== */
+        .card-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: clamp(12px, 1.5vw, 24px);
+            width: 100%;
+            max-width: min(90vw, 1000px);
+            margin-top: var(--content-gap);
+        }
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: clamp(10px, 1.2vw, 16px);
+            padding: clamp(16px, 2vw, 28px);
+            transition: background 0.3s ease, border-color 0.3s ease;
+        }
+        .card:hover { background: var(--bg-card-hover); }
+        .card.c-green { border-color: rgba(110, 207, 128, 0.3); }
+        .card.c-warm { border-color: rgba(232, 168, 124, 0.3); }
+        .card.c-blue { border-color: rgba(126, 179, 207, 0.3); }
+        .card-icon {
+            font-size: clamp(1.4rem, 2.5vw, 2rem);
+            margin-bottom: var(--element-gap);
+        }
+        .card h3 { margin-bottom: clamp(2px, 0.4vh, 6px); }
+        .card .tech {
+            font-size: var(--small-size);
+            color: var(--text-secondary);
+            font-style: italic;
+            margin-bottom: clamp(6px, 1vh, 14px);
+        }
+        .card ul { list-style: none; }
+        .card li {
+            font-size: var(--small-size);
+            line-height: 1.5;
+            padding-left: clamp(10px, 1.2vw, 16px);
+            position: relative;
+            color: rgba(240, 235, 231, 0.75);
+        }
+        .card li::before {
+            content: "\2022";
+            position: absolute; left: 0;
+            color: var(--text-muted);
+        }
+
+        /* ===========================================
+           METRICS
+           =========================================== */
+        .metrics {
+            display: flex;
+            gap: clamp(24px, 4vw, 56px);
+            margin-top: var(--content-gap);
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .metric { text-align: center; }
+        .metric .num {
+            font-family: var(--font-display);
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 800;
+            line-height: 1;
+        }
+        .metric .label {
+            font-size: var(--small-size);
+            color: var(--text-secondary);
+            margin-top: clamp(2px, 0.5vh, 6px);
+        }
+        .num.warm { color: var(--accent-warm); }
+        .num.green { color: var(--accent-green); }
+        .num.blue { color: var(--accent-blue); }
+
+        /* ===========================================
+           HIGHLIGHT BOX
+           =========================================== */
+        .highlight-box {
+            background: rgba(232, 168, 124, 0.06);
+            border: 1px solid var(--border-accent);
+            border-radius: clamp(8px, 1vw, 14px);
+            padding: clamp(14px, 2vw, 24px) clamp(18px, 2.5vw, 32px);
+            margin-top: var(--content-gap);
+            max-width: min(90vw, 800px);
+            text-align: center;
+        }
+        .highlight-box p { font-size: var(--body-size); }
+
+        /* ===========================================
+           TWO COLUMN LAYOUT
+           =========================================== */
+        .two-col {
+            display: flex;
+            gap: clamp(20px, 3vw, 48px);
+            width: 100%;
+            max-width: min(90vw, 1050px);
+            margin-top: var(--content-gap);
+            align-items: flex-start;
+        }
+        .col { flex: 1; min-width: 0; }
+
+        /* ===========================================
+           COMPETITION GRID
+           =========================================== */
+        .comp-wrap {
+            position: relative;
+            width: 100%;
+            max-width: min(85vw, 780px);
+            margin-top: var(--content-gap);
+        }
+        .comp-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 1px;
+            background: var(--border-subtle);
+        }
+        .comp-quad {
+            background: var(--bg-primary);
+            padding: clamp(14px, 2vw, 24px);
+        }
+        .comp-quad h3 {
+            font-size: var(--body-size);
+            margin-bottom: clamp(4px, 0.6vh, 8px);
+            color: var(--text-secondary);
+        }
+        .comp-quad .players {
+            font-size: var(--small-size);
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+        .comp-quad.active {
+            background: rgba(196, 62, 62, 0.08);
+        }
+        .comp-quad.active h3 { color: var(--accent-warm); }
+        .comp-quad.active .players { color: rgba(240, 235, 231, 0.7); }
+        .comp-axis {
+            font-size: var(--label-size);
+            color: var(--text-muted);
+            font-style: italic;
+            position: absolute;
+        }
+        .comp-axis.top { top: calc(-1 * clamp(14px, 2vh, 22px)); left: 50%; transform: translateX(-50%); }
+        .comp-axis.right { right: calc(-1 * clamp(10px, 1vw, 18px)); top: 50%; transform: translateY(-50%) rotate(90deg); white-space: nowrap; }
+
+        /* ===========================================
+           TIMELINE
+           =========================================== */
+        .timeline {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(10px, 1.5vh, 20px);
+            width: 100%;
+            max-width: min(90vw, 850px);
+            margin-top: var(--content-gap);
+        }
+        .tl-row { display: flex; gap: clamp(12px, 2vw, 24px); align-items: flex-start; }
+        .tl-period {
+            min-width: clamp(70px, 8vw, 100px);
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: var(--body-size);
+            color: var(--accent-warm);
+            padding-top: 2px;
+            flex-shrink: 0;
+        }
+        .tl-items { flex: 1; list-style: none; }
+        .tl-items li {
+            font-size: var(--small-size);
+            line-height: 1.6;
+            color: rgba(240, 235, 231, 0.75);
+            padding-left: clamp(14px, 1.5vw, 20px);
+            position: relative;
+        }
+        .tl-items li::before {
+            content: "\2713";
+            position: absolute; left: 0;
+            color: var(--accent-green);
+            font-size: var(--small-size);
+        }
+
+        /* ===========================================
+           MILESTONE ROWS
+           =========================================== */
+        .milestones {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(10px, 1.5vh, 18px);
+            width: 100%;
+            max-width: min(90vw, 880px);
+            margin-top: var(--content-gap);
+        }
+        .ms-row {
+            display: flex;
+            gap: clamp(12px, 2vw, 24px);
+            align-items: flex-start;
+        }
+        .ms-badge {
+            background: var(--accent-red);
+            color: white;
+            padding: clamp(5px, 0.7vh, 8px) clamp(12px, 1.5vw, 20px);
+            border-radius: clamp(5px, 0.6vw, 8px);
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: var(--small-size);
+            min-width: clamp(80px, 9vw, 110px);
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .ms-text {
+            font-size: var(--body-size);
+            color: rgba(240, 235, 231, 0.8);
+            line-height: 1.55;
+        }
+
+        /* ===========================================
+           ASK GRID
+           =========================================== */
+        .ask-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: clamp(12px, 1.5vw, 24px);
+            margin-top: var(--content-gap);
+            max-width: min(90vw, 950px);
+            width: 100%;
+        }
+        .ask-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: clamp(10px, 1.2vw, 14px);
+            padding: clamp(14px, 2vw, 24px);
+        }
+        .ask-item h3 {
+            font-size: var(--body-size);
+            margin-bottom: clamp(4px, 0.6vh, 8px);
+        }
+        .ask-item p {
+            font-size: var(--small-size);
+            color: rgba(240, 235, 231, 0.65);
+            line-height: 1.55;
+        }
+
+        /* ===========================================
+           INSTITUTION BADGES
+           =========================================== */
+        .badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: clamp(6px, 0.8vw, 10px);
+        }
+        .badge {
+            background: rgba(240, 235, 231, 0.06);
+            border: 1px solid var(--border-subtle);
+            padding: clamp(4px, 0.6vh, 8px) clamp(10px, 1.2vw, 16px);
+            border-radius: clamp(5px, 0.6vw, 8px);
+            font-size: var(--label-size);
+            color: rgba(240, 235, 231, 0.6);
+            white-space: nowrap;
+        }
+
+        /* ===========================================
+           USE CASE TABLE
+           =========================================== */
+        .use-table {
+            width: 100%;
+            max-width: min(90vw, 950px);
+            margin-top: var(--content-gap);
+            border-collapse: collapse;
+        }
+        .use-table th {
+            font-family: var(--font-display);
+            font-size: var(--small-size);
+            font-weight: 700;
+            color: var(--accent-warm);
+            text-align: left;
+            padding: clamp(6px, 1vh, 10px) clamp(8px, 1vw, 16px);
+            border-bottom: 1px solid var(--border-accent);
+        }
+        .use-table td {
+            font-size: var(--small-size);
+            color: rgba(240, 235, 231, 0.75);
+            padding: clamp(5px, 0.8vh, 8px) clamp(8px, 1vw, 16px);
+            border-bottom: 1px solid var(--border-subtle);
+            vertical-align: top;
+        }
+        .use-table .roi { color: var(--accent-green); font-weight: 500; }
+
+        /* ===========================================
+           FLYWHEEL
+           =========================================== */
+        .flywheel {
+            display: flex;
+            align-items: center;
+            gap: clamp(8px, 1.2vw, 18px);
+            margin-top: var(--content-gap);
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .fw-box {
+            background: rgba(240, 235, 231, 0.92);
+            color: #1a1a1a;
+            border-radius: clamp(8px, 1vw, 14px);
+            padding: clamp(12px, 1.5vw, 20px) clamp(14px, 1.8vw, 24px);
+            text-align: center;
+        }
+        .fw-box h3 {
+            font-size: var(--small-size);
+            font-weight: 700;
+            color: #1a1a1a;
+        }
+        .fw-box p {
+            font-size: var(--label-size);
+            color: #666;
+            margin-top: 2px;
+        }
+        .fw-arrow {
+            font-size: clamp(1rem, 1.5vw, 1.4rem);
+            color: var(--accent-warm);
+        }
+        .fw-cycle {
+            display: flex;
+            align-items: center;
+            gap: clamp(8px, 1vw, 14px);
+            border: 2px solid var(--accent-warm);
+            border-radius: clamp(12px, 1.5vw, 20px);
+            padding: clamp(10px, 1.2vw, 16px);
+        }
+        .fw-cycle-label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            font-size: var(--label-size);
+            color: var(--accent-warm);
+        }
+        .fw-labels {
+            display: flex;
+            width: 100%;
+            max-width: min(85vw, 900px);
+            justify-content: space-between;
+            margin-top: clamp(6px, 1vh, 12px);
+            padding: 0 clamp(20px, 3vw, 50px);
+        }
+        .fw-label {
+            font-size: var(--label-size);
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        /* ===========================================
+           STEP LIST (Customer Journey)
+           =========================================== */
+        .steps {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(8px, 1.2vh, 14px);
+        }
+        .step {
+            display: flex;
+            gap: clamp(10px, 1.5vw, 18px);
+            align-items: flex-start;
+        }
+        .step-badge {
+            background: rgba(240, 235, 231, 0.88);
+            color: #1a1a1a;
+            padding: clamp(5px, 0.7vh, 8px) clamp(14px, 1.5vw, 22px);
+            border-radius: clamp(5px, 0.6vw, 8px);
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: var(--small-size);
+            min-width: clamp(75px, 8vw, 105px);
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .step p {
+            font-size: var(--small-size);
+            color: rgba(240, 235, 231, 0.7);
+        }
+
+        /* ===========================================
+           PROGRESS BAR
+           =========================================== */
+        .progress-bar {
+            position: fixed;
+            top: 0; left: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-red), var(--accent-warm));
+            z-index: 100;
+            transition: width 0.3s ease;
+        }
+
+        /* ===========================================
+           NAV DOTS
+           =========================================== */
+        .nav-dots {
+            position: fixed;
+            right: clamp(12px, 1.5vw, 24px);
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: clamp(6px, 0.8vh, 10px);
+            z-index: 100;
+        }
+        .nav-dot {
+            width: clamp(5px, 0.5vw, 7px);
+            height: clamp(5px, 0.5vw, 7px);
+            border-radius: 50%;
+            background: var(--text-muted);
+            cursor: pointer;
+            transition: background 0.3s ease, transform 0.3s ease;
+            border: none;
+            padding: 0;
+        }
+        .nav-dot.active {
+            background: var(--accent-warm);
+            transform: scale(1.4);
+        }
+
+        /* ===========================================
+           TEAM PHOTOS & LOGOS
+           =========================================== */
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: clamp(16px, 2vw, 32px);
+            width: 100%;
+            max-width: min(90vw, 900px);
+            margin-top: var(--content-gap);
+        }
+        .team-member {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: clamp(6px, 1vh, 12px);
+        }
+        .founder-photo {
+            width: clamp(56px, 8vw, 96px);
+            height: clamp(56px, 8vw, 96px);
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(232, 168, 124, 0.35);
+        }
+        .team-member h3 {
+            font-size: var(--body-size);
+            color: var(--accent-warm);
+            line-height: 1.2;
+        }
+        .team-member .role {
+            font-size: var(--label-size);
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+        .team-member ul {
+            list-style: none;
+            text-align: left;
+            width: 100%;
+        }
+        .team-member li {
+            font-size: var(--label-size);
+            line-height: 1.55;
+            color: rgba(240, 235, 231, 0.7);
+            padding-left: clamp(10px, 1vw, 14px);
+            position: relative;
+        }
+        .team-member li::before {
+            content: "\2022";
+            position: absolute; left: 0;
+            color: var(--text-muted);
+        }
+        .logo-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: clamp(8px, 1.2vw, 16px);
+            align-items: center;
+            justify-content: center;
+            margin-top: var(--content-gap);
+            max-width: min(90vw, 800px);
+        }
+        .logo-grid img {
+            height: clamp(20px, 3vh, 34px);
+            width: auto;
+            padding: clamp(3px, 0.4vw, 6px) clamp(5px, 0.6vw, 10px);
+            background: rgba(255, 255, 255, 0.88);
+            border-radius: clamp(4px, 0.5vw, 7px);
+            object-fit: contain;
+        }
+
+        /* ===========================================
+           CLOSING SLIDE SPECIAL
+           =========================================== */
+        .closing-text {
+            font-size: clamp(1rem, 2.2vw, 1.5rem);
+            font-style: italic;
+            font-weight: 300;
+            max-width: min(85vw, 700px);
+            text-align: center;
+            line-height: 1.65;
+        }
+        .closing-text strong {
+            font-weight: 700;
+            font-style: normal;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Progress Bar -->
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- Navigation Dots -->
+<nav class="nav-dots" id="navDots" aria-label="Slide navigation"></nav>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 1 — TITLE
+     ═══════════════════════════════════════════════════ -->
+<section class="slide bg-brand" data-slide="0">
+    <div class="slide-content" style="gap: var(--content-gap);">
+        <svg class="logo-mark reveal" viewBox="0 0 900 1400" fill="none" style="width:clamp(42px,5vw,64px)">
+            <path d="M700 450C700 588.071 588.071 700 450 700C311.929 700 200 588.071 200 450H700ZM450 0C509.095 0 567.611 11.6393 622.208 34.2539C676.804 56.8685 726.412 90.0155 768.198 131.802C809.985 173.588 843.131 223.196 865.746 277.792C888.361 332.389 900 390.905 900 450H700C700 311.929 588.071 200 450 200C311.929 200 200 311.929 200 450H0C0 390.905 11.6394 332.389 34.2539 277.793C56.8685 223.196 90.0154 173.588 131.802 131.802C173.588 90.0155 223.196 56.8685 277.792 34.2539C332.389 11.6393 390.905 0 450 0Z" fill="#E8E8E8"/>
+            <path d="M200 950C200 811.929 311.929 700 450 700C588.071 700 700 811.929 700 950H200ZM450 1400C390.905 1400 332.389 1388.36 277.792 1365.75C223.196 1343.13 173.588 1309.98 131.802 1268.2C90.0155 1226.41 56.8685 1176.8 34.2539 1122.21C11.6393 1067.61 0 1009.09 0 950H200C200 1088.07 311.929 1200 450 1200C588.071 1200 700 1088.07 700 950H900C900 1009.09 888.361 1067.61 865.746 1122.21C843.131 1176.8 809.985 1226.41 768.198 1268.2C726.412 1309.98 676.804 1343.13 622.208 1365.75C567.611 1388.36 509.095 1400 450 1400Z" fill="#E8E8E8"/>
+        </svg>
+        <div class="logo-wordmark reveal">AGANTHOS</div>
+        <p class="reveal" style="font-size:var(--h3-size);font-weight:300;color:var(--text-secondary);font-style:italic;letter-spacing:0.04em;">
+            Learning from Experience Lab
+        </p>
+        <p class="reveal" style="font-size:var(--small-size);color:var(--text-muted);margin-top:clamp(20px,4vh,48px);">
+            aganthos.com
+        </p>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 2 — MONKEY / LEARNING FROM EXPERIENCE
+     ═══════════════════════════════════════════════════ -->
+<section class="slide bg-brand" data-slide="1b">
+    <svg class="logo-corner" viewBox="0 0 900 1400" fill="none"><path d="M700 450C700 588.071 588.071 700 450 700C311.929 700 200 588.071 200 450H700ZM450 0C509.095 0 567.611 11.6393 622.208 34.2539C676.804 56.8685 726.412 90.0155 768.198 131.802C809.985 173.588 843.131 223.196 865.746 277.792C888.361 332.389 900 390.905 900 450H700C700 311.929 588.071 200 450 200C311.929 200 200 311.929 200 450H0C0 390.905 11.6394 332.389 34.2539 277.793C56.8685 223.196 90.0154 173.588 131.802 131.802C173.588 90.0155 223.196 56.8685 277.792 34.2539C332.389 11.6393 390.905 0 450 0Z" fill="#E8E8E8"/><path d="M200 950C200 811.929 311.929 700 450 700C588.071 700 700 811.929 700 950H200ZM450 1400C390.905 1400 332.389 1388.36 277.792 1365.75C223.196 1343.13 173.588 1309.98 131.802 1268.2C90.0155 1226.41 56.8685 1176.8 34.2539 1122.21C11.6393 1067.61 0 1009.09 0 950H200C200 1088.07 311.929 1200 450 1200C588.071 1200 700 1088.07 700 950H900C900 1009.09 888.361 1067.61 865.746 1122.21C843.131 1176.8 809.985 1226.41 768.198 1268.2C726.412 1309.98 676.804 1343.13 622.208 1365.75C567.611 1388.36 509.095 1400 450 1400Z" fill="#E8E8E8"/></svg>
+
+    <div class="slide-content" style="align-items:center; justify-content:center;">
+        <img src="monkey.png" style="max-width:100%; max-height:80vh; width:auto; height:auto; object-fit:contain;">
+    </div>
+    <p style="position:absolute; bottom:clamp(8px,1vh,14px); right:clamp(10px,1.5vw,20px); font-size:clamp(0.45rem,0.55vw,0.6rem); color:var(--text-muted); z-index:10;">
+        Photo by Pixabay: pexels.com/photo/three-wise-monkey-decor-206784
+    </p>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 3 — PROBLEM (was SLIDE 2)
+     ═══════════════════════════════════════════════════ -->
+<section class="slide bg-deep" data-slide="1">
+    <span class="slide-num">02</span>
+    <svg class="logo-corner" viewBox="0 0 900 1400" fill="none"><path d="M700 450C700 588.071 588.071 700 450 700C311.929 700 200 588.071 200 450H700ZM450 0C509.095 0 567.611 11.6393 622.208 34.2539C676.804 56.8685 726.412 90.0155 768.198 131.802C809.985 173.588 843.131 223.196 865.746 277.792C888.361 332.389 900 390.905 900 450H700C700 311.929 588.071 200 450 200C311.929 200 200 311.929 200 450H0C0 390.905 11.6394 332.389 34.2539 277.793C56.8685 223.196 90.0154 173.588 131.802 131.802C173.588 90.0155 223.196 56.8685 277.792 34.2539C332.389 11.6393 390.905 0 450 0Z" fill="#E8E8E8"/><path d="M200 950C200 811.929 311.929 700 450 700C588.071 700 700 811.929 700 950H200ZM450 1400C390.905 1400 332.389 1388.36 277.792 1365.75C223.196 1343.13 173.588 1309.98 131.802 1268.2C90.0155 1226.41 56.8685 1176.8 34.2539 1122.21C11.6393 1067.61 0 1009.09 0 950H200C200 1088.07 311.929 1200 450 1200C588.071 1200 700 1088.07 700 950H900C900 1009.09 888.361 1067.61 865.746 1122.21C843.131 1176.8 809.985 1226.41 768.198 1268.2C726.412 1309.98 676.804 1343.13 622.208 1365.75C567.611 1388.36 509.095 1400 450 1400Z" fill="#E8E8E8"/></svg>
+    <div class="slide-content" style="gap: var(--content-gap);">
+        <h2 class="reveal">AI Agents Hit a Wall Before Becoming Productive</h2>
+        <div class="card-row reveal-scale">
+            <div class="card">
+                <div class="card-icon" style="color:var(--accent-warm)">&#x26A0;</div>
+                <h3>Unreliable Performance</h3>
+                <p style="font-size:var(--small-size);color:var(--text-secondary);margin-top:var(--element-gap);">
+                    Off-the-shelf models get 50-60% on domain tasks. Enterprises need 90%+.
+                </p>
+            </div>
+            <div class="card">
+                <div class="card-icon" style="color:var(--accent-blue)">&#x25C6;</div>
+                <h3>Data Sovereignty</h3>
+                <p style="font-size:var(--small-size);color:var(--text-secondary);margin-top:var(--element-gap);">
+                    Sensitive data can't leave the organisation. Vendor lock-in is a compliance risk.
+                </p>
+            </div>
+            <div class="card">
+                <div class="card-icon" style="color:var(--accent-green)">&#x25B2;</div>
+                <h3>Unsustainable Costs</h3>
+                <p style="font-size:var(--small-size);color:var(--text-secondary);margin-top:var(--element-gap);">
+                    Frontier API costs scale linearly. At production volume, inference is the largest line item.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 3 — MISSION
+     ═══════════════════════════════════════════════════ -->
+<section class="slide bg-brand" data-slide="2">
+    <svg class="logo-corner" viewBox="0 0 900 1400" fill="none"><path d="M700 450C700 588.071 588.071 700 450 700C311.929 700 200 588.071 200 450H700ZM450 0C509.095 0 567.611 11.6393 622.208 34.2539C676.804 56.8685 726.412 90.0155 768.198 131.802C809.985 173.588 843.131 223.196 865.746 277.792C888.361 332.389 900 390.905 900 450H700C700 311.929 588.071 200 450 200C311.929 200 200 311.929 200 450H0C0 390.905 11.6394 332.389 34.2539 277.793C56.8685 223.196 90.0154 173.588 131.802 131.802C173.588 90.0155 223.196 56.8685 277.792 34.2539C332.389 11.6393 390.905 0 450 0Z" fill="#E8E8E8"/><path d="M200 950C200 811.929 311.929 700 450 700C588.071 700 700 811.929 700 950H200ZM450 1400C390.905 1400 332.389 1388.36 277.792 1365.75C223.196 1343.13 173.588 1309.98 131.802 1268.2C90.0155 1226.41 56.8685 1176.8 34.2539 1122.21C11.6393 1067.61 0 1009.09 0 950H200C200 1088.07 311.929 1200 450 1200C588.071 1200 700 1088.07 700 950H900C900 1009.09 888.361 1067.61 865.746 1122.21C843.131 1176.8 809.985 1226.41 768.198 1268.2C726.412 1309.98 676.804 1343.13 622.208 1365.75C567.611 1388.36 509.095 1400 450 1400Z" fill="#E8E8E8"/></svg>
+    <div class="slide-content">
+        <h1 class="reveal" style="font-weight:400;font-style:italic;max-width:min(80vw,650px);text-align:center;">
+            we enable agents<br>to learn from experience
+        </h1>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 4 — VALUE PROPOSITION
+     ═══════════════════════════════════════════════════ -->
+<section class="slide bg-deep" data-slide="3">
+    <span class="slide-num">03</span>
+    <svg class="logo-corner" viewBox="0 0 900 1400" fill="none"><path d="M700 450C700 588.071 588.071 700 450 700C311.929 700 200 588.071 200 450H700ZM450 0C509.095 0 567.611 11.6393 622.208 34.2539C676.804 56.8685 726.412 90.0155 768.198 131.802C809.985 173.588 843.131 223.196 865.746 277.792C888.361 332.389 900 390.905 900 450H700C700 311.929 588.071 200 450 200C311.929 200 200 311.929 200 450H0C0 390.905 11.6394 332.389 34.2539 277.793C56.8685 223.196 90.0154 173.588 131.802 131.802C173.588 90.0155 223.196 56.8685 277.792 34.2539C332.389 11.6393 390.905 0 450 0Z" fill="#E8E8E8"/><path d="M200 950C200 811.929 311.929 700 450 700C588.071 700 700 811.929 700 950H200ZM450 1400C390.905 1400 332.389 1388.36 277.792 1365.75C223.196 1343.13 173.588 1309.98 131.802 1268.2C90.0155 1226.41 56.8685 1176.8 34.2539 1122.21C11.6393 1067.61 0 1009.09 0 950H200C200 1088.07 311.929 1200 450 1200C588.071 1200 700 1088.07 700 950H900C900 1009.09 888.361 1067.61 865.746 1122.21C843.131 1176.8 809.985 1226.41 768.198 1268.2C726.412 1309.98 676.804 1343.13 622.208 1365.75C567.611 1388.36 509.095 1400 450 1400Z" fill="#E8E8E8"/></svg>
+    <div class="slide-content" style="gap: var(--content-gap);">
+        <h2 class="reveal">We Create Measurable Value</h2>
+        <div class="card-row">
+            <div class="card c-green reveal-scale">
+                <div style="font-size:clamp(1.4rem,2.5vw,2rem);color:var(--accent-green)">&#x2191;</div>
+                <h3>Improve Performance</h3>
+                <p class="tech">RL &amp; In-Context Learning</p>
+                <ul><li>Higher success rate</li><li>Fewer human escalations</li><li>Better decision quality</li></ul>
+            </div>
+            <div class="card c-warm reveal-scale">
+                <div style="font-size:clamp(1.4rem,2.5vw,2rem);color:var(--accent-warm)">&#x2193;</div>
+                <h3>Reduce Cost</h3>
+                <p class="tech">Routing + small models</p>
+                <ul><li>Lower cost per request</li><li>Lower latency</li><li>Scalable usage</li></ul>
+            </div>
+            <div class="card c-blue reveal-scale">
+                <div style="font-size:clamp(1.4rem,2.5vw,2rem);color:var(--accent-blue)">&#x25C6;</div>
+                <h3>Enable Privacy</h3>
+                <p class="tech">Knowledge transfer + local deploy</p>
+                <ul><li>Data never leaves your org</li><li>Vendor independence</li><li>Regulatory compliance</li></ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 5 — LEARNING FROM EXPERIENCE (RL ARCHITECTURE)
+     ═══════════════════════════════════════════════════ -->
+<section class="slide bg-warm" data-slide="4">
+    <span class="slide-num">04</span>
+    <svg class="logo-corner" viewBox="0 0 900 1400" fill="none"><path d="M700 450C700 588.071 588.071 700 450 700C311.929 700 200 588.071 200 450H700ZM450 0C509.095 0 567.611 11.6393 622.208 34.2539C676.804 56.8685 726.412 90.0155 768.198 131.802C809.985 173.588 843.131 223.196 865.746 277.792C888.361 332.389 900 390.905 900 450H700C700 311.929 588.071 200 450 200C311.929 200 200 311.929 200 450H0C0 390.905 11.6394 332.389 34.2539 277.793C56.8685 223.196 90.0154 173.588 131.802 131.802C173.588 90.0155 223.196 56.8685 277.792 34.2539C332.389 11.6393 390.905 0 450 0Z" fill="#E8E8E8"/><path d="M200 950C200 811.929 311.929 700 450 700C588.071 700 700 811.929 700 950H200ZM450 1400C390.905 1400 332.389 1388.36 277.792 1365.75C223.196 1343.13 173.588 1309.98 131.802 1268.2C90.0155 1226.41 56.8685 1176.8 34.2539 1122.21C11.6393 1067.61 0 1009.09 0 950H200C200 1088.07 311.929 1200 450 1200C588.071 1200 700 1088.07 700 950H900C900 1009.09 888.361 1067.61 865.746 1122.21C843.131 1176.8 809.985 1226.41 768.198 1268.2C726.412 1309.98 676.804 1343.13 622.208 1365.75C567.611 1388.36 509.095 1400 450 1400Z" fill="#E8E8E8"/></svg>
+    <div class="slide-content" style="gap: var(--element-gap);">
+        <h2 class="reveal">How Agents Learn from Experience</h2>
+        <!-- Inline SVG: Agent-Environment RL diagram (v5-style, cute robot) -->
+        <div class="reveal" style="width:100%;max-width:min(90vw,800px);display:flex;justify-content:center;">
+            <svg viewBox="0 0 520 270" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;max-height:min(48vh,360px);">
+                <defs>
+                    <marker id="rl-arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                        <path d="M0,0.5 L7,3 L0,5.5" fill="#e8a87c"/>
+                    </marker>
+                </defs>
+
+                <!-- ===== AGENT (cute robot) ===== -->
+                <g transform="translate(78,135)" stroke-linecap="round" stroke-linejoin="round">
+                    <!-- Head dome — big for cuteness -->
+                    <path d="M-34,5 L-34,-14 C-34,-50 34,-50 34,-14 L34,5 Z"
+                          fill="none" stroke="#d8d4d0" stroke-width="2.5"/>
+
+                    <!-- Antenna -->
+                    <line x1="0" y1="-44" x2="0" y2="-60" stroke="#d8d4d0" stroke-width="2"/>
+                    <circle cx="0" cy="-64" r="4.5" fill="#e8a87c"/>
+                    <circle cx="0" cy="-64" r="9" fill="#e8a87c" opacity="0.08"/>
+
+                    <!-- Eyes — big, sparkly, kawaii -->
+                    <circle cx="-14" cy="-16" r="10" fill="none" stroke="#d8d4d0" stroke-width="2"/>
+                    <circle cx="-14" cy="-16" r="4.5" fill="#e8a87c"/>
+                    <circle cx="-17" cy="-19.5" r="2" fill="white" opacity="0.85"/>
+                    <circle cx="-11.5" cy="-14" r="0.9" fill="white" opacity="0.5"/>
+
+                    <circle cx="14" cy="-16" r="10" fill="none" stroke="#d8d4d0" stroke-width="2"/>
+                    <circle cx="14" cy="-16" r="4.5" fill="#e8a87c"/>
+                    <circle cx="11" cy="-19.5" r="2" fill="white" opacity="0.85"/>
+                    <circle cx="16.5" cy="-14" r="0.9" fill="white" opacity="0.5"/>
+
+                    <!-- Blush spots -->
+                    <ellipse cx="-27" cy="-4" rx="5.5" ry="3.5" fill="#e8a87c" opacity="0.12"/>
+                    <ellipse cx="27" cy="-4" rx="5.5" ry="3.5" fill="#e8a87c" opacity="0.12"/>
+
+                    <!-- Smile -->
+                    <path d="M-11,2 Q0,13 11,2" fill="none" stroke="#d8d4d0" stroke-width="1.8"/>
+
+                    <!-- Ears -->
+                    <rect x="-40" y="-26" width="6" height="16" rx="2.5" fill="none" stroke="#d8d4d0" stroke-width="1.5"/>
+                    <line x1="-37" y1="-22" x2="-37" y2="-14" stroke="#e8a87c" stroke-width="1" opacity="0.45"/>
+                    <rect x="34" y="-26" width="6" height="16" rx="2.5" fill="none" stroke="#d8d4d0" stroke-width="1.5"/>
+                    <line x1="37" y1="-22" x2="37" y2="-14" stroke="#e8a87c" stroke-width="1" opacity="0.45"/>
+
+                    <!-- Body — stubby rounded -->
+                    <rect x="-23" y="10" width="46" height="42" rx="13" fill="none" stroke="#d8d4d0" stroke-width="2.5"/>
+
+                    <!-- Body accent -->
+                    <circle cx="0" cy="31" r="6" fill="#e8a87c" opacity="0.1" stroke="#e8a87c" stroke-width="0.8"/>
+
+                    <!-- Left arm — waving up (friendly!) -->
+                    <line x1="-23" y1="22" x2="-40" y2="6" stroke="#d8d4d0" stroke-width="2"/>
+                    <circle cx="-42" cy="4" r="3.5" fill="#d8d4d0"/>
+
+                    <!-- Right arm — relaxed -->
+                    <line x1="23" y1="26" x2="40" y2="38" stroke="#d8d4d0" stroke-width="2"/>
+                    <circle cx="42" cy="40" r="3.5" fill="#d8d4d0"/>
+
+                    <!-- Legs -->
+                    <line x1="-10" y1="52" x2="-10" y2="66" stroke="#d8d4d0" stroke-width="2"/>
+                    <ellipse cx="-10" cy="69" rx="5" ry="2.5" fill="#d8d4d0"/>
+                    <line x1="10" y1="52" x2="10" y2="66" stroke="#d8d4d0" stroke-width="2"/>
+                    <ellipse cx="10" cy="69" rx="5" ry="2.5" fill="#d8d4d0"/>
+                </g>
+
+                <!-- AGENT label -->
+                <text x="78" y="52" text-anchor="middle" font-family="'Syne',sans-serif" font-size="15" font-weight="700" fill="#e0dbd7" letter-spacing="1.5">AGENT</text>
+
+                <!-- ===== ENVIRONMENT (globe) ===== -->
+                <g transform="translate(420,122)">
+                    <!-- Ocean -->
+                    <circle cx="0" cy="0" r="54" fill="#5C85A8"/>
+
+                    <!-- Land masses -->
+                    <path d="M-18,22 C-12,32 -2,28 0,22 C2,14 -8,10 -14,10 C-20,10 -22,16 -18,22Z" fill="#7BA656"/>
+                    <path d="M10,26 C16,30 22,26 24,18 C24,12 18,10 12,14 C8,18 8,22 10,26Z" fill="#7BA656"/>
+                    <path d="M14,4 C20,8 26,2 26,-6 C26,-14 20,-20 14,-18 C8,-14 6,-4 10,2Z" fill="#7BA656"/>
+                    <path d="M-26,2 C-20,8 -14,4 -12,-4 C-10,-12 -16,-18 -22,-16 C-28,-14 -30,-4 -26,2Z" fill="#7BA656"/>
+                    <path d="M26,-14 C32,-10 36,-18 34,-24 C30,-26 26,-22 26,-14Z" fill="#7BA656"/>
+
+                    <!-- Grid lines -->
+                    <ellipse cx="0" cy="0" rx="25" ry="54" fill="none" stroke="white" stroke-width="0.5" opacity="0.25"/>
+                    <ellipse cx="0" cy="0" rx="44" ry="54" fill="none" stroke="white" stroke-width="0.4" opacity="0.2"/>
+                    <line x1="-54" y1="0" x2="54" y2="0" stroke="white" stroke-width="0.5" opacity="0.25"/>
+                    <path d="M-50,22 Q0,16 50,22" fill="none" stroke="white" stroke-width="0.4" opacity="0.2"/>
+                    <path d="M-50,-22 Q0,-16 50,-22" fill="none" stroke="white" stroke-width="0.4" opacity="0.2"/>
+
+                    <!-- Outline -->
+                    <circle cx="0" cy="0" r="54" fill="none" stroke="#e0dbd7" stroke-width="2"/>
+                </g>
+
+                <!-- ENVIRONMENT label -->
+                <text x="420" y="46" text-anchor="middle" font-family="'Syne',sans-serif" font-size="15" font-weight="700" fill="#e0dbd7" letter-spacing="1.5">ENVIRONMENT</text>
+
+                <!-- ===== TOP ARROW: Agent → Environment ===== -->
+                <path d="M132,95 C195,20 325,20 388,95"
+                      fill="none" stroke="#e8a87c" stroke-width="1.8" marker-end="url(#rl-arr)"/>
+
+                <!-- Top arrow labels -->
+                <text x="260" y="16" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-size="11" fill="#aaaaaa">
+                    <tspan>- State </tspan><tspan font-style="italic">s</tspan><tspan> &#x2208; </tspan><tspan font-style="italic">S</tspan>
+                </text>
+                <text x="260" y="32" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-size="11" fill="#aaaaaa">
+                    <tspan>- Take action </tspan><tspan font-style="italic">a</tspan><tspan> &#x2208; </tspan><tspan font-style="italic">A</tspan>
+                </text>
+
+                <!-- ===== BOTTOM ARROW: Environment → Agent ===== -->
+                <path d="M388,160 C325,235 195,235 132,160"
+                      fill="none" stroke="#e8a87c" stroke-width="1.8" marker-end="url(#rl-arr)"/>
+
+                <!-- Bottom arrow labels -->
+                <text x="260" y="244" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-size="11" fill="#aaaaaa">
+                    <tspan>- Get reward </tspan><tspan font-style="italic">r</tspan>
+                </text>
+                <text x="260" y="260" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-size="11" fill="#aaaaaa">
+                    <tspan>- New state </tspan><tspan font-style="italic">s&#x2032;</tspan><tspan> &#x2208; </tspan><tspan font-style="italic">S</tspan>
+                </text>
+            </svg>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 6 — LEARNING FLYWHEEL
+     ═══════════════════════════════════════════════════ -->
+<section class="slide bg-deep" data-slide="5">
+    <span class="slide-num">05</span>
+    <svg class="logo-corner" viewBox="0 0 900 1400" fill="none"><path d="M700 450C700 588.071 588.071 700 450 700C311.929 700 200 588.071 200 450H700ZM450 0C509.095 0 567.611 11.6393 622.208 34.2539C676.804 56.8685 726.412 90.0155 768.198 131.802C809.985 173.588 843.131 223.196 865.746 277.792C888.361 332.389 900 390.905 900 450H700C700 311.929 588.071 200 450 200C311.929 200 200 311.929 200 450H0C0 390.905 11.6394 332.389 34.2539 277.793C56.8685 223.196 90.0154 173.588 131.802 131.802C173.588 90.0155 223.196 56.8685 277.792 34.2539C332.389 11.6393 390.905 0 450 0Z" fill="#E8E8E8"/><path d="M200 950C200 811.929 311.929 700 450 700C588.071 700 700 811.929 700 950H200ZM450 1400C390.905 1400 332.389 1388.36 277.792 1365.75C223.196 1343.13 173.588 1309.98 131.802 1268.2C90.0155 1226.41 56.8685 1176.8 34.2539 1122.21C11.6393 1067.61 0 1009.09 0 950H200C200 1088.07 311.929 1200 450 1200C588.071 1200 700 1088.07 700 950H900C900 1009.09 888.361 1067.61 865.746 1122.21C843.131 1176.8 809.985 1226.41 768.198 1268.2C726.412 1309.98 676.804 1343.13 622.208 1365.75C567.611 1388.36 509.095 1400 450 1400Z" fill="#E8E8E8"/></svg>
+    <div class="slide-content" style="gap: var(--element-gap);">
+        <h2 class="reveal">The Learning Flywheel</h2>
+        <p class="reveal" style="font-size:var(--body-size);font-style:italic;color:var(--text-secondary);">Learning as a Service</p>
+        <div class="flywheel reveal">
+            <div class="fw-box"><h3>Analyse</h3><p>Understand workflows</p></div>
+            <div class="fw-arrow">&#x2192;</div>
+            <div class="fw-box"><h3>Setup</h3><p>Configure agents</p></div>
+            <div class="fw-arrow">&#x2192;</div>
+            <div class="fw-cycle">
+                <div class="fw-box"><h3>Deploy &amp; Collect</h3><p>In production</p></div>
+                <div class="fw-cycle-label">
+                    <span>logs, traces</span>
+                    <span style="font-size:clamp(1rem,1.5vw,1.3rem)">&#x21C4;</span>
+                    <span>improved model</span>
+                </div>
+                <div class="fw-box"><h3>Train &amp; Improve</h3><p>RL, distillation, ICL</p></div>
+            </div>
+        </div>
+        <div class="fw-labels reveal">
+            <span class="fw-label">Onboarding</span>
+            <span class="fw-label">Continuous Improvement</span>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 7 — CASE STUDY
+     ═══════════════════════════════════════════════════ -->
+<section class="slide bg-warm" data-slide="6">
+    <span class="slide-num">06</span>
+    <svg class="logo-corner" viewBox="0 0 900 1400" fill="none"><path d="M700 450C700 588.071 588.071 700 450 700C311.929 700 200 588.071 200 450H700ZM450 0C509.095 0 567.611 11.6393 622.208 34.2539C676.804 56.8685 726.412 90.0155 768.198 131.802C809.985 173.588 843.131 223.196 865.746 277.792C888.361 332.389 900 390.905 900 450H700C700 311.929 588.071 200 450 200C311.929 200 200 311.929 200 450H0C0 390.905 11.6394 332.389 34.2539 277.793C56.8685 223.196 90.0154 173.588 131.802 131.802C173.588 90.0155 223.196 56.8685 277.792 34.2539C332.389 11.6393 390.905 0 450 0Z" fill="#E8E8E8"/><path d="M200 950C200 811.929 311.929 700 450 700C588.071 700 700 811.929 700 950H200ZM450 1400C390.905 1400 332.389 1388.36 277.792 1365.75C223.196 1343.13 173.588 1309.98 131.802 1268.2C90.0155 1226.41 56.8685 1176.8 34.2539 1122.21C11.6393 1067.61 0 1009.09 0 950H200C200 1088.07 311.929 1200 450 1200C588.071 1200 700 1088.07 700 950H900C900 1009.09 888.361 1067.61 865.746 1122.21C843.131 1176.8 809.985 1226.41 768.198 1268.2C726.412 1309.98 676.804 1343.13 622.208 1365.75C567.611 1388.36 509.095 1400 450 1400Z" fill="#E8E8E8"/></svg>
+    <div class="slide-content" style="gap: var(--element-gap);">
+        <h2 class="reveal">Case Study: Large Enterprise QA Agent</h2>
+        <p class="reveal" style="font-size:var(--small-size);color:var(--text-secondary);font-style:italic;">Post-training as a Service &mdash; ICML 2026 submission</p>
+        <div class="reveal" style="width:100%;max-width:min(92vw,1000px);">
+            <img src="qa_agent.png" alt="QA Agent Architecture" style="width:100%;max-height:min(22vh,180px);object-fit:contain;display:block;">
+        </div>
+        <div class="reveal" style="display:flex;justify-content:center;width:100%;margin-top:clamp(16px,3vh,40px);">
+            <div style="display:flex;flex-direction:row;align-items:center;gap:clamp(24px,5vw,72px);max-width:min(85vw,820px);">
+                <div class="metric" style="text-align:center;flex:1;"><div class="num warm" style="font-size:clamp(1.3rem,3vw,2.2rem);">+30%</div><div class="label">over o4-mini on clinical benchmarks</div></div>
+                <div class="metric" style="text-align:center;flex:1;"><div class="num green" style="font-size:clamp(1.3rem,3vw,2.2rem);">7B</div><div class="label">parameter model (FHIR-Agent)</div></div>
+                <div class="metric" style="text-align:center;flex:1;"><div class="num blue" style="font-size:clamp(1.3rem,3vw,2.2rem);">90%</div><div class="label">cost reduction vs. frontier APIs</div></div>
+            </div>
+        </div>
+        <p class="reveal" style="font-size:var(--label-size);color:var(--text-muted);text-align:center;margin-top:var(--element-gap);">Potential to save <strong>5-15 FTE equivalents</strong> (&gt;1M EUR) per hospital. Full data sovereignty.</p>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 9 — COMPETITION
+     ═══════════════════════════════════════════════════ -->
+<section class="slide bg-warm" data-slide="7">
+    <span class="slide-num">07</span>
+    <svg class="logo-corner" viewBox="0 0 900 1400" fill="none"><path d="M700 450C700 588.071 588.071 700 450 700C311.929 700 200 588.071 200 450H700ZM450 0C509.095 0 567.611 11.6393 622.208 34.2539C676.804 56.8685 726.412 90.0155 768.198 131.802C809.985 173.588 843.131 223.196 865.746 277.792C888.361 332.389 900 390.905 900 450H700C700 311.929 588.071 200 450 200C311.929 200 200 311.929 200 450H0C0 390.905 11.6394 332.389 34.2539 277.793C56.8685 223.196 90.0154 173.588 131.802 131.802C173.588 90.0155 223.196 56.8685 277.792 34.2539C332.389 11.6393 390.905 0 450 0Z" fill="#E8E8E8"/><path d="M200 950C200 811.929 311.929 700 450 700C588.071 700 700 811.929 700 950H200ZM450 1400C390.905 1400 332.389 1388.36 277.792 1365.75C223.196 1343.13 173.588 1309.98 131.802 1268.2C90.0155 1226.41 56.8685 1176.8 34.2539 1122.21C11.6393 1067.61 0 1009.09 0 950H200C200 1088.07 311.929 1200 450 1200C588.071 1200 700 1088.07 700 950H900C900 1009.09 888.361 1067.61 865.746 1122.21C843.131 1176.8 809.985 1226.41 768.198 1268.2C726.412 1309.98 676.804 1343.13 622.208 1365.75C567.611 1388.36 509.095 1400 450 1400Z" fill="#E8E8E8"/></svg>
+    <div class="slide-content" style="gap: var(--element-gap);">
+        <h2 class="reveal" style="text-align:center;">Competition Landscape</h2>
+        <div class="comp-wrap reveal-scale">
+            <div style="display:flex;align-items:stretch;">
+                <!-- grid + axis line overlay -->
+                <div style="position:relative;flex:1;">
+                    <div class="comp-grid">
+                        <div class="comp-quad"><h3>Static Agent Platforms</h3><p class="players">N8N, Zapier, Sema4.ai, 11x.ai, Lindy AI<br><span style="color:var(--text-muted);font-size:var(--label-size);">Potential customers: Sierra ($10B), Parloa ($3B), Decagon ($4.5B)</span></p></div>
+                        <div class="comp-quad active"><h3>Learning Automation</h3><p class="players"><strong>Aganthos</strong>, Osmosis AI<br><span style="color:var(--text-muted);font-size:var(--label-size);">Infra: OpenPipe/CoreWeave, Tinker ($12B), Fireworks RFT</span></p></div>
+                        <div class="comp-quad"><h3>Legacy BPO + LLM</h3><p class="players">Accenture, Deloitte, UiPath<br><span style="color:var(--text-muted);font-size:var(--label-size);">Platform risk: Databricks KARL</span></p></div>
+                        <div class="comp-quad"><h3>Bespoke Intelligence</h3><p class="players">Palantir, InstaDeep, Applied Intuition, PolyAI</p></div>
+                    </div>
+                    <svg style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:5;">
+                        <defs>
+                            <marker id="comp-ah-h" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="0deg">
+                                <path d="M0,0 L8,3 L0,6" fill="rgba(232,168,124,0.8)"/>
+                            </marker>
+                            <marker id="comp-ah-v" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="-90deg">
+                                <path d="M0,0 L8,3 L0,6" fill="rgba(232,168,124,0.8)"/>
+                            </marker>
+                        </defs>
+                        <!-- Horizontal axis → right -->
+                        <line x1="0%" y1="50%" x2="103%" y2="50%" stroke="rgba(232,168,124,0.55)" stroke-width="1.5" marker-end="url(#comp-ah-h)"/>
+                        <!-- Vertical axis → up -->
+                        <line x1="50%" y1="100%" x2="50%" y2="-5%" stroke="rgba(232,168,124,0.55)" stroke-width="1.5" marker-end="url(#comp-ah-v)"/>
+                        <!-- scalable solutions label: to the right of the arrowhead -->
+                        <text x="53%" y="-3%" font-style="italic" style="font-size:var(--label-size);fill:rgba(232,168,124,0.85);">scalable solutions</text>
+                    </svg>
+                </div>
+                <!-- learning from experience label to the right -->
+                <div style="width:clamp(80px,11vw,140px);display:flex;align-items:center;padding-left:clamp(10px,1.2vw,18px);">
+                    <span style="font-style:italic;font-size:var(--label-size);color:rgba(232,168,124,0.85);line-height:1.4;">learning from experience</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 11 — TRACTION
+     ═══════════════════════════════════════════════════ -->
+<section class="slide bg-warm" data-slide="8">
+    <span class="slide-num">08</span>
+    <svg class="logo-corner" viewBox="0 0 900 1400" fill="none"><path d="M700 450C700 588.071 588.071 700 450 700C311.929 700 200 588.071 200 450H700ZM450 0C509.095 0 567.611 11.6393 622.208 34.2539C676.804 56.8685 726.412 90.0155 768.198 131.802C809.985 173.588 843.131 223.196 865.746 277.792C888.361 332.389 900 390.905 900 450H700C700 311.929 588.071 200 450 200C311.929 200 200 311.929 200 450H0C0 390.905 11.6394 332.389 34.2539 277.793C56.8685 223.196 90.0154 173.588 131.802 131.802C173.588 90.0155 223.196 56.8685 277.792 34.2539C332.389 11.6393 390.905 0 450 0Z" fill="#E8E8E8"/><path d="M200 950C200 811.929 311.929 700 450 700C588.071 700 700 811.929 700 950H200ZM450 1400C390.905 1400 332.389 1388.36 277.792 1365.75C223.196 1343.13 173.588 1309.98 131.802 1268.2C90.0155 1226.41 56.8685 1176.8 34.2539 1122.21C11.6393 1067.61 0 1009.09 0 950H200C200 1088.07 311.929 1200 450 1200C588.071 1200 700 1088.07 700 950H900C900 1009.09 888.361 1067.61 865.746 1122.21C843.131 1176.8 809.985 1226.41 768.198 1268.2C726.412 1309.98 676.804 1343.13 622.208 1365.75C567.611 1388.36 509.095 1400 450 1400Z" fill="#E8E8E8"/></svg>
+    <div class="slide-content" style="gap: var(--content-gap);">
+        <h2 class="reveal">Traction &amp; Status</h2>
+        <div class="timeline">
+            <div class="tl-row reveal">
+                <div class="tl-period">Q4 2025</div>
+                <ul class="tl-items">
+                    <li>Scientific validation: NeurIPS workshop paper</li>
+                    <li>DE C-Corp incorporation</li>
+                    <li>1st paid partnership secured</li>
+                    <li>Trained proprietary 1.5B/3B parameter models for tool orchestration</li>
+                    <li>R&amp;D with first customer and international researchers</li>
+                </ul>
+            </div>
+            <div class="tl-row reveal">
+                <div class="tl-period">Q1 2026</div>
+                <ul class="tl-items">
+                    <li>Two ICML 2026 submissions</li>
+                    <li>Swiss GmbH incorporation (HQ)</li>
+                    <li><strong style="color:var(--accent-warm);">~&euro;28K revenue</strong> from completed projects (&euro;3.3K + &euro;15K + &euro;10K milestone-based)</li>
+                    <li>RL Post-Trained Medical Model: +30% over o4-mini on clinical benchmarks</li>
+                    <li>Accepted into <strong>NVIDIA Inception</strong> program</li>
+                    <li>Design partnership discussions with multinational companies</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 12 — GROWTH ROADMAP
+     ═══════════════════════════════════════════════════ -->
+<section class="slide bg-deep" data-slide="9">
+    <span class="slide-num">09</span>
+    <svg class="logo-corner" viewBox="0 0 900 1400" fill="none"><path d="M700 450C700 588.071 588.071 700 450 700C311.929 700 200 588.071 200 450H700ZM450 0C509.095 0 567.611 11.6393 622.208 34.2539C676.804 56.8685 726.412 90.0155 768.198 131.802C809.985 173.588 843.131 223.196 865.746 277.792C888.361 332.389 900 390.905 900 450H700C700 311.929 588.071 200 450 200C311.929 200 200 311.929 200 450H0C0 390.905 11.6394 332.389 34.2539 277.793C56.8685 223.196 90.0154 173.588 131.802 131.802C173.588 90.0155 223.196 56.8685 277.792 34.2539C332.389 11.6393 390.905 0 450 0Z" fill="#E8E8E8"/><path d="M200 950C200 811.929 311.929 700 450 700C588.071 700 700 811.929 700 950H200ZM450 1400C390.905 1400 332.389 1388.36 277.792 1365.75C223.196 1343.13 173.588 1309.98 131.802 1268.2C90.0155 1226.41 56.8685 1176.8 34.2539 1122.21C11.6393 1067.61 0 1009.09 0 950H200C200 1088.07 311.929 1200 450 1200C588.071 1200 700 1088.07 700 950H900C900 1009.09 888.361 1067.61 865.746 1122.21C843.131 1176.8 809.985 1226.41 768.198 1268.2C726.412 1309.98 676.804 1343.13 622.208 1365.75C567.611 1388.36 509.095 1400 450 1400Z" fill="#E8E8E8"/></svg>
+    <div class="slide-content" style="gap: var(--content-gap);">
+        <h2 class="reveal">Proven Foundation, Ready to Scale</h2>
+        <p class="reveal" style="font-size:var(--small-size);color:var(--text-secondary);font-style:italic;">SkyDeck milestones &mdash; May to October 2026</p>
+        <div class="milestones">
+            <div class="ms-row reveal"><div class="ms-badge">Month 1</div><div class="ms-text">Launch 2 paid design partnerships. First hire (researcher/engineer). Close first US enterprise LOI.</div></div>
+            <div class="ms-row reveal"><div class="ms-badge">Month 3</div><div class="ms-text">2-3 active partnerships generating revenue. Multi-step agent training pipeline live. ICML results published.</div></div>
+            <div class="ms-row reveal"><div class="ms-badge">Month 6</div><div class="ms-text">2 US pilot partners. Continuous improvement platform with HITL. First joint venture. Pre-seed round closed. Demo Day.</div></div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 13 — TEAM
+     ═══════════════════════════════════════════════════ -->
+<section class="slide bg-warm" data-slide="10">
+    <span class="slide-num">10</span>
+    <svg class="logo-corner" viewBox="0 0 900 1400" fill="none"><path d="M700 450C700 588.071 588.071 700 450 700C311.929 700 200 588.071 200 450H700ZM450 0C509.095 0 567.611 11.6393 622.208 34.2539C676.804 56.8685 726.412 90.0155 768.198 131.802C809.985 173.588 843.131 223.196 865.746 277.792C888.361 332.389 900 390.905 900 450H700C700 311.929 588.071 200 450 200C311.929 200 200 311.929 200 450H0C0 390.905 11.6394 332.389 34.2539 277.793C56.8685 223.196 90.0154 173.588 131.802 131.802C173.588 90.0155 223.196 56.8685 277.792 34.2539C332.389 11.6393 390.905 0 450 0Z" fill="#E8E8E8"/><path d="M200 950C200 811.929 311.929 700 450 700C588.071 700 700 811.929 700 950H200ZM450 1400C390.905 1400 332.389 1388.36 277.792 1365.75C223.196 1343.13 173.588 1309.98 131.802 1268.2C90.0155 1226.41 56.8685 1176.8 34.2539 1122.21C11.6393 1067.61 0 1009.09 0 950H200C200 1088.07 311.929 1200 450 1200C588.071 1200 700 1088.07 700 950H900C900 1009.09 888.361 1067.61 865.746 1122.21C843.131 1176.8 809.985 1226.41 768.198 1268.2C726.412 1309.98 676.804 1343.13 622.208 1365.75C567.611 1388.36 509.095 1400 450 1400Z" fill="#E8E8E8"/></svg>
+    <div class="slide-content" style="gap: var(--content-gap);">
+        <h2 class="reveal">Orchestrate the Future Together</h2>
+        <div class="team-grid">
+            <div class="team-member reveal-scale">
+                <img class="founder-photo" src="../ressources/pictures/Robert.jpg" alt="Founder — AI Research">
+                <h3>Founder</h3>
+                <span class="role">AI Research &rarr; Impact</span>
+                <ul>
+                    <li>Decade of Reinforcement Learning; AISTATS Best Paper nominee</li>
+                    <li>Theory to production: games, robotics, microscopes, web agents</li>
+                    <li>Founding Research Scientist at Convergence AI (Acq. by Salesforce 2025)</li>
+                </ul>
+                <div class="logo-grid" style="margin-top:var(--element-gap);">
+                    <img src="../ressources/pictures/TUM.png" alt="TU Munich">
+                    <img src="../ressources/pictures/CMU.png" alt="Carnegie Mellon">
+                    <img src="../ressources/pictures/Mila.png" alt="Mila">
+                    <img src="../ressources/pictures/Sony AI.png" alt="Sony AI">
+                    <img src="../ressources/pictures/Convergence.png" alt="Convergence">
+                </div>
+            </div>
+            <div class="team-member reveal-scale">
+                <img class="founder-photo" src="../ressources/pictures/tobias.jpg" alt="Founder — Operations">
+                <h3>Founder</h3>
+                <span class="role">Operations &amp; Strategy</span>
+                <ul>
+                    <li>Design &amp; implementation of $2.6B national-scale crisis management</li>
+                    <li>Cross-sector coordination across disciplines &amp; government levels</li>
+                    <li>Generative AI in Public Health, Medicine &amp; Climate</li>
+                </ul>
+                <div class="logo-grid" style="margin-top:var(--element-gap);">
+                    <img src="../ressources/pictures/Bund.png" alt="Swiss Federal Government">
+                    <img src="../ressources/pictures/LSHTM.jpg" alt="London School HTM">
+                </div>
+            </div>
+            <div class="team-member reveal-scale">
+                <img class="founder-photo" src="../ressources/pictures/Ti.jpg" alt="Founding Technical Staff">
+                <h3>Technical Staff</h3>
+                <span class="role">Founding Engineer</span>
+                <ul>
+                    <li>Data platforms on AWS/GCP at BMW Group &amp; Levi Strauss</li>
+                    <li>Cloud deployment of custom RAG agents</li>
+                </ul>
+                <div class="logo-grid" style="margin-top:var(--element-gap);">
+                    <img src="../ressources/pictures/BMW.jpg" alt="BMW Group">
+                    <img src="../ressources/pictures/LS&amp;Co.jpg" alt="Levi Strauss">
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 14 — THE ASK
+     ═══════════════════════════════════════════════════ -->
+<section class="slide bg-deep" data-slide="11">
+    <span class="slide-num">11</span>
+    <svg class="logo-corner" viewBox="0 0 900 1400" fill="none"><path d="M700 450C700 588.071 588.071 700 450 700C311.929 700 200 588.071 200 450H700ZM450 0C509.095 0 567.611 11.6393 622.208 34.2539C676.804 56.8685 726.412 90.0155 768.198 131.802C809.985 173.588 843.131 223.196 865.746 277.792C888.361 332.389 900 390.905 900 450H700C700 311.929 588.071 200 450 200C311.929 200 200 311.929 200 450H0C0 390.905 11.6394 332.389 34.2539 277.793C56.8685 223.196 90.0154 173.588 131.802 131.802C173.588 90.0155 223.196 56.8685 277.792 34.2539C332.389 11.6393 390.905 0 450 0Z" fill="#E8E8E8"/><path d="M200 950C200 811.929 311.929 700 450 700C588.071 700 700 811.929 700 950H200ZM450 1400C390.905 1400 332.389 1388.36 277.792 1365.75C223.196 1343.13 173.588 1309.98 131.802 1268.2C90.0155 1226.41 56.8685 1176.8 34.2539 1122.21C11.6393 1067.61 0 1009.09 0 950H200C200 1088.07 311.929 1200 450 1200C588.071 1200 700 1088.07 700 950H900C900 1009.09 888.361 1067.61 865.746 1122.21C843.131 1176.8 809.985 1226.41 768.198 1268.2C726.412 1309.98 676.804 1343.13 622.208 1365.75C567.611 1388.36 509.095 1400 450 1400Z" fill="#E8E8E8"/></svg>
+    <div class="slide-content" style="gap: var(--content-gap);">
+        <h2 class="reveal">What SkyDeck Means for Aganthos</h2>
+        <div class="ask-grid">
+            <div class="ask-item reveal-scale"><h3 style="color:var(--accent-warm);">$200K Investment</h3><p>Fund first two hires (researcher + engineer) and compute for enterprise pilots.</p></div>
+            <div class="ask-item reveal-scale"><h3 style="color:var(--accent-green);">US Market Access</h3><p>Berkeley network for enterprise intros in Insurance, Healthcare, and Financial Services.</p></div>
+            <div class="ask-item reveal-scale"><h3 style="color:var(--accent-blue);">Pre-Seed Catalyst</h3><p>SkyDeck validation to close pre-seed round by Demo Day (October 2026).</p></div>
+        </div>
+        <div class="highlight-box reveal">
+            <p><strong>Target:</strong> 2-3 paying design partnerships by Month 3. Pre-seed closed by Demo Day. Series A by Q1 2027.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 15 — CLOSING
+     ═══════════════════════════════════════════════════ -->
+<section class="slide bg-brand" data-slide="12">
+    <div class="slide-content" style="gap: var(--content-gap);">
+        <svg class="logo-mark reveal" viewBox="0 0 900 1400" fill="none" style="width:clamp(34px,4vw,52px);margin-bottom:var(--element-gap);">
+            <path d="M700 450C700 588.071 588.071 700 450 700C311.929 700 200 588.071 200 450H700ZM450 0C509.095 0 567.611 11.6393 622.208 34.2539C676.804 56.8685 726.412 90.0155 768.198 131.802C809.985 173.588 843.131 223.196 865.746 277.792C888.361 332.389 900 390.905 900 450H700C700 311.929 588.071 200 450 200C311.929 200 200 311.929 200 450H0C0 390.905 11.6394 332.389 34.2539 277.793C56.8685 223.196 90.0154 173.588 131.802 131.802C173.588 90.0155 223.196 56.8685 277.792 34.2539C332.389 11.6393 390.905 0 450 0Z" fill="#E8E8E8"/>
+            <path d="M200 950C200 811.929 311.929 700 450 700C588.071 700 700 811.929 700 950H200ZM450 1400C390.905 1400 332.389 1388.36 277.792 1365.75C223.196 1343.13 173.588 1309.98 131.802 1268.2C90.0155 1226.41 56.8685 1176.8 34.2539 1122.21C11.6393 1067.61 0 1009.09 0 950H200C200 1088.07 311.929 1200 450 1200C588.071 1200 700 1088.07 700 950H900C900 1009.09 888.361 1067.61 865.746 1122.21C843.131 1176.8 809.985 1226.41 768.198 1268.2C726.412 1309.98 676.804 1343.13 622.208 1365.75C567.611 1388.36 509.095 1400 450 1400Z" fill="#E8E8E8"/>
+        </svg>
+        <h1 class="reveal" style="font-weight:400;font-style:italic;max-width:min(80vw,650px);text-align:center;">
+            we enable agents<br>to learn from experience
+        </h1>
+        <div class="reveal" style="text-align:center;margin-top:var(--content-gap);">
+            <p style="font-family:var(--font-display);font-size:var(--h3-size);font-weight:700;">aganthos.com</p>
+            <p style="font-size:var(--small-size);color:var(--text-secondary);margin-top:clamp(2px,0.4vh,6px);">info@aganthos.com &nbsp;|&nbsp; always happy to help</p>
+        </div>
+    </div>
+</section>
+
+<!-- ===========================================
+     SLIDE PRESENTATION CONTROLLER
+     =========================================== -->
+<script>
+class SlidePresentation {
+    constructor() {
+        this.slides = document.querySelectorAll('.slide');
+        this.currentSlide = 0;
+        this.isScrolling = false;
+
+        this.setupIntersectionObserver();
+        this.setupKeyboardNav();
+        this.setupTouchNav();
+        this.setupWheelNav();
+        this.setupProgressBar();
+        this.setupNavDots();
+
+        /* Mark first slide visible */
+        this.slides[0].classList.add('visible');
+    }
+
+    /* Intersection Observer: add .visible for animations */
+    setupIntersectionObserver() {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    const idx = Array.from(this.slides).indexOf(entry.target);
+                    if (idx !== -1) {
+                        this.currentSlide = idx;
+                        this.updateProgress();
+                        this.updateDots();
+                    }
+                }
+            });
+        }, { threshold: 0.5 });
+
+        this.slides.forEach(s => observer.observe(s));
+    }
+
+    /* Keyboard: arrows, space, page up/down, home/end */
+    setupKeyboardNav() {
+        document.addEventListener('keydown', (e) => {
+            if (['ArrowDown', 'ArrowRight', ' ', 'PageDown'].includes(e.key)) {
+                e.preventDefault(); this.goTo(this.currentSlide + 1);
+            }
+            if (['ArrowUp', 'ArrowLeft', 'PageUp'].includes(e.key)) {
+                e.preventDefault(); this.goTo(this.currentSlide - 1);
+            }
+            if (e.key === 'Home') { e.preventDefault(); this.goTo(0); }
+            if (e.key === 'End') { e.preventDefault(); this.goTo(this.slides.length - 1); }
+        });
+    }
+
+    /* Touch/swipe */
+    setupTouchNav() {
+        let startY = 0;
+        document.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; }, { passive: true });
+        document.addEventListener('touchend', (e) => {
+            const dy = e.changedTouches[0].clientY - startY;
+            if (Math.abs(dy) > 50) {
+                dy < 0 ? this.goTo(this.currentSlide + 1) : this.goTo(this.currentSlide - 1);
+            }
+        }, { passive: true });
+    }
+
+    /* Mouse wheel with debounce */
+    setupWheelNav() {
+        document.addEventListener('wheel', (e) => {
+            if (this.isScrolling) return;
+            this.isScrolling = true;
+            if (e.deltaY > 30) this.goTo(this.currentSlide + 1);
+            else if (e.deltaY < -30) this.goTo(this.currentSlide - 1);
+            setTimeout(() => { this.isScrolling = false; }, 800);
+        }, { passive: true });
+    }
+
+    /* Progress bar */
+    setupProgressBar() {
+        this.progressBar = document.getElementById('progressBar');
+        this.updateProgress();
+    }
+
+    updateProgress() {
+        if (!this.progressBar) return;
+        const pct = (this.currentSlide / (this.slides.length - 1)) * 100;
+        this.progressBar.style.width = pct + '%';
+    }
+
+    /* Navigation dots */
+    setupNavDots() {
+        const nav = document.getElementById('navDots');
+        if (!nav) return;
+        this.slides.forEach((_, i) => {
+            const dot = document.createElement('button');
+            dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+            dot.setAttribute('aria-label', `Go to slide ${i + 1}`);
+            dot.addEventListener('click', () => this.goTo(i));
+            nav.appendChild(dot);
+        });
+        this.dots = nav.querySelectorAll('.nav-dot');
+    }
+
+    updateDots() {
+        if (!this.dots) return;
+        this.dots.forEach((d, i) => d.classList.toggle('active', i === this.currentSlide));
+    }
+
+    /* Navigate to slide */
+    goTo(n) {
+        if (n < 0 || n >= this.slides.length) return;
+        this.currentSlide = n;
+        this.slides[n].scrollIntoView({ behavior: 'smooth' });
+        this.updateProgress();
+        this.updateDots();
+    }
+}
+
+new SlidePresentation();
+</script>
+
+</body>
+</html>
