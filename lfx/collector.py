@@ -95,7 +95,11 @@ class EpisodeCollector:
         return episode
 
     def submit_feedback(self, episode_id: str, score: float) -> bool:
-        """Attach user feedback to an episode. Returns False if not found."""
+        """Attach user feedback to an episode. Returns False if not found.
+
+        ``score`` must be in [-1.0, 1.0]: -1 = bad, 0 = neutral, +1 = good.
+        Values outside this range are clamped by :class:`RewardSignal`.
+        """
         with self._lock:
             ep = self._episode_index.get(episode_id)
             if ep is None:
@@ -103,6 +107,8 @@ class EpisodeCollector:
                 return False
             ep.summary.signals["user"] = RewardSignal("user", score, 1.0)
             self._feedback_received += 1
+            # Promote to most-recently-used so feedback isn't evicted early
+            self._episode_index.move_to_end(episode_id)
             return True
 
     @property

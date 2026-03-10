@@ -35,9 +35,6 @@ import re
 
 log = logging.getLogger(__name__)
 
-# Reward threshold for classifying playbook entries as helpful vs harmful.
-_HELPFUL_REWARD_THRESHOLD = 0.5
-
 # Max content length for insights (character count).
 _MAX_INSIGHT_CONTENT_LENGTH = 2000
 

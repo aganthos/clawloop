@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from typing import Any
 
 from lfx.collector import EpisodeCollector
@@ -27,10 +28,12 @@ class WrappedClient:
             ))
         ep_messages.append(Message(role="assistant", content=response))
 
+        # Stable session ID from first user message (deterministic across runs)
         session_id = ""
         for m in messages:
             if m.get("role") == "user":
-                session_id = str(hash(m.get("content", "")))
+                content = m.get("content", "")
+                session_id = hashlib.sha256(content.encode()).hexdigest()[:16]
                 break
 
         self._collector.ingest(ep_messages, session_id=session_id)

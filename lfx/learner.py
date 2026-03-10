@@ -62,11 +62,14 @@ class AsyncLearner:
         if self.overflow == "block":
             self._queue.put(episodes)
         elif self.overflow == "drop_oldest":
+            dropped = 0
             while self._queue.full():
                 try:
                     self._queue.get_nowait()
+                    dropped += 1
                 except queue.Empty:
                     break
+            self._batches_dropped += dropped
             try:
                 self._queue.put_nowait(episodes)
             except queue.Full:
