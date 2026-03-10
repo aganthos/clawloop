@@ -13,3 +13,14 @@ __pycache__/
 #coding agent repos
 .kd
 .claude
+
+# un-ignore ressources folder (intentionally tracked)
+!ressources/*.pptx
+!ressources/*.pdf
+!ressources/*.png
+!ressources/*.jpeg
+
+# ignore LaTeX build artifacts in ressources
+ressources/*.aux
+ressources/*.log
+ressources/*.xdv
