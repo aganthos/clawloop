@@ -209,14 +209,12 @@ class TestEpisodeSummaryNeedsJudge:
         )
         assert s.needs_judge() is True
 
-    def test_judge_only_still_needs_judge_false(self) -> None:
-        """Having a judge signal doesn't affect needs_judge (it checks
-        whether a judge is *needed*, not whether one exists)."""
+    def test_judge_already_present(self) -> None:
+        """Having a judge signal means no re-invocation needed."""
         s = EpisodeSummary(
             signals={"judge": RewardSignal(name="judge", value=0.5, confidence=0.8)},
         )
-        # No outcome/user/high-conf execution → still needs judge
-        assert s.needs_judge() is True
+        assert s.needs_judge() is False
 
 
 class TestEpisodeSummaryFiltered:
@@ -308,6 +306,25 @@ class TestRewardPipeline:
         pipeline.enrich(ep)
         assert "judge" in ep.summary.signals
         assert ep.summary.signals["judge"].value == pytest.approx(0.7)
+
+    def test_judge_not_re_invoked_on_double_enrich(self) -> None:
+        """Second enrich() should skip judge since it already exists."""
+        judge = RewardSignal(name="judge", value=0.7, confidence=0.8)
+        call_count = 0
+
+        class _CountingExtractor:
+            name = "judge"
+            def extract(self, episode):
+                nonlocal call_count
+                call_count += 1
+                return judge
+
+        pipeline = RewardPipeline([_CountingExtractor()])
+        ep = _pipeline_episode()
+        pipeline.enrich(ep)
+        assert call_count == 1
+        pipeline.enrich(ep)
+        assert call_count == 1  # not called again
 
     def test_multiple_signals_effective_reward(self) -> None:
         low = RewardSignal(name="execution", value=0.3, confidence=0.4)

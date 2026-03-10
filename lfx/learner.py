@@ -126,8 +126,11 @@ class AsyncLearner:
                 self._batches_failed += 1
                 try:
                     layer.clear_pending_state()
-                except Exception:
-                    pass
+                except Exception as clear_exc:
+                    log.error(
+                        "Failed to clear pending state for %s: %s",
+                        name, clear_exc,
+                    )
                 return
 
         self._batches_trained += 1

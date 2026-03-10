@@ -54,8 +54,11 @@ class OutcomeExtractor:
                 if task.question == question:
                     sample = task
                     break
-        except Exception:
-            pass
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning(
+                "Failed to get tasks from environment: %s", exc,
+            )
 
         result = self._env.evaluate(sample, response)
         value = result.score * 2 - 1

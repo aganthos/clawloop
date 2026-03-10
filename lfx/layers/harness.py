@@ -417,7 +417,8 @@ class Harness:
         """Analyse episodes and accumulate signals without mutating observable state.
 
         For each episode, for each playbook entry, tallies helpful/harmful
-        based on reward (>0.5 = helpful, else harmful).  Results are written
+        based on ``effective_reward()`` in [-1, 1]: positive = helpful,
+        negative = harmful, zero = neutral (skipped).  Results are written
         to ``self._pending.playbook_signals`` — a dict of
         entry_id -> (helpful_delta, harmful_delta).
         """

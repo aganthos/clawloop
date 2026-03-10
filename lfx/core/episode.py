@@ -102,6 +102,7 @@ class EpisodeSummary:
 
     # -- Priority order for effective_reward (highest first) --
     _PRIORITY: tuple[str, ...] = ("user", "outcome", "execution", "judge")
+    _EXECUTION_CONFIDENCE_THRESHOLD: float = 0.7
 
     def __init__(
         self,
@@ -143,14 +144,14 @@ class EpisodeSummary:
     def effective_reward(self) -> float:
         """Priority-based effective reward in [-1, 1].
 
-        Priority: user > outcome > execution (confidence >= 0.7) > judge.
+        Priority: user > outcome > execution (confidence >= threshold) > judge.
         Falls back to 0.0 (neutral) when no qualifying signal exists.
         """
         for key in self._PRIORITY:
             sig = self.signals.get(key)
             if sig is None:
                 continue
-            if key == "execution" and sig.confidence < 0.7:
+            if key == "execution" and sig.confidence < self._EXECUTION_CONFIDENCE_THRESHOLD:
                 continue
             return sig.value
         return 0.0
@@ -162,15 +163,18 @@ class EpisodeSummary:
     def needs_judge(self) -> bool:
         """Return whether this episode still needs a judge signal.
 
-        False when an ``outcome`` or ``user`` signal is present, or when
-        ``execution`` has confidence >= 0.7.
+        False when a ``judge`` signal already exists, or when ``outcome``
+        or ``user`` is present, or when ``execution`` has confidence
+        >= threshold.
         """
+        if "judge" in self.signals:
+            return False
         if "outcome" in self.signals:
             return False
         if "user" in self.signals:
             return False
         ex = self.signals.get("execution")
-        if ex is not None and ex.confidence >= 0.7:
+        if ex is not None and ex.confidence >= self._EXECUTION_CONFIDENCE_THRESHOLD:
             return False
         return True
 

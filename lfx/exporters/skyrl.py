@@ -71,10 +71,12 @@ class SkyRLExporter(TraceExporter):
         trajectory_ids: list[TrajectoryID] = []
         is_last_step: list[bool] = []
 
-        for ep_idx, ep in enumerate(episodes):
+        rep_idx = 0
+        for ep in episodes:
             if not ep.steps:
                 continue
-            result = self._episode_to_transitions(ep, repetition_id=repetition_offset + ep_idx)
+            result = self._episode_to_transitions(ep, repetition_id=repetition_offset + rep_idx)
+            rep_idx += 1
             prompt_token_ids.extend(result["prompt_token_ids"])
             response_ids.extend(result["response_ids"])
             rewards.extend(result["rewards"])
