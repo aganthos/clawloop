@@ -425,15 +425,16 @@ class Harness:
         entry_id -> (helpful_delta, harmful_delta).
         """
         for episode in data.episodes:
-            reward = episode.summary.total_reward
+            reward = episode.summary.effective_reward()  # [-1, 1]
             for entry in self.playbook.entries:
                 prev_h, prev_harm = self._pending.playbook_signals.get(
                     entry.id, (0, 0)
                 )
-                if reward > _HELPFUL_REWARD_THRESHOLD:
+                if reward > 0:
                     self._pending.playbook_signals[entry.id] = (prev_h + 1, prev_harm)
-                else:
+                elif reward < 0:
                     self._pending.playbook_signals[entry.id] = (prev_h, prev_harm + 1)
+                # reward == 0 (neutral) — skip, don't count
         metrics = {
             "episodes_processed": len(data.episodes),
             "entries_signaled": len(self._pending.playbook_signals),
