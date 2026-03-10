@@ -35,6 +35,8 @@ Each layer follows the same **Layer Protocol**:
 1. `forward_backward(datum)` — analyze a batch of episodes
 2. `optim_step()` — apply the update (with atomic snapshot-rollback on failure)
 
+Layers are **transactional**: all layers run `forward_backward` first; if any fails, all abort. Only when all succeed do they proceed to `optim_step`. If any `optim_step` fails, all layers roll back. This prevents mixed states where some layers updated and others didn't.
+
 You can use any combination. Most users start with Harness only (zero cost, immediate results) and add layers as needed.
 
 ---
@@ -49,8 +51,10 @@ user feedback  >  outcome (env score)  >  execution heuristics  >  LLM judge
 
 - **User feedback**: Explicit thumbs up/down from end users (always wins when present)
 - **Outcome**: Ground-truth score from a task environment (benchmarks, evals)
-- **Execution**: Heuristic analysis of tool call success/failure patterns
-- **Judge**: LLM-as-judge fallback, only invoked when no better signal exists
+- **Execution**: Heuristic analysis of tool call success/failure patterns (error keywords, HTTP codes, content length)
+- **Judge**: LLM-as-judge fallback, only invoked when no better signal exists (opt-in, costs tokens)
+
+**Defaults included**: `RewardPipeline()` with no arguments auto-includes ExecutionExtractor and UserFeedbackExtractor. No configuration needed — signals flow from day one. OutcomeExtractor (needs a task environment) and Judge (costs tokens) are opt-in.
 
 This means:
 - In **benchmarks**: outcome signals drive learning automatically
@@ -69,9 +73,9 @@ import lfx
 # Your existing LLM client (litellm, openai, custom, anything)
 client = your_llm_client()
 
-# Add lfx in one line
+# Add lfx — defaults include execution + user feedback extractors
 collector = lfx.EpisodeCollector(
-    pipeline=lfx.RewardPipeline([]),  # execution heuristics auto-included
+    pipeline=lfx.RewardPipeline(),  # sensible defaults, no config needed
     batch_size=16,
     on_batch=learner.on_batch,
 )
@@ -80,6 +84,8 @@ wrapped = lfx.wrap(client, collector=collector)
 # Use exactly as before — lfx observes and learns in the background
 response = wrapped.complete(messages)
 ```
+
+The wrapper captures rich metadata automatically: tool calls, token usage, model IDs, and timing — everything the learning layers need.
 
 User feedback flows in via a simple API:
 ```python
@@ -133,18 +139,36 @@ lfx is designed to work with anything:
 ```
 ┌─────────────────────────────────────────────────┐
 │                    lfx.wrap()                    │
-│         (intercepts LLM calls for learning)     │
+│      (rich adapter: captures tool calls,        │
+│       token usage, model ID, timing)            │
 └──────────────────────┬──────────────────────────┘
                        │
               ┌────────▼────────┐
               │ EpisodeCollector │  thread-safe, LRU cache
               │  + RewardPipeline│  formatting gate
+              │  (default: exec  │  default extractors
+              │   + user feedback│  included
+              │   extractors)    │
               └────────┬────────┘
                        │ on_batch()
               ┌────────▼────────┐
               │  AsyncLearner   │  background worker thread
               │  (queue-based)  │  overflow: drop/block
+              │  status-aware   │  checks layer results
               └────────┬────────┘
+                       │
+                  two-phase commit
+          ┌────────────┼────────────┐
+          │     forward_backward    │
+          │      (all layers)       │
+          │   any fail → abort all  │
+          └────────────┼────────────┘
+                       │ all ok
+          ┌────────────┼────────────┐
+          │       optim_step        │
+          │      (all layers)       │
+          │  any fail → rollback all│
+          └────────────┼────────────┘
                        │
         ┌──────────────┼──────────────┐
         ▼              ▼              ▼
@@ -152,16 +176,14 @@ lfx is designed to work with anything:
    │ Harness  │   │  Router  │   │ Weights  │
    │ (prompt) │   │ (model)  │   │ (LoRA)   │
    └─────────┘   └──────────┘   └──────────┘
-
-   All layers: forward_backward → optim_step
-   Atomic snapshot-rollback on failure
-   Content-addressed StateID for reproducibility
 ```
 
 Key design properties:
 - **Non-blocking**: Learning runs in a background thread. Agent latency is unaffected.
 - **Atomic rollback**: Every `optim_step()` snapshots state first. If it fails, state is restored.
-- **Content-addressed state**: Each configuration gets a deterministic StateID (SHA-256). You can reproduce any agent state from its ID.
+- **Cross-layer transactions**: Two-phase commit ensures all layers succeed or all roll back together. No mixed states.
+- **Status-aware**: Layer protocol returns explicit status codes (`ok`/`error`), not just exceptions. The learner checks both.
+- **Content-addressed state**: Each configuration gets a deterministic StateID (SHA-256 of stable serialization). You can reproduce any agent state from its ID.
 - **Regression safety**: `gate_for_deploy()` compares reward distributions before promoting a new state.
 
 ---
@@ -174,11 +196,13 @@ Key design properties:
 |---|---|---|
 | Integration | SDK wrapper (1 line) | API proxy (infra change) |
 | Learning layers | 3 independent (prompt, routing, weights) | 2 conflated (skills + LoRA) |
-| Rollback | Atomic per-layer snapshot | Manual |
+| Rollback | Atomic per-layer + cross-layer transactions | Manual |
 | Regression safety | Built-in gate_for_deploy | None |
-| Reward system | Composable signals with priority | PRM only (majority vote) |
+| Reward system | Composable signals with priority + defaults | PRM only (majority vote) |
+| Default signals | Execution + user feedback out of the box | PRM always-on |
 | Provider lock-in | None (any LLM) | Tinker cloud for training |
 | Stagnation handling | Paradigm breakthrough | None |
+| Data capture | Rich (tool calls, tokens, timing, model ID) | API proxy (full request/response) |
 
 ### vs. building it yourself
 
@@ -193,7 +217,7 @@ Prompt engineering by hand works until it doesn't scale. lfx automates the feedb
 **Free (open source):**
 - Harness layer (prompt/playbook evolution)
 - EpisodeCollector + live mode pipeline
-- Composable reward signals
+- Composable reward signals with defaults
 - All extractors (execution, outcome, user feedback, formatting)
 - AsyncLearner background processing
 - Full API: `lfx.wrap()`, `LfXAgent`, direct loop
@@ -220,6 +244,33 @@ Prompt engineering by hand works until it doesn't scale. lfx automates the feedb
 
 ---
 
+## Roadmap
+
+### Current (v0.1)
+- Harness layer (prompt/playbook evolution)
+- Composable reward signals with priority cascade
+- Live mode: `lfx.wrap()` → EpisodeCollector → AsyncLearner
+- Execution + user feedback extractors (default)
+- Formatting filter gate
+- SkyRL exporter for GRPO training
+
+### Next (v0.2)
+- Rich data capture in wrapper (tool calls, tokens, model ID, timing)
+- Default extractors in RewardPipeline
+- Cross-layer transactional commits
+- Status-aware layer protocol (not just exceptions)
+- Deterministic StateID serialization
+- Weights layer: SkyRL/LoRA integration for fine-tuning from live data
+
+### Future
+- API proxy mode (zero-code integration, like MetaClaw)
+- Judge extractor (LLM-as-judge, opt-in)
+- Feedback re-ingestion (late feedback triggers re-training)
+- Dashboard & analytics (Pro tier)
+- Multi-agent shared playbooks (Team tier)
+
+---
+
 ## Quick Start
 
 ```bash
@@ -229,9 +280,9 @@ pip install lfx
 ```python
 import lfx
 
-# Wrap your LLM client
+# Wrap your LLM client — defaults handle everything
 wrapped = lfx.wrap(your_client, collector=lfx.EpisodeCollector(
-    pipeline=lfx.RewardPipeline([]),
+    pipeline=lfx.RewardPipeline(),
     batch_size=16,
 ))
 
