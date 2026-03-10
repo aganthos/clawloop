@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 400" width="900" height="400" font-family="Aptos, 'Aptos Display', Calibri, sans-serif">
+  <defs>
+    <marker id="arr-right" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <path d="M0,0 L10,3.5 L0,7" fill="#CB8044"/>
+    </marker>
+    <marker id="arr-left" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+      <path d="M10,0 L0,3.5 L10,7" fill="#CB8044"/>
+    </marker>
+  </defs>
+
+  <!-- AGENT side -->
+  <!-- Robot icon -->
+  <g transform="translate(110, 200)">
+    <!-- Head -->
+    <rect x="-52" y="-60" width="104" height="80" rx="18" fill="none" stroke="#E8E8E8" stroke-width="2.5"/>
+    <!-- Antenna -->
+    <line x1="0" y1="-60" x2="0" y2="-80" stroke="#E8E8E8" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="0" cy="-84" r="5" fill="#CB8044"/>
+    <!-- Eyes -->
+    <circle cx="-20" cy="-30" r="10" fill="none" stroke="#E8E8E8" stroke-width="2"/>
+    <circle cx="-20" cy="-30" r="4" fill="#CB8044"/>
+    <circle cx="20" cy="-30" r="10" fill="none" stroke="#E8E8E8" stroke-width="2"/>
+    <circle cx="20" cy="-30" r="4" fill="#CB8044"/>
+    <!-- Mouth -->
+    <rect x="-18" y="-4" width="36" height="10" rx="3" fill="none" stroke="#E8E8E8" stroke-width="1.5"/>
+    <line x1="-6" y1="-4" x2="-6" y2="6" stroke="#E8E8E8" stroke-width="1"/>
+    <line x1="6" y1="-4" x2="6" y2="6" stroke="#E8E8E8" stroke-width="1"/>
+    <!-- Body -->
+    <rect x="-44" y="28" width="88" height="60" rx="12" fill="none" stroke="#E8E8E8" stroke-width="2.5"/>
+    <!-- Body detail -->
+    <circle cx="0" cy="58" r="8" fill="none" stroke="#CB8044" stroke-width="1.5"/>
+    <!-- Arms -->
+    <line x1="-44" y1="45" x2="-62" y2="65" stroke="#E8E8E8" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="44" y1="45" x2="62" y2="65" stroke="#E8E8E8" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- Legs -->
+    <line x1="-20" y1="88" x2="-20" y2="108" stroke="#E8E8E8" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="20" y1="88" x2="20" y2="108" stroke="#E8E8E8" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+  <!-- Agent label -->
+  <text x="110" y="82" text-anchor="middle" font-size="18" font-weight="bold" fill="#E8E8E8" letter-spacing="2">AGENT</text>
+
+  <!-- ENVIRONMENT side -->
+  <!-- Globe icon -->
+  <g transform="translate(790, 200)">
+    <circle cx="0" cy="0" r="65" fill="none" stroke="#E8E8E8" stroke-width="2.5"/>
+    <!-- Globe lines -->
+    <ellipse cx="0" cy="0" rx="30" ry="65" fill="none" stroke="#E8E8E8" stroke-width="1.2"/>
+    <ellipse cx="0" cy="0" rx="55" ry="65" fill="none" stroke="#E8E8E8" stroke-width="0.8"/>
+    <line x1="-65" y1="0" x2="65" y2="0" stroke="#E8E8E8" stroke-width="1.2"/>
+    <path d="M -60,-28 Q 0,-22 60,-28" fill="none" stroke="#E8E8E8" stroke-width="1"/>
+    <path d="M -60,28 Q 0,22 60,28" fill="none" stroke="#E8E8E8" stroke-width="1"/>
+    <!-- Accent dots for "land masses" -->
+    <circle cx="-15" cy="-20" r="12" fill="rgba(203,128,68,0.15)" stroke="none"/>
+    <circle cx="20" cy="10" r="16" fill="rgba(203,128,68,0.15)" stroke="none"/>
+    <circle cx="-25" cy="25" r="10" fill="rgba(203,128,68,0.15)" stroke="none"/>
+  </g>
+  <!-- Environment label -->
+  <text x="790" y="82" text-anchor="middle" font-size="18" font-weight="bold" fill="#E8E8E8" letter-spacing="2">ENVIRONMENT</text>
+
+  <!-- Top arrow: Agent -> Environment (State, Take action) -->
+  <path d="M 220,155 C 350,90 550,90 680,155" stroke="#CB8044" stroke-width="2" fill="none" marker-end="url(#arr-right)"/>
+  <!-- Top labels -->
+  <text x="450" y="100" text-anchor="middle" font-size="14" fill="#E8E8E8">- State  <tspan font-style="italic">s</tspan>  &#x2208;  <tspan font-style="italic">S</tspan></text>
+  <text x="450" y="122" text-anchor="middle" font-size="14" fill="#E8E8E8">- Take action  <tspan font-style="italic">a</tspan>  &#x2208;  <tspan font-style="italic">A</tspan></text>
+
+  <!-- Bottom arrow: Environment -> Agent (Reward, New state) -->
+  <path d="M 680,255 C 550,320 350,320 220,255" stroke="#CB8044" stroke-width="2" fill="none" marker-end="url(#arr-left)"/>
+  <!-- Bottom labels -->
+  <text x="450" y="296" text-anchor="middle" font-size="14" fill="#E8E8E8">- Get reward  <tspan font-style="italic">r</tspan></text>
+  <text x="450" y="318" text-anchor="middle" font-size="14" fill="#E8E8E8">- New state  <tspan font-style="italic">s'</tspan>  &#x2208;  <tspan font-style="italic">S</tspan></text>
+</svg>
