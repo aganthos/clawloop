@@ -320,6 +320,9 @@ class Harness:
     # Internal: pending signals accumulated by forward_backward, drained by optim_step
     _pending: _HarnessPending = field(default_factory=_HarnessPending)
 
+    # Optional Reflector for LLM-based trace analysis during forward_backward
+    reflector: Any | None = field(default=None, repr=False)
+
     def system_prompt(self, bench: str) -> str:
         """Resolve the system prompt for a bench, including playbook."""
         base = self.system_prompts.get(bench, "")
@@ -435,6 +438,16 @@ class Harness:
             "episodes_processed": len(data.episodes),
             "entries_signaled": len(self._pending.playbook_signals),
         }
+
+        # Reflector: analyse traces and accumulate insights
+        if self.reflector is not None:
+            try:
+                insights = self.reflector.reflect(data.episodes, self.playbook)
+                self._pending.insights.extend(insights)
+                metrics["insights_generated"] = len(insights)
+            except Exception:
+                log.exception("Reflector failed during forward_backward")
+
         return Future.immediate(FBResult(status="ok", metrics=metrics))
 
     def optim_step(self) -> Future[OptimResult]:
