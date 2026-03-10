@@ -2,8 +2,8 @@
 
 import pytest
 
-from lfx.core.episode import EpisodeSummary
-from lfx.core.reward import RewardSignal
+from lfx.core.episode import Episode, EpisodeSummary, Message, StepMeta
+from lfx.core.reward import RewardExtractor, RewardPipeline, RewardSignal
 
 
 # ── RewardSignal tests ──────────────────────────────────────────────────
@@ -227,3 +227,93 @@ class TestEpisodeSummaryFiltered:
     def test_set_true(self) -> None:
         s = EpisodeSummary(filtered=True)
         assert s.filtered is True
+
+
+# ── RewardExtractor protocol tests ────────────────────────────────────
+
+
+class _FixedExtractor:
+    def __init__(self, signal: RewardSignal) -> None:
+        self.name = signal.name
+        self._signal = signal
+
+    def extract(self, episode: Episode) -> RewardSignal | None:
+        return self._signal
+
+
+class _NoneExtractor:
+    def __init__(self, name: str = "none") -> None:
+        self.name = name
+
+    def extract(self, episode: Episode) -> RewardSignal | None:
+        return None
+
+
+def _pipeline_episode(*, with_outcome: bool = False) -> Episode:
+    summary = EpisodeSummary(total_reward=0.5) if with_outcome else EpisodeSummary()
+    return Episode(
+        id=Episode.new_id(),
+        state_id="s0",
+        task_id="t0",
+        bench="test",
+        messages=[
+            Message(role="user", content="solve 2+2"),
+            Message(role="assistant", content="4"),
+        ],
+        step_boundaries=[0],
+        steps=[StepMeta(t=0, reward=0.0, done=True, timing_ms=10.0)],
+        summary=summary,
+    )
+
+
+class TestRewardExtractorProtocol:
+    def test_fixed_extractor_satisfies_protocol(self) -> None:
+        sig = RewardSignal(name="outcome", value=1.0, confidence=1.0)
+        ext = _FixedExtractor(sig)
+        assert isinstance(ext, RewardExtractor)
+
+    def test_none_extractor_satisfies_protocol(self) -> None:
+        ext = _NoneExtractor()
+        assert isinstance(ext, RewardExtractor)
+
+
+class TestRewardPipeline:
+    def test_enriches_signals(self) -> None:
+        sig = RewardSignal(name="outcome", value=1.0, confidence=1.0)
+        pipeline = RewardPipeline([_FixedExtractor(sig)])
+        ep = _pipeline_episode()
+        pipeline.enrich(ep)
+        assert "outcome" in ep.summary.signals
+        assert ep.summary.signals["outcome"].value == 1.0
+
+    def test_none_extractor_skipped(self) -> None:
+        pipeline = RewardPipeline([_NoneExtractor(name="broken")])
+        ep = _pipeline_episode()
+        pipeline.enrich(ep)
+        assert len(ep.summary.signals) == 0
+
+    def test_judge_skipped_when_outcome_present(self) -> None:
+        outcome = RewardSignal(name="outcome", value=1.0, confidence=1.0)
+        judge = RewardSignal(name="judge", value=0.5, confidence=0.8)
+        pipeline = RewardPipeline([_FixedExtractor(outcome), _FixedExtractor(judge)])
+        ep = _pipeline_episode()
+        pipeline.enrich(ep)
+        assert "outcome" in ep.summary.signals
+        assert "judge" not in ep.summary.signals
+
+    def test_judge_fires_when_no_outcome(self) -> None:
+        judge = RewardSignal(name="judge", value=0.7, confidence=0.8)
+        pipeline = RewardPipeline([_FixedExtractor(judge)])
+        ep = _pipeline_episode()
+        pipeline.enrich(ep)
+        assert "judge" in ep.summary.signals
+        assert ep.summary.signals["judge"].value == pytest.approx(0.7)
+
+    def test_multiple_signals_effective_reward(self) -> None:
+        low = RewardSignal(name="execution", value=0.3, confidence=0.4)
+        high = RewardSignal(name="outcome", value=0.9, confidence=1.0)
+        pipeline = RewardPipeline([_FixedExtractor(low), _FixedExtractor(high)])
+        ep = _pipeline_episode()
+        pipeline.enrich(ep)
+        assert len(ep.summary.signals) == 2
+        assert ep.summary.effective_reward() == pytest.approx(0.9)
