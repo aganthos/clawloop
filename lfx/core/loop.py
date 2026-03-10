@@ -14,6 +14,8 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 from lfx.core.episode import Episode
+from lfx.core.intensity import AdaptiveIntensity
+from lfx.core.paradigm import ParadigmBreakthrough
 from lfx.core.state import StateID
 from lfx.core.types import Datum, FBResult, Future, OptimResult
 from lfx.layers.harness import Harness
@@ -59,6 +61,8 @@ def learning_loop(
     n_iterations: int,
     *,
     active_layers: list[str] | None = None,
+    intensity: AdaptiveIntensity | None = None,
+    paradigm: ParadigmBreakthrough | None = None,
 ) -> tuple[AgentState, StateID]:
     """Run the unified learning loop.
 
@@ -76,6 +80,12 @@ def learning_loop(
         Number of learning iterations.
     active_layers:
         Which layers to train. None means all three.
+    intensity:
+        Optional adaptive intensity controller that gates when the
+        Reflector fires (saves LLM calls).
+    paradigm:
+        Optional paradigm breakthrough generator that fires when
+        learning stagnates.
 
     Returns
     -------
@@ -109,12 +119,21 @@ def learning_loop(
         )
         log.info("  Collected %d episodes, avg reward: %.4f", len(episodes), avg_reward)
 
+        # Record reward for adaptive intensity
+        if intensity is not None:
+            intensity.record_reward(avg_reward)
+
         # 2. Build Datum
         datum = Datum(episodes=episodes)
 
         # 3. Phase 1: forward_backward (all active layers)
         fb_results: dict[str, FBResult] = {}
         for name, layer in layers:
+            # Skip harness reflection when intensity says not to
+            if name == "harness" and intensity is not None and not intensity.should_reflect(iteration):
+                log.info("  skipping harness fb (adaptive intensity)")
+                fb_results[name] = FBResult(status="skipped")
+                continue
             try:
                 fut = layer.forward_backward(datum)
                 fb_results[name] = fut.result()
@@ -130,8 +149,8 @@ def learning_loop(
 
         # 4. Phase 2: optim_step (only layers whose fb succeeded)
         for name, layer in layers:
-            if fb_results.get(name, FBResult(status="error")).status == "error":
-                log.warning("  skipping optim_step for %s (fb failed)", name)
+            if fb_results.get(name, FBResult(status="error")).status in ("error", "skipped"):
+                log.warning("  skipping optim_step for %s (fb failed or skipped)", name)
                 continue
             try:
                 result = layer.optim_step().result()
@@ -141,6 +160,23 @@ def learning_loop(
                 )
             except Exception:
                 log.exception("optim_step failed for %s", name)
+
+        # Paradigm breakthrough on stagnation
+        if paradigm is not None and intensity is not None and intensity.is_stagnating():
+            log.info("  stagnation detected — triggering paradigm breakthrough")
+            try:
+                if isinstance(agent_state.harness, Harness):
+                    insights = paradigm.generate(
+                        playbook=agent_state.harness.playbook,
+                        reward_history=intensity._rewards,
+                        tried_paradigms=[],  # TODO: track tried paradigms
+                    )
+                    if insights:
+                        agent_state.harness._pending.insights.extend(insights)
+                        agent_state.harness.optim_step()
+                        log.info("  paradigm: applied %d insights", len(insights))
+            except Exception:
+                log.exception("paradigm breakthrough failed")
 
         # 5. Recompute state identity
         state_id = agent_state.state_id()
