@@ -35,9 +35,6 @@ import re
 
 log = logging.getLogger(__name__)
 
-# Reward threshold for classifying playbook entries as helpful vs harmful.
-_HELPFUL_REWARD_THRESHOLD = 0.5
-
 # Max content length for insights (character count).
 _MAX_INSIGHT_CONTENT_LENGTH = 2000
 
@@ -420,20 +417,22 @@ class Harness:
         """Analyse episodes and accumulate signals without mutating observable state.
 
         For each episode, for each playbook entry, tallies helpful/harmful
-        based on reward (>0.5 = helpful, else harmful).  Results are written
+        based on ``effective_reward()`` in [-1, 1]: positive = helpful,
+        negative = harmful, zero = neutral (skipped).  Results are written
         to ``self._pending.playbook_signals`` — a dict of
         entry_id -> (helpful_delta, harmful_delta).
         """
         for episode in data.episodes:
-            reward = episode.summary.total_reward
+            reward = episode.summary.effective_reward()  # [-1, 1]
             for entry in self.playbook.entries:
                 prev_h, prev_harm = self._pending.playbook_signals.get(
                     entry.id, (0, 0)
                 )
-                if reward > _HELPFUL_REWARD_THRESHOLD:
+                if reward > 0:
                     self._pending.playbook_signals[entry.id] = (prev_h + 1, prev_harm)
-                else:
+                elif reward < 0:
                     self._pending.playbook_signals[entry.id] = (prev_h, prev_harm + 1)
+                # reward == 0 (neutral) — skip, don't count
         metrics = {
             "episodes_processed": len(data.episodes),
             "entries_signaled": len(self._pending.playbook_signals),

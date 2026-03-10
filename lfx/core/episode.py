@@ -11,7 +11,10 @@ from __future__ import annotations
 import time
 import uuid
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
+
+if TYPE_CHECKING:
+    from lfx.core.reward import RewardSignal
 
 
 @dataclass
@@ -87,14 +90,93 @@ class Timing:
     per_step_ms: list[float] = field(default_factory=list)
 
 
-@dataclass
 class EpisodeSummary:
-    """Aggregate metrics for a completed episode."""
+    """Aggregate metrics for a completed episode.
 
-    total_reward: float
-    score_breakdown: dict[str, float] | None = None
-    token_usage: TokenUsage | None = None
-    timing: Timing | None = None
+    Primary reward storage is ``signals``, a dict of named
+    :class:`~lfx.core.reward.RewardSignal` instances.  The ``total_reward``
+    property provides backward compatibility with the old float field: reading
+    it returns :meth:`normalized_reward` (in [0, 1]), and writing it stores the
+    value as an ``"outcome"`` signal converted to [-1, 1].
+    """
+
+    # -- Priority order for effective_reward (highest first) --
+    _PRIORITY: tuple[str, ...] = ("user", "outcome", "execution", "judge")
+    _EXECUTION_CONFIDENCE_THRESHOLD: float = 0.7
+
+    def __init__(
+        self,
+        *,
+        total_reward: float | None = None,
+        signals: dict[str, RewardSignal] | None = None,
+        score_breakdown: dict[str, float] | None = None,
+        token_usage: TokenUsage | None = None,
+        timing: Timing | None = None,
+        filtered: bool = False,
+    ) -> None:
+        self.signals: dict[str, RewardSignal] = signals if signals is not None else {}
+        self.score_breakdown = score_breakdown
+        self.token_usage = token_usage
+        self.timing = timing
+        self.filtered = filtered
+        if total_reward is not None:
+            self.total_reward = total_reward  # calls the setter
+
+    # -- total_reward property (backward compat) --------------------------
+
+    @property
+    def total_reward(self) -> float:
+        """Return :meth:`normalized_reward` so old code sees [0, 1]."""
+        return self.normalized_reward()
+
+    @total_reward.setter
+    def total_reward(self, value: float) -> None:
+        """Accept a [0, 1] value and store as outcome signal in [-1, 1]."""
+        from lfx.core.reward import RewardSignal
+
+        mapped = float(value) * 2.0 - 1.0
+        self.signals["outcome"] = RewardSignal(
+            name="outcome", value=mapped, confidence=1.0,
+        )
+
+    # -- Core reward methods ----------------------------------------------
+
+    def effective_reward(self) -> float:
+        """Priority-based effective reward in [-1, 1].
+
+        Priority: user > outcome > execution (confidence >= threshold) > judge.
+        Falls back to 0.0 (neutral) when no qualifying signal exists.
+        """
+        for key in self._PRIORITY:
+            sig = self.signals.get(key)
+            if sig is None:
+                continue
+            if key == "execution" and sig.confidence < self._EXECUTION_CONFIDENCE_THRESHOLD:
+                continue
+            return sig.value
+        return 0.0
+
+    def normalized_reward(self) -> float:
+        """Map :meth:`effective_reward` from [-1, 1] to [0, 1]."""
+        return (self.effective_reward() + 1.0) / 2.0
+
+    def needs_judge(self) -> bool:
+        """Return whether this episode still needs a judge signal.
+
+        False when a ``judge`` signal already exists, or when ``outcome``
+        or ``user`` is present, or when ``execution`` has confidence
+        >= threshold.
+        """
+        if "judge" in self.signals:
+            return False
+        if "outcome" in self.signals:
+            return False
+        if "user" in self.signals:
+            return False
+        ex = self.signals.get("execution")
+        if ex is not None and ex.confidence >= self._EXECUTION_CONFIDENCE_THRESHOLD:
+            return False
+        return True
 
 
 @dataclass

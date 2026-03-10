@@ -11,6 +11,7 @@ from lfx.core.episode import (
     ToolCall,
 )
 from lfx.core.layer import Layer
+from lfx.core.reward import RewardSignal
 from lfx.core.state import StateID
 from lfx.core.types import (
     Datum,
@@ -34,6 +35,7 @@ __all__ = [
     "LoadResult",
     "Message",
     "OptimResult",
+    "RewardSignal",
     "SampleContext",
     "SampleResult",
     "SaveResult",
