@@ -29,12 +29,14 @@ class EpisodeCollector:
         on_batch: Callable[[list[Episode]], None] | None = None,
         formatting_filter: FormattingFilter | None = None,
         max_episode_cache: int = 10_000,
+        state_id: str | Callable[[], str] = "live",
     ) -> None:
         self.pipeline = pipeline
         self.batch_size = batch_size
         self.on_batch = on_batch
         self.formatting_filter = formatting_filter or FormattingFilter()
         self._max_cache = max_episode_cache
+        self._state_id = state_id
 
         self._buffer: list[Episode] = []
         self._episode_index: OrderedDict[str, Episode] = OrderedDict()
@@ -47,7 +49,19 @@ class EpisodeCollector:
         self._feedback_missed = 0
         self._eviction_count = 0
 
-    def ingest(self, messages: list[Message], session_id: str) -> Episode:
+    def _resolve_state_id(self) -> str:
+        """Return the current state_id, invoking callable if needed."""
+        if callable(self._state_id):
+            return self._state_id()
+        return self._state_id
+
+    def ingest(
+        self,
+        messages: list[Message],
+        *,
+        task_id: str = "",
+        session_id: str = "",
+    ) -> Episode:
         """Convert a completed request/response into an Episode.
 
         Enriches with reward signals via pipeline. If formatting filter
@@ -55,13 +69,14 @@ class EpisodeCollector:
         """
         episode = Episode(
             id=uuid.uuid4().hex,
-            state_id="live",
-            task_id=session_id,
+            state_id=self._resolve_state_id(),
+            task_id=task_id or uuid.uuid4().hex,
             bench="live",
             messages=list(messages),
             step_boundaries=[0] if messages else [],
             steps=[],
             summary=EpisodeSummary(),
+            session_id=session_id,
         )
 
         # Enrich with reward signals
