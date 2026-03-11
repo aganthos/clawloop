@@ -337,3 +337,19 @@ lfx/
 pytest tests/ -v                                    # all 316 tests
 pytest tests/ -k "sanitiz or inject or default" -v  # security + new behavior
 ```
+
+
+## Initial Benchmark Suite
+
+#Core:
+- Fhir Agent: https://github.com/abasit/FhirAgentEvaluator
+- Car Bench: https://github.com/CAR-bench/car-bench-agentbeats
+- Office QA: https://github.com/arnavsinghvi11/officeqa_agentbeats
+- entropic-crmarenapro: https://github.com/rkstu/entropic-crmarenapro
+- factorio
+
+#Extention:
+- agentify-bench: https://github.com/vanessadiehl/agentify-bench
+- Arc AGI 3: https://github.com/arcprize/arc-agi
+- TraderBench: https://github.com/yxc20089/TraderBench
+- reviewer-two-env: https://github.com/chrisvoncsefalvay/reviewer-two-env
