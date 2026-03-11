@@ -240,12 +240,15 @@ class TestSkyRLLogprobs:
         assert result["rollout_logprobs"][0] == [-0.2, -0.5]
 
     def test_rollout_logprobs_none_when_no_logprobs(self) -> None:
-        """When no messages have logprobs, rollout_logprobs entries are None."""
+        """When no messages have logprobs, rollout_logprobs is None (not a list of Nones).
+
+        This prevents SkyRL's validate_generator_output from calling len()
+        on None entries.
+        """
         ep = _make_episode(n_steps=1)
         exporter = SkyRLExporter(tokenizer=FakeTokenizer())
         result = exporter.export([ep])
-        assert result["rollout_logprobs"] is not None
-        assert result["rollout_logprobs"][0] is None
+        assert result["rollout_logprobs"] is None
 
     def test_multi_step_logprobs(self) -> None:
         """Each step gets its own logprobs from its assistant message(s)."""

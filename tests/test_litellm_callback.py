@@ -142,6 +142,81 @@ class TestLfxCallbackBasic:
         ep = list(collector._episode_index.values())[0]
         assert ep.session_id == "sess-abc"
 
+    def test_datetime_timing(self) -> None:
+        """litellm passes datetime objects for start/end time."""
+        from datetime import datetime, timedelta
+
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        cb = LfxCallback(collector=collector)
+        kwargs = {"messages": [{"role": "user", "content": "hi"}]}
+        response = _make_mock_response()
+        start = datetime(2026, 3, 11, 12, 0, 0)
+        end = start + timedelta(milliseconds=250)
+        cb.log_success_event(kwargs, response, start, end)
+        ep = list(collector._episode_index.values())[0]
+        assert ep.summary.timing is not None
+        assert abs(ep.summary.timing.total_ms - 250.0) < 1.0
+
+    def test_vision_message_content(self) -> None:
+        """List-type content (vision/multimodal) must not crash session_id hash."""
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        cb = LfxCallback(collector=collector)
+        kwargs = {
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "What is this?"},
+                        {"type": "image_url", "image_url": {"url": "data:image/png;base64,abc"}},
+                    ],
+                }
+            ],
+        }
+        response = _make_mock_response()
+        cb.log_success_event(kwargs, response, time.time(), time.time())
+        assert collector.metrics["episodes_collected"] == 1
+
+    def test_input_tool_calls_parsed(self) -> None:
+        """Tool calls on prior assistant messages in input should be parsed."""
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        cb = LfxCallback(collector=collector)
+        kwargs = {
+            "messages": [
+                {"role": "user", "content": "search for x"},
+                {
+                    "role": "assistant",
+                    "content": "",
+                    "tool_calls": [
+                        {
+                            "id": "tc-1",
+                            "type": "function",
+                            "function": {"name": "search", "arguments": '{"q":"x"}'},
+                        }
+                    ],
+                },
+                {"role": "tool", "content": "found x", "tool_call_id": "tc-1", "name": "search"},
+            ],
+        }
+        response = _make_mock_response(content="Here is x")
+        cb.log_success_event(kwargs, response, time.time(), time.time())
+        ep = list(collector._episode_index.values())[0]
+        asst_msgs = [m for m in ep.messages if m.role == "assistant"]
+        assert asst_msgs[0].tool_calls is not None
+        assert asst_msgs[0].tool_calls[0].name == "search"
+
+    def test_error_handling_does_not_propagate(self) -> None:
+        """Errors in _process should be logged, not propagated."""
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        cb = LfxCallback(collector=collector)
+        # Malformed response — choices is empty
+        response = MagicMock()
+        response.choices = []
+        cb.log_success_event(
+            {"messages": [{"role": "user", "content": "hi"}]},
+            response, time.time(), time.time(),
+        )
+        assert collector.metrics["episodes_collected"] == 0
+
     def test_log_failure_is_noop(self) -> None:
         collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
         cb = LfxCallback(collector=collector)
