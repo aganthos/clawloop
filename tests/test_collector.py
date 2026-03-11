@@ -27,10 +27,11 @@ class TestEpisodeCollector:
             Message(role="user", content="hello"),
             Message(role="assistant", content="hi there, how can I help?"),
         ]
-        ep = collector.ingest(msgs, session_id="s1")
+        ep = collector.ingest(msgs, task_id="t1", session_id="s1")
         assert ep.id
         assert ep.bench == "live"
-        assert ep.task_id == "s1"
+        assert ep.task_id == "t1"
+        assert ep.session_id == "s1"
         assert len(ep.messages) == 2
 
     def test_batch_triggers_callback(self) -> None:
