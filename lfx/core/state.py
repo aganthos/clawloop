@@ -9,9 +9,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import time
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
+
+log = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from lfx.layers.harness import Harness
@@ -19,9 +22,17 @@ if TYPE_CHECKING:
     from lfx.layers.weights import Weights
 
 
+def _safe_default(obj: Any) -> str:
+    """Fallback serializer that logs a warning before using str()."""
+    log.warning(
+        "Non-serializable object in StateID: %s (%s)", type(obj).__name__, obj,
+    )
+    return str(obj)
+
+
 def _canonical_json(obj: Any) -> str:
     """Deterministic JSON serialization (sorted keys, no extra whitespace)."""
-    return json.dumps(obj, sort_keys=True, separators=(",", ":"), default=str)
+    return json.dumps(obj, sort_keys=True, separators=(",", ":"), default=_safe_default)
 
 
 def _sha256(data: str) -> str:

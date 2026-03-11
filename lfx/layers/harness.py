@@ -46,6 +46,9 @@ _INJECTION_PATTERNS = [
     re.compile(r"<\s*/?\s*system\s*>", re.IGNORECASE),
 ]
 
+# Whitelist for insight tag characters (alphanumeric, hyphens, underscores).
+_TAG_RE = re.compile(r"^[a-zA-Z0-9\-_]+$")
+
 
 # -- Tool configuration --
 
@@ -331,7 +334,9 @@ class Harness:
     def apply_insights(self, insights: list[Insight]) -> int:
         """Curator step: apply reflector insights as playbook deltas.
 
-        Returns the number of deltas applied.
+        Returns the number of deltas applied.  All insights are validated
+        through :meth:`_validate_insights` before application — this gates
+        ALL insight sources including :class:`ParadigmBreakthrough`.
 
         .. warning:: Security — indirect prompt injection
 
@@ -343,6 +348,7 @@ class Harness:
             (schema check, content policy filter, or human-in-the-loop
             approval).  See PR #1 review for context.
         """
+        insights = self._validate_insights(insights)
         applied = 0
         for insight in insights:
             if insight.action == "add":
@@ -369,12 +375,46 @@ class Harness:
         """Filter insights that fail basic safety checks.
 
         Guards against indirect prompt injection by rejecting insights whose
-        content is suspiciously long or matches known injection patterns.
-        Production deployments should layer a full content-policy filter or
-        human-in-the-loop approval on top of this.
+        content is suspiciously long, matches known injection patterns, or
+        has invalid structure.
         """
         safe: list[Insight] = []
         for insight in insights:
+            # Action validity (already enforced by Insight.__post_init__, but
+            # defend against manually-constructed dicts)
+            if insight.action not in Insight.VALID_ACTIONS:
+                log.warning("Dropping insight — invalid action %r", insight.action)
+                continue
+
+            # update/remove require target_entry_id
+            if insight.action in ("update", "remove") and not insight.target_entry_id:
+                log.warning(
+                    "Dropping insight — %s requires target_entry_id", insight.action,
+                )
+                continue
+
+            # Type checks
+            if not isinstance(insight.content, str):
+                log.warning("Dropping insight — content must be str")
+                continue
+            if not isinstance(insight.tags, list) or not all(
+                isinstance(t, str) for t in insight.tags
+            ):
+                log.warning("Dropping insight — tags must be list[str]")
+                continue
+            if hasattr(insight, "source_episode_ids") and insight.source_episode_ids:
+                if not isinstance(insight.source_episode_ids, list) or not all(
+                    isinstance(s, str) for s in insight.source_episode_ids
+                ):
+                    log.warning("Dropping insight — source_episode_ids must be list[str]")
+                    continue
+
+            # Tag character whitelist
+            if any(not _TAG_RE.match(t) for t in insight.tags if t):
+                log.warning("Dropping insight — tags contain invalid characters")
+                continue
+
+            # Content length
             if len(insight.content) > _MAX_INSIGHT_CONTENT_LENGTH:
                 log.warning(
                     "Dropping insight (length %d exceeds %d)",
@@ -382,9 +422,14 @@ class Harness:
                     _MAX_INSIGHT_CONTENT_LENGTH,
                 )
                 continue
-            if any(p.search(insight.content) for p in _INJECTION_PATTERNS):
+
+            # Injection patterns (content + tags)
+            if any(p.search(insight.content) for p in _INJECTION_PATTERNS) or any(
+                p.search(tag) for tag in insight.tags for p in _INJECTION_PATTERNS
+            ):
                 log.warning("Dropping insight — matches injection pattern")
                 continue
+
             safe.append(insight)
         return safe
 
@@ -408,7 +453,10 @@ class Harness:
             },
             "playbook": self.playbook.to_dict(),
             "tool_configs": [tc.to_dict() for tc in self.tool_configs],
-            "validators": self.validators,
+            "validators": {
+                k: getattr(v, "name", v.__class__.__name__)
+                for k, v in self.validators.items()
+            },
         }
 
     # -- Layer protocol methods --
@@ -479,11 +527,9 @@ class Harness:
                     entry.harmful += harm_delta
                     updates += 1
 
-            # Apply pending insights
+            # Apply pending insights (apply_insights validates internally)
             if pending.insights:
-                updates += self.apply_insights(
-                    self._validate_insights(pending.insights)
-                )
+                updates += self.apply_insights(pending.insights)
 
             # Apply pending Pareto candidates
             for bench, candidates in pending.candidates.items():

@@ -10,6 +10,7 @@ of usage:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import random
@@ -25,6 +26,20 @@ from lfx.core.types import Datum
 from lfx.layers.harness import Harness, Playbook, PlaybookEntry
 
 log = logging.getLogger(__name__)
+
+# Maximum input length before truncation (defense-in-depth).
+_MAX_INPUT_LENGTH = 8_000
+
+
+def _sanitize_input(text: str) -> str:
+    """Strip null bytes and clamp length for agent inputs."""
+    text = text.replace("\x00", "")
+    if len(text) > _MAX_INPUT_LENGTH:
+        log.warning(
+            "Truncating agent input from %d to %d chars", len(text), _MAX_INPUT_LENGTH,
+        )
+        text = text[:_MAX_INPUT_LENGTH]
+    return text
 
 
 @dataclass
@@ -186,9 +201,12 @@ class LfXAgent:
         """Execute a single task sample and return an Episode."""
         system_prompt = self._harness.system_prompt(self.bench)
 
+        question = _sanitize_input(sample.question)
+        context = getattr(sample, "context", "") or ""
+
         messages = [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": sample.question},
+            {"role": "user", "content": question},
         ]
 
         # Call the task LLM
@@ -197,10 +215,18 @@ class LfXAgent:
         # Evaluate
         eval_result = env.evaluate(sample, response_text)
 
+        # Stable task_id: use sample metadata ID if available, else hash
+        meta_id = ""
+        if hasattr(sample, "metadata") and isinstance(sample.metadata, dict):
+            meta_id = sample.metadata.get("id", "")
+        task_id = meta_id or hashlib.sha256(
+            f"{self.bench}:{sample.question}:{context}".encode(),
+        ).hexdigest()[:16]
+
         # Build episode
         ep_messages = [
             Message(role="system", content=system_prompt),
-            Message(role="user", content=sample.question),
+            Message(role="user", content=question),
             Message(role="assistant", content=response_text),
         ]
 
@@ -214,7 +240,7 @@ class LfXAgent:
         episode = Episode(
             id=Episode.new_id(),
             state_id="agent",
-            task_id=sample.question,
+            task_id=task_id,
             bench=self.bench,
             messages=ep_messages,
             step_boundaries=[0],

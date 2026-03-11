@@ -49,6 +49,22 @@ Return ONLY the JSON array.  No explanation, no markdown outside the JSON.
 """.strip()
 
 
+def _sanitize_str(text: str) -> str:
+    """Strip null bytes from a string (defense-in-depth)."""
+    return text.replace("\x00", "")
+
+
+def _sanitize_obj(obj: Any) -> Any:
+    """Recursively sanitize all string values in a JSON-like structure."""
+    if isinstance(obj, str):
+        return _sanitize_str(obj)
+    if isinstance(obj, dict):
+        return {_sanitize_str(k) if isinstance(k, str) else k: _sanitize_obj(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_sanitize_obj(item) for item in obj]
+    return obj
+
+
 @dataclass
 class ReflectorConfig:
     """Configuration for the Reflector."""
@@ -116,27 +132,36 @@ class Reflector:
         # -- CURRENT PLAYBOOK --
         pb_text = playbook.render()
         if pb_text:
-            sections.append(f"## CURRENT PLAYBOOK\n{pb_text}")
+            sections.append(f"## CURRENT PLAYBOOK\n{_sanitize_str(pb_text)}")
         else:
             sections.append("## CURRENT PLAYBOOK\n(empty)")
 
-        # -- EPISODE TRACES --
-        trace_lines: list[str] = ["## EPISODE TRACES"]
+        # -- EPISODE TRACES (JSON-structured) --
+        trace_objects: list[dict[str, Any]] = []
         for ep in episodes:
-            trace_lines.append(
-                f"\n### Episode {ep.id} (task={ep.task_id}, bench={ep.bench}, "
-                f"reward={ep.summary.total_reward})"
-            )
+            trace_messages: list[dict[str, str]] = []
             for msg in ep.messages:
-                content = msg.content
+                content = _sanitize_str(msg.content)
                 if len(content) > _MSG_TRUNCATE_LEN:
                     content = content[:_MSG_TRUNCATE_LEN] + "..."
-                trace_lines.append(f"  [{msg.role}] {content}")
-        sections.append("\n".join(trace_lines))
+                trace_messages.append({
+                    "role": _sanitize_str(msg.role),
+                    "content": content,
+                })
+            trace_objects.append(_sanitize_obj({
+                "id": ep.id,
+                "task_id": ep.task_id,
+                "bench": ep.bench,
+                "reward": ep.summary.total_reward,
+                "messages": trace_messages,
+            }))
+
+        trace_json = json.dumps(trace_objects, indent=2)
+        sections.append(f"## EPISODE TRACES\n```json\n{trace_json}\n```")
 
         # -- SIBLING CONTEXT --
         if sibling_context:
-            sections.append(f"## SIBLING CONTEXT\n{sibling_context}")
+            sections.append(f"## SIBLING CONTEXT\n{_sanitize_str(sibling_context)}")
 
         return "\n\n".join(sections)
 
@@ -170,6 +195,9 @@ class Reflector:
         insights: list[Insight] = []
 
         for item in data:
+            if not isinstance(item, dict):
+                log.warning("Reflector: skipping non-dict item in response array, got %s", type(item).__name__)
+                continue
             try:
                 insight = Insight(
                     action=item.get("action", "add"),

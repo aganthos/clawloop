@@ -197,6 +197,12 @@ class Episode:
     steps: list[StepMeta]
     summary: EpisodeSummary
 
+    # Optional fields (non-breaking additions)
+    session_id: str = ""  # groups episodes from same conversation
+    model: str | None = None  # primary model used for this trajectory
+    created_at: float | None = None  # unix timestamp
+    metadata: dict[str, Any] = field(default_factory=dict)  # extensible bag
+
     # -- Convenience helpers --
 
     @staticmethod

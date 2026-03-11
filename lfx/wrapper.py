@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 from typing import Any
+from uuid import uuid4
 
 from lfx.collector import EpisodeCollector
 from lfx.core.episode import Message
@@ -17,6 +18,9 @@ class WrappedClient:
         self._collector = collector
 
     def complete(self, messages: list[dict[str, str]], **kwargs: Any) -> str:
+        # Extract lfx-specific kwargs before forwarding to the client
+        task_id = kwargs.pop("task_id", uuid4().hex)
+
         response = self._client.complete(messages, **kwargs)
 
         ep_messages = []
@@ -28,7 +32,7 @@ class WrappedClient:
             ))
         ep_messages.append(Message(role="assistant", content=response))
 
-        # Stable session ID from first user message (deterministic across runs)
+        # Stable session_id from first user message (deterministic across runs)
         session_id = ""
         for m in messages:
             if m.get("role") == "user":
@@ -36,7 +40,9 @@ class WrappedClient:
                 session_id = hashlib.sha256(content.encode()).hexdigest()[:16]
                 break
 
-        self._collector.ingest(ep_messages, session_id=session_id)
+        self._collector.ingest(
+            ep_messages, task_id=task_id, session_id=session_id,
+        )
 
         return response
 
