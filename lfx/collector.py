@@ -4,15 +4,56 @@ from __future__ import annotations
 
 import logging
 import threading
+import time
 import uuid
 from collections import OrderedDict
-from typing import Callable
+from typing import Any, Callable
 
-from lfx.core.episode import Episode, EpisodeSummary, Message
+from lfx.core.episode import (
+    Episode,
+    EpisodeSummary,
+    Message,
+    Timing,
+    TokenLogProb,
+    TokenUsage,
+    ToolCall,
+)
 from lfx.core.reward import RewardPipeline, RewardSignal
 from lfx.extractors.formatting import FormattingFilter
 
 log = logging.getLogger(__name__)
+
+
+def _parse_tool_calls(raw: list[dict[str, Any]] | None) -> list[ToolCall] | None:
+    """Convert OpenAI-format tool_call dicts to ToolCall objects."""
+    if not raw:
+        return None
+    result = []
+    for tc in raw:
+        fn = tc.get("function", {})
+        result.append(
+            ToolCall(
+                id=tc.get("id", ""),
+                name=fn.get("name", "") if isinstance(fn, dict) else "",
+                arguments=fn.get("arguments", "{}") if isinstance(fn, dict) else "{}",
+            )
+        )
+    return result
+
+
+def _parse_logprobs(raw: list[dict[str, Any]] | None) -> list[TokenLogProb] | None:
+    """Convert logprob dicts to TokenLogProb objects."""
+    if not raw:
+        return None
+    return [
+        TokenLogProb(
+            token=lp.get("token", ""),
+            token_id=lp.get("token_id"),
+            logprob=lp.get("logprob", 0.0),
+            top_logprobs=lp.get("top_logprobs"),
+        )
+        for lp in raw
+    ]
 
 
 class EpisodeCollector:
@@ -61,6 +102,10 @@ class EpisodeCollector:
         *,
         task_id: str = "",
         session_id: str = "",
+        usage: TokenUsage | None = None,
+        timing_ms: float | None = None,
+        model: str | None = None,
+        bench: str = "live",
     ) -> Episode:
         """Convert a completed request/response into an Episode.
 
@@ -71,12 +116,17 @@ class EpisodeCollector:
             id=uuid.uuid4().hex,
             state_id=self._resolve_state_id(),
             task_id=task_id or uuid.uuid4().hex,
-            bench="live",
+            bench=bench,
             messages=list(messages),
             step_boundaries=[0] if messages else [],
             steps=[],
-            summary=EpisodeSummary(),
+            summary=EpisodeSummary(
+                token_usage=usage,
+                timing=Timing(total_ms=timing_ms or 0.0) if timing_ms else None,
+            ),
             session_id=session_id,
+            model=model,
+            created_at=time.time(),
         )
 
         # Enrich with reward signals
@@ -108,6 +158,73 @@ class EpisodeCollector:
             self.on_batch(batch_to_flush)
 
         return episode
+
+    def ingest_external(
+        self,
+        messages: list[dict[str, Any]],
+        *,
+        task_id: str = "",
+        session_id: str = "",
+        model: str | None = None,
+        usage: dict[str, int] | None = None,
+        response_logprobs: list[dict[str, Any]] | None = None,
+        bench: str = "external",
+    ) -> Episode:
+        """Ingest an externally-captured trajectory (Mode B).
+
+        Accepts raw OpenAI-format message dicts and converts them
+        to Episode format. For use with n8n webhooks, OpenClaw replays,
+        or any external trajectory source.
+
+        Parameters
+        ----------
+        messages:
+            OpenAI chat-format message dicts. Each may optionally include
+            a ``"logprobs"`` key with per-token logprob dicts.
+        response_logprobs:
+            If provided, attached to the last assistant message.
+            Each entry: ``{"token": str, "logprob": float, "token_id": int|None}``.
+        usage:
+            Token counts: ``{"prompt_tokens": N, "completion_tokens": N, "total_tokens": N}``.
+        """
+        ep_messages: list[Message] = []
+        for m in messages:
+            msg_logprobs = _parse_logprobs(m.get("logprobs"))
+            ep_messages.append(
+                Message(
+                    role=m.get("role", "user"),
+                    content=m.get("content", ""),
+                    name=m.get("name"),
+                    tool_calls=_parse_tool_calls(m.get("tool_calls")),
+                    tool_call_id=m.get("tool_call_id"),
+                    model=m.get("model"),
+                    logprobs=msg_logprobs,
+                )
+            )
+
+        # Attach response_logprobs to last assistant message
+        if response_logprobs:
+            for msg in reversed(ep_messages):
+                if msg.role == "assistant":
+                    msg.logprobs = _parse_logprobs(response_logprobs)
+                    break
+
+        token_usage = None
+        if usage:
+            token_usage = TokenUsage(
+                prompt_tokens=usage.get("prompt_tokens", 0),
+                completion_tokens=usage.get("completion_tokens", 0),
+                total_tokens=usage.get("total_tokens", 0),
+            )
+
+        return self.ingest(
+            ep_messages,
+            task_id=task_id,
+            session_id=session_id,
+            usage=token_usage,
+            model=model,
+            bench=bench,
+        )
 
     def submit_feedback(self, episode_id: str, score: float) -> bool:
         """Attach user feedback to an episode. Returns False if not found.

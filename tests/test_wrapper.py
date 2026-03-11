@@ -60,8 +60,8 @@ class TestWrapTaskIdAndSessionId:
         collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
         # Patch ingest to capture episodes
         orig_ingest = collector.ingest
-        def capturing_ingest(messages, *, task_id="", session_id=""):
-            ep = orig_ingest(messages, task_id=task_id, session_id=session_id)
+        def capturing_ingest(messages, *, task_id="", session_id="", **kwargs):
+            ep = orig_ingest(messages, task_id=task_id, session_id=session_id, **kwargs)
             captured.append(ep)
             return ep
         collector.ingest = capturing_ingest
@@ -81,8 +81,8 @@ class TestWrapTaskIdAndSessionId:
         client = MockLLMClient(responses=["ok"])
         collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
         orig_ingest = collector.ingest
-        def capturing_ingest(messages, *, task_id="", session_id=""):
-            ep = orig_ingest(messages, task_id=task_id, session_id=session_id)
+        def capturing_ingest(messages, *, task_id="", session_id="", **kwargs):
+            ep = orig_ingest(messages, task_id=task_id, session_id=session_id, **kwargs)
             captured.append(ep)
             return ep
         collector.ingest = capturing_ingest
@@ -135,3 +135,108 @@ class TestCollectorStateIdProvider:
         )
         assert ep1.state_id == "state-1"
         assert ep2.state_id == "state-2"
+
+
+from lfx.completion import CompletionResult
+from lfx.core.episode import TokenLogProb, TokenUsage, ToolCall
+
+
+class TestRichWrapperCapture:
+    """Verify wrapper extracts rich metadata from CompletionResult."""
+
+    def test_returns_completion_result(self) -> None:
+        client = MockLLMClient(responses=["hello"])
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        wrapped = wrap(client, collector=collector)
+        result = wrapped.complete([{"role": "user", "content": "hi"}])
+        assert isinstance(result, CompletionResult)
+        assert result == "hello"
+
+    def test_captures_model_on_episode(self) -> None:
+        client = MockLLMClient(responses=["ok"], model="gpt-4o")
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        wrapped = wrap(client, collector=collector)
+        wrapped.complete([{"role": "user", "content": "hi"}])
+        ep = list(collector._episode_index.values())[0]
+        assert ep.model == "gpt-4o"
+
+    def test_captures_logprobs_on_assistant_message(self) -> None:
+        lps = [TokenLogProb(token="ok", logprob=-0.1)]
+        client = MockLLMClient(responses=["ok"], logprobs=[lps])
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        wrapped = wrap(client, collector=collector)
+        wrapped.complete([{"role": "user", "content": "hi"}])
+        ep = list(collector._episode_index.values())[0]
+        assistant_msg = [m for m in ep.messages if m.role == "assistant"][0]
+        assert assistant_msg.logprobs is not None
+        assert assistant_msg.logprobs[0].logprob == -0.1
+
+    def test_captures_tool_calls_on_assistant_message(self) -> None:
+        tc = ToolCall(id="tc-1", name="search", arguments='{"q":"x"}')
+        client = MockLLMClient(responses=["searching"], tool_calls=[[tc]])
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        wrapped = wrap(client, collector=collector)
+        wrapped.complete([{"role": "user", "content": "find x"}])
+        ep = list(collector._episode_index.values())[0]
+        assistant_msg = [m for m in ep.messages if m.role == "assistant"][0]
+        assert assistant_msg.tool_calls is not None
+        assert assistant_msg.tool_calls[0].name == "search"
+
+    def test_captures_timing(self) -> None:
+        client = MockLLMClient(responses=["ok"])
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        wrapped = wrap(client, collector=collector)
+        wrapped.complete([{"role": "user", "content": "hi"}])
+        ep = list(collector._episode_index.values())[0]
+        assert ep.summary.timing is not None
+        assert ep.summary.timing.total_ms >= 0
+
+    def test_captures_created_at(self) -> None:
+        import time as _time
+        client = MockLLMClient(responses=["ok"])
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        wrapped = wrap(client, collector=collector)
+        before = _time.time()
+        wrapped.complete([{"role": "user", "content": "hi"}])
+        after = _time.time()
+        ep = list(collector._episode_index.values())[0]
+        assert ep.created_at is not None
+        assert before <= ep.created_at <= after
+
+    def test_parses_tool_calls_from_input_messages(self) -> None:
+        client = MockLLMClient(responses=["done"])
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        wrapped = wrap(client, collector=collector)
+        wrapped.complete([
+            {"role": "user", "content": "search for x"},
+            {
+                "role": "assistant",
+                "content": "",
+                "tool_calls": [
+                    {
+                        "id": "tc-1",
+                        "type": "function",
+                        "function": {"name": "search", "arguments": '{"q":"x"}'},
+                    }
+                ],
+            },
+            {"role": "tool", "content": "found x", "tool_call_id": "tc-1", "name": "search"},
+        ])
+        ep = list(collector._episode_index.values())[0]
+        asst_msgs = [m for m in ep.messages if m.role == "assistant"]
+        assert asst_msgs[0].tool_calls is not None
+        assert asst_msgs[0].tool_calls[0].name == "search"
+        tool_msgs = [m for m in ep.messages if m.role == "tool"]
+        assert tool_msgs[0].tool_call_id == "tc-1"
+        assert tool_msgs[0].name == "search"
+
+    def test_plain_string_client_still_works(self) -> None:
+        class PlainClient:
+            def complete(self, messages, **kwargs):
+                return "plain text"
+
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        wrapped = wrap(PlainClient(), collector=collector)
+        result = wrapped.complete([{"role": "user", "content": "hi"}])
+        assert result == "plain text"
+        assert isinstance(result, CompletionResult)
