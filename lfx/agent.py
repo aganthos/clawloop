@@ -210,7 +210,7 @@ class LfXAgent:
         ]
 
         # Call the task LLM
-        response_text = self.task_client.complete(messages)
+        response_text = str(self.task_client.complete(messages))
 
         # Evaluate
         eval_result = env.evaluate(sample, response_text)

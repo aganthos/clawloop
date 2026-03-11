@@ -30,7 +30,7 @@ class WrappedClient:
                 content=m.get("content", ""),
                 name=m.get("name"),
             ))
-        ep_messages.append(Message(role="assistant", content=response))
+        ep_messages.append(Message(role="assistant", content=str(response)))
 
         # Stable session_id from first user message (deterministic across runs)
         session_id = ""

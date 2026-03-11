@@ -118,7 +118,7 @@ class Reflector:
             max_tokens=self.config.max_tokens,
         )
 
-        return self._parse_response(response, episodes)
+        return self._parse_response(str(response), episodes)
 
     def _build_prompt(
         self,
