@@ -729,11 +729,8 @@
             max-width: min(90vw, 800px);
         }
         .logo-grid img {
-            height: clamp(20px, 3vh, 34px);
+            height: clamp(28px, 4.5vh, 52px);
             width: auto;
-            padding: clamp(3px, 0.4vw, 6px) clamp(5px, 0.6vw, 10px);
-            background: rgba(255, 255, 255, 0.88);
-            border-radius: clamp(4px, 0.5vw, 7px);
             object-fit: contain;
         }
 
@@ -804,25 +801,30 @@
     <div class="slide-content" style="gap: var(--content-gap);">
         <h2 class="reveal">AI Agents Hit a Wall Before Becoming Productive</h2>
         <div class="card-row reveal-scale">
-            <div class="card">
-                <div class="card-icon" style="color:var(--accent-warm)">&#x26A0;</div>
+            <div class="card c-green reveal-scale">
+                <div style="font-size:clamp(1.19rem,2.125vw,1.7rem);color:var(--accent-green)">&#x2193;</div>
                 <h3>Unreliable Performance</h3>
                 <p style="font-size:var(--small-size);color:var(--text-secondary);margin-top:var(--element-gap);">
                     Off-the-shelf models get 50-60% on domain tasks. Enterprises need 90%+.
                 </p>
             </div>
-            <div class="card">
-                <div class="card-icon" style="color:var(--accent-blue)">&#x25C6;</div>
-                <h3>Data Sovereignty</h3>
-                <p style="font-size:var(--small-size);color:var(--text-secondary);margin-top:var(--element-gap);">
-                    Sensitive data can't leave the organisation. Vendor lock-in is a compliance risk.
-                </p>
-            </div>
-            <div class="card">
-                <div class="card-icon" style="color:var(--accent-green)">&#x25B2;</div>
+            <div class="card c-warm reveal-scale">
+                <div style="font-size:clamp(1.19rem,2.125vw,1.7rem);color:var(--accent-warm)">&#x2191;</div>
                 <h3>Unsustainable Costs</h3>
                 <p style="font-size:var(--small-size);color:var(--text-secondary);margin-top:var(--element-gap);">
                     Frontier API costs scale linearly. At production volume, inference is the largest line item.
+                </p>
+            </div>
+            <div class="card c-blue reveal-scale">
+                <div style="font-size:clamp(1.4rem,2.5vw,2rem);color:var(--accent-blue);line-height:1;">
+                    <svg viewBox="0 0 24 24" width="0.85em" height="0.85em" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="5" y="11" width="14" height="11" rx="2"/>
+                        <path d="M8 11V7a4 4 0 0 1 8 0v4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <h3>Data Sovereignty</h3>
+                <p style="font-size:var(--small-size);color:var(--text-secondary);margin-top:var(--element-gap);">
+                    Sensitive data can't leave the organisation. Vendor lock-in is a compliance risk.
                 </p>
             </div>
         </div>
@@ -851,19 +853,24 @@
         <h2 class="reveal">We Create Measurable Value</h2>
         <div class="card-row">
             <div class="card c-green reveal-scale">
-                <div style="font-size:clamp(1.4rem,2.5vw,2rem);color:var(--accent-green)">&#x2191;</div>
+                <div style="font-size:clamp(1.19rem,2.125vw,1.7rem);color:var(--accent-green)">&#x2191;</div>
                 <h3>Improve Performance</h3>
                 <p class="tech">RL &amp; In-Context Learning</p>
                 <ul><li>Higher success rate</li><li>Fewer human escalations</li><li>Better decision quality</li></ul>
             </div>
             <div class="card c-warm reveal-scale">
-                <div style="font-size:clamp(1.4rem,2.5vw,2rem);color:var(--accent-warm)">&#x2193;</div>
+                <div style="font-size:clamp(1.19rem,2.125vw,1.7rem);color:var(--accent-warm)">&#x2193;</div>
                 <h3>Reduce Cost</h3>
                 <p class="tech">Routing + small models</p>
                 <ul><li>Lower cost per request</li><li>Lower latency</li><li>Scalable usage</li></ul>
             </div>
             <div class="card c-blue reveal-scale">
-                <div style="font-size:clamp(1.4rem,2.5vw,2rem);color:var(--accent-blue)">&#x25C6;</div>
+                <div style="font-size:clamp(1.4rem,2.5vw,2rem);color:var(--accent-blue);line-height:1;">
+                    <svg viewBox="0 0 24 24" width="0.85em" height="0.85em" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="5" y="11" width="14" height="11" rx="2"/>
+                        <path d="M8 11V7a4 4 0 0 1 8 0v4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                    </svg>
+                </div>
                 <h3>Enable Privacy</h3>
                 <p class="tech">Knowledge transfer + local deploy</p>
                 <ul><li>Data never leaves your org</li><li>Vendor independence</li><li>Regulatory compliance</li></ul>
@@ -873,16 +880,30 @@
 </section>
 
 <!-- ═══════════════════════════════════════════════════
-     SLIDE 5 — LEARNING FROM EXPERIENCE (RL ARCHITECTURE)
+     SLIDE 5 — AGE OF AGENTS
      ═══════════════════════════════════════════════════ -->
-<section class="slide bg-warm" data-slide="4">
+<section class="slide bg-deep" data-slide="4">
+    <span class="slide-num">04</span>
+    <svg class="logo-corner" viewBox="0 0 900 1400" fill="none"><path d="M700 450C700 588.071 588.071 700 450 700C311.929 700 200 588.071 200 450H700ZM450 0C509.095 0 567.611 11.6393 622.208 34.2539C676.804 56.8685 726.412 90.0155 768.198 131.802C809.985 173.588 843.131 223.196 865.746 277.792C888.361 332.389 900 390.905 900 450H700C700 311.929 588.071 200 450 200C311.929 200 200 311.929 200 450H0C0 390.905 11.6394 332.389 34.2539 277.793C56.8685 223.196 90.0154 173.588 131.802 131.802C173.588 90.0155 223.196 56.8685 277.792 34.2539C332.389 11.6393 390.905 0 450 0Z" fill="#E8E8E8"/><path d="M200 950C200 811.929 311.929 700 450 700C588.071 700 700 811.929 700 950H200ZM450 1400C390.905 1400 332.389 1388.36 277.792 1365.75C223.196 1343.13 173.588 1309.98 131.802 1268.2C90.0155 1226.41 56.8685 1176.8 34.2539 1122.21C11.6393 1067.61 0 1009.09 0 950H200C200 1088.07 311.929 1200 450 1200C588.071 1200 700 1088.07 700 950H900C900 1009.09 888.361 1067.61 865.746 1122.21C843.131 1176.8 809.985 1226.41 768.198 1268.2C726.412 1309.98 676.804 1343.13 622.208 1365.75C567.611 1388.36 509.095 1400 450 1400Z" fill="#E8E8E8"/></svg>
+    <div class="slide-content" style="gap: var(--content-gap);">
+        <h2 class="reveal">Age of Agents</h2>
+        <div class="reveal" style="width:100%;flex:1;display:flex;align-items:center;justify-content:center;">
+            <img src="../ressources/pictures/additional%20pictures/age_of_agents.svg" alt="What makes an Agent?" style="width:100%;max-width:min(95vw,1400px);height:auto;border-radius:clamp(6px,1vw,14px);">
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 6 — LEARNING FROM EXPERIENCE (RL ARCHITECTURE)
+     ═══════════════════════════════════════════════════ -->
+<section class="slide bg-warm" data-slide="5">
     <span class="slide-num">04</span>
     <svg class="logo-corner" viewBox="0 0 900 1400" fill="none"><path d="M700 450C700 588.071 588.071 700 450 700C311.929 700 200 588.071 200 450H700ZM450 0C509.095 0 567.611 11.6393 622.208 34.2539C676.804 56.8685 726.412 90.0155 768.198 131.802C809.985 173.588 843.131 223.196 865.746 277.792C888.361 332.389 900 390.905 900 450H700C700 311.929 588.071 200 450 200C311.929 200 200 311.929 200 450H0C0 390.905 11.6394 332.389 34.2539 277.793C56.8685 223.196 90.0154 173.588 131.802 131.802C173.588 90.0155 223.196 56.8685 277.792 34.2539C332.389 11.6393 390.905 0 450 0Z" fill="#E8E8E8"/><path d="M200 950C200 811.929 311.929 700 450 700C588.071 700 700 811.929 700 950H200ZM450 1400C390.905 1400 332.389 1388.36 277.792 1365.75C223.196 1343.13 173.588 1309.98 131.802 1268.2C90.0155 1226.41 56.8685 1176.8 34.2539 1122.21C11.6393 1067.61 0 1009.09 0 950H200C200 1088.07 311.929 1200 450 1200C588.071 1200 700 1088.07 700 950H900C900 1009.09 888.361 1067.61 865.746 1122.21C843.131 1176.8 809.985 1226.41 768.198 1268.2C726.412 1309.98 676.804 1343.13 622.208 1365.75C567.611 1388.36 509.095 1400 450 1400Z" fill="#E8E8E8"/></svg>
     <div class="slide-content" style="gap: var(--element-gap);">
         <h2 class="reveal">How Agents Learn from Experience</h2>
         <!-- Inline SVG: Agent-Environment RL diagram (v5-style, cute robot) -->
         <div class="reveal" style="width:100%;max-width:min(90vw,800px);display:flex;justify-content:center;">
-            <svg viewBox="0 0 520 270" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;max-height:min(48vh,360px);">
+            <svg viewBox="0 0 560 295" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;max-height:min(48vh,360px);">
                 <defs>
                     <marker id="rl-arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
                         <path d="M0,0.5 L7,3 L0,5.5" fill="#e8a87c"/>
@@ -916,7 +937,7 @@
                     <ellipse cx="27" cy="-4" rx="5.5" ry="3.5" fill="#e8a87c" opacity="0.12"/>
 
                     <!-- Smile -->
-                    <path d="M-11,2 Q0,13 11,2" fill="none" stroke="#d8d4d0" stroke-width="1.8"/>
+                    <path d="M-11,-3 Q0,8 11,-3" fill="none" stroke="#d8d4d0" stroke-width="1.8"/>
 
                     <!-- Ears -->
                     <rect x="-40" y="-26" width="6" height="16" rx="2.5" fill="none" stroke="#d8d4d0" stroke-width="1.5"/>
@@ -948,8 +969,9 @@
                 <!-- AGENT label -->
                 <text x="78" y="52" text-anchor="middle" font-family="'Syne',sans-serif" font-size="15" font-weight="700" fill="#e0dbd7" letter-spacing="1.5">AGENT</text>
 
+
                 <!-- ===== ENVIRONMENT (globe) ===== -->
-                <g transform="translate(420,122)">
+                <g transform="translate(454,122)">
                     <!-- Ocean -->
                     <circle cx="0" cy="0" r="54" fill="#5C85A8"/>
 
@@ -972,7 +994,7 @@
                 </g>
 
                 <!-- ENVIRONMENT label -->
-                <text x="420" y="46" text-anchor="middle" font-family="'Syne',sans-serif" font-size="15" font-weight="700" fill="#e0dbd7" letter-spacing="1.5">ENVIRONMENT</text>
+                <text x="454" y="46" text-anchor="middle" font-family="'Syne',sans-serif" font-size="15" font-weight="700" fill="#e0dbd7" letter-spacing="1.5">ENVIRONMENT</text>
 
                 <!-- ===== TOP ARROW: Agent → Environment ===== -->
                 <path d="M132,95 C195,20 325,20 388,95"
@@ -1003,7 +1025,274 @@
 </section>
 
 <!-- ═══════════════════════════════════════════════════
-     SLIDE 6 — LEARNING FLYWHEEL
+     SLIDE 6 — LEARNING FROM EXPERIENCE (COPY — with agent annotation)
+     ═══════════════════════════════════════════════════ -->
+<section class="slide bg-warm" data-slide="5">
+    <span class="slide-num">05</span>
+    <svg class="logo-corner" viewBox="0 0 900 1400" fill="none"><path d="M700 450C700 588.071 588.071 700 450 700C311.929 700 200 588.071 200 450H700ZM450 0C509.095 0 567.611 11.6393 622.208 34.2539C676.804 56.8685 726.412 90.0155 768.198 131.802C809.985 173.588 843.131 223.196 865.746 277.792C888.361 332.389 900 390.905 900 450H700C700 311.929 588.071 200 450 200C311.929 200 200 311.929 200 450H0C0 390.905 11.6394 332.389 34.2539 277.793C56.8685 223.196 90.0154 173.588 131.802 131.802C173.588 90.0155 223.196 56.8685 277.792 34.2539C332.389 11.6393 390.905 0 450 0Z" fill="#E8E8E8"/><path d="M200 950C200 811.929 311.929 700 450 700C588.071 700 700 811.929 700 950H200ZM450 1400C390.905 1400 332.389 1388.36 277.792 1365.75C223.196 1343.13 173.588 1309.98 131.802 1268.2C90.0155 1226.41 56.8685 1176.8 34.2539 1122.21C11.6393 1067.61 0 1009.09 0 950H200C200 1088.07 311.929 1200 450 1200C588.071 1200 700 1088.07 700 950H900C900 1009.09 888.361 1067.61 865.746 1122.21C843.131 1176.8 809.985 1226.41 768.198 1268.2C726.412 1309.98 676.804 1343.13 622.208 1365.75C567.611 1388.36 509.095 1400 450 1400Z" fill="#E8E8E8"/></svg>
+    <div class="slide-content" style="gap: var(--element-gap);">
+        <h2 class="reveal">How Agents Learn from Experience</h2>
+        <div class="reveal" style="width:100%;max-width:min(90vw,800px);display:flex;justify-content:center;">
+            <svg viewBox="-25 0 585 295" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;max-height:min(48vh,360px);">
+                <defs>
+                    <marker id="rl-arr-c" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                        <path d="M0,0.5 L7,3 L0,5.5" fill="#e8a87c"/>
+                    </marker>
+                </defs>
+
+                <!-- ===== AGENT (cute robot) ===== -->
+                <g transform="translate(78,135)" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M-34,5 L-34,-14 C-34,-50 34,-50 34,-14 L34,5 Z" fill="none" stroke="#d8d4d0" stroke-width="2.5"/>
+                    <line x1="0" y1="-44" x2="0" y2="-60" stroke="#d8d4d0" stroke-width="2"/>
+                    <circle cx="0" cy="-64" r="4.5" fill="#e8a87c"/>
+                    <circle cx="0" cy="-64" r="9" fill="#e8a87c" opacity="0.08"/>
+                    <circle cx="-14" cy="-16" r="10" fill="none" stroke="#d8d4d0" stroke-width="2"/>
+                    <circle cx="-14" cy="-16" r="4.5" fill="#e8a87c"/>
+                    <circle cx="-17" cy="-19.5" r="2" fill="white" opacity="0.85"/>
+                    <circle cx="-11.5" cy="-14" r="0.9" fill="white" opacity="0.5"/>
+                    <circle cx="14" cy="-16" r="10" fill="none" stroke="#d8d4d0" stroke-width="2"/>
+                    <circle cx="14" cy="-16" r="4.5" fill="#e8a87c"/>
+                    <circle cx="11" cy="-19.5" r="2" fill="white" opacity="0.85"/>
+                    <circle cx="16.5" cy="-14" r="0.9" fill="white" opacity="0.5"/>
+                    <ellipse cx="-27" cy="-4" rx="5.5" ry="3.5" fill="#e8a87c" opacity="0.12"/>
+                    <ellipse cx="27" cy="-4" rx="5.5" ry="3.5" fill="#e8a87c" opacity="0.12"/>
+                    <path d="M-11,-3 Q0,8 11,-3" fill="none" stroke="#d8d4d0" stroke-width="1.8"/>
+                    <rect x="-40" y="-26" width="6" height="16" rx="2.5" fill="none" stroke="#d8d4d0" stroke-width="1.5"/>
+                    <line x1="-37" y1="-22" x2="-37" y2="-14" stroke="#e8a87c" stroke-width="1" opacity="0.45"/>
+                    <rect x="34" y="-26" width="6" height="16" rx="2.5" fill="none" stroke="#d8d4d0" stroke-width="1.5"/>
+                    <line x1="37" y1="-22" x2="37" y2="-14" stroke="#e8a87c" stroke-width="1" opacity="0.45"/>
+                    <rect x="-23" y="10" width="46" height="42" rx="13" fill="none" stroke="#d8d4d0" stroke-width="2.5"/>
+                    <circle cx="0" cy="31" r="6" fill="#e8a87c" opacity="0.1" stroke="#e8a87c" stroke-width="0.8"/>
+                    <line x1="-23" y1="22" x2="-40" y2="6" stroke="#d8d4d0" stroke-width="2"/>
+                    <circle cx="-42" cy="4" r="3.5" fill="#d8d4d0"/>
+                    <line x1="23" y1="26" x2="40" y2="38" stroke="#d8d4d0" stroke-width="2"/>
+                    <circle cx="42" cy="40" r="3.5" fill="#d8d4d0"/>
+                    <line x1="-10" y1="52" x2="-10" y2="66" stroke="#d8d4d0" stroke-width="2"/>
+                    <ellipse cx="-10" cy="69" rx="5" ry="2.5" fill="#d8d4d0"/>
+                    <line x1="10" y1="52" x2="10" y2="66" stroke="#d8d4d0" stroke-width="2"/>
+                    <ellipse cx="10" cy="69" rx="5" ry="2.5" fill="#d8d4d0"/>
+                </g>
+
+                <!-- AGENT label -->
+                <text x="78" y="52" text-anchor="middle" font-family="'Syne',sans-serif" font-size="15" font-weight="700" fill="#e0dbd7" letter-spacing="1.5">AGENT</text>
+
+                <!-- ===== AGENT ANNOTATION ===== -->
+                <!-- Dotted connector from agent feet down -->
+                <line x1="78" y1="207" x2="78" y2="218" stroke="rgba(255,255,255,0.3)" stroke-width="1" stroke-dasharray="2,2"/>
+                <!-- Annotation box — centered on agent (x=78) -->
+                <rect x="-19" y="218" width="194" height="42" rx="5" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.22)" stroke-width="1"/>
+                <!-- Line 1: pink dumbbell icon + formula, manually centred -->
+                <!-- dumbbell: 12px wide, 8px tall, top-aligned with cap height at y=225 -->
+                <g transform="translate(31,225)">
+                    <rect x="2" y="2.5" width="8" height="3" rx="1" fill="#f472b6"/>
+                    <rect x="1" y="1.5" width="2" height="5" rx="0.5" fill="#db5fa0"/>
+                    <rect x="0" y="0.5" width="1.5" height="7" rx="0.5" fill="#be4d88"/>
+                    <rect x="9" y="1.5" width="2" height="5" rx="0.5" fill="#db5fa0"/>
+                    <rect x="10.5" y="0.5" width="1.5" height="7" rx="0.5" fill="#be4d88"/>
+                </g>
+                <text x="47" y="233" text-anchor="start" font-family="'Syne',sans-serif" font-size="9" font-weight="600" fill="#e0dbd7">Model  +  Harness</text>
+                <!-- Line 2: Harness = [icon Prompt] [icon Tools] [icon Memory] -->
+                <text x="-11" y="251" text-anchor="start" font-family="'IBM Plex Sans',sans-serif" font-size="7.5" fill="rgba(240,235,231,0.5)">Harness =</text>
+                <!-- Prompt icon (document) -->
+                <g transform="translate(34,242)">
+                    <rect x="0" y="0" width="8" height="10" rx="1" fill="#7eb3cf" opacity="0.75"/>
+                    <line x1="1.5" y1="3.5" x2="6.5" y2="3.5" stroke="white" stroke-width="0.9" stroke-linecap="round"/>
+                    <line x1="1.5" y1="6" x2="6.5" y2="6" stroke="white" stroke-width="0.9" stroke-linecap="round"/>
+                    <line x1="1.5" y1="8.5" x2="5" y2="8.5" stroke="white" stroke-width="0.9" stroke-linecap="round"/>
+                </g>
+                <text x="45" y="251" text-anchor="start" font-family="'IBM Plex Sans',sans-serif" font-size="7.5" fill="#7eb3cf">Prompt</text>
+                <!-- Tools icon (wrench) -->
+                <g transform="translate(82,242)">
+                    <path d="M8 1 C5 0 2 2 3 5 L0 9 C-1 10 0 11 1 10 L4 7 C7 8 10 6 9 3 L7 4.5 L5.5 3 Z" fill="#6ecf80" opacity="0.8"/>
+                </g>
+                <text x="94" y="251" text-anchor="start" font-family="'IBM Plex Sans',sans-serif" font-size="7.5" fill="#6ecf80">Tools</text>
+                <!-- Memory icon (database) -->
+                <g transform="translate(121,242)">
+                    <ellipse cx="4" cy="2" rx="4" ry="2" fill="#e8a87c" opacity="0.8"/>
+                    <rect x="0" y="2" width="8" height="6" fill="#e8a87c" opacity="0.55"/>
+                    <ellipse cx="4" cy="8" rx="4" ry="2" fill="#e8a87c" opacity="0.8"/>
+                    <ellipse cx="4" cy="5" rx="4" ry="2" fill="none" stroke="#c4724a" stroke-width="0.7" opacity="0.5"/>
+                </g>
+                <text x="132" y="251" text-anchor="start" font-family="'IBM Plex Sans',sans-serif" font-size="7.5" fill="#e8a87c">Memory</text>
+
+                <!-- ===== ENVIRONMENT (globe) ===== -->
+                <g transform="translate(454,122)">
+                    <circle cx="0" cy="0" r="54" fill="#5C85A8"/>
+                    <path d="M-18,22 C-12,32 -2,28 0,22 C2,14 -8,10 -14,10 C-20,10 -22,16 -18,22Z" fill="#7BA656"/>
+                    <path d="M10,26 C16,30 22,26 24,18 C24,12 18,10 12,14 C8,18 8,22 10,26Z" fill="#7BA656"/>
+                    <path d="M14,4 C20,8 26,2 26,-6 C26,-14 20,-20 14,-18 C8,-14 6,-4 10,2Z" fill="#7BA656"/>
+                    <path d="M-26,2 C-20,8 -14,4 -12,-4 C-10,-12 -16,-18 -22,-16 C-28,-14 -30,-4 -26,2Z" fill="#7BA656"/>
+                    <path d="M26,-14 C32,-10 36,-18 34,-24 C30,-26 26,-22 26,-14Z" fill="#7BA656"/>
+                    <ellipse cx="0" cy="0" rx="25" ry="54" fill="none" stroke="white" stroke-width="0.5" opacity="0.25"/>
+                    <ellipse cx="0" cy="0" rx="44" ry="54" fill="none" stroke="white" stroke-width="0.4" opacity="0.2"/>
+                    <line x1="-54" y1="0" x2="54" y2="0" stroke="white" stroke-width="0.5" opacity="0.25"/>
+                    <path d="M-50,22 Q0,16 50,22" fill="none" stroke="white" stroke-width="0.4" opacity="0.2"/>
+                    <path d="M-50,-22 Q0,-16 50,-22" fill="none" stroke="white" stroke-width="0.4" opacity="0.2"/>
+                    <circle cx="0" cy="0" r="54" fill="none" stroke="#e0dbd7" stroke-width="2"/>
+                </g>
+                <text x="454" y="46" text-anchor="middle" font-family="'Syne',sans-serif" font-size="15" font-weight="700" fill="#e0dbd7" letter-spacing="1.5">ENVIRONMENT</text>
+
+                <!-- ===== TOP ARROW ===== -->
+                <path d="M132,95 C195,20 325,20 388,95" fill="none" stroke="#e8a87c" stroke-width="1.8" marker-end="url(#rl-arr-c)"/>
+                <text x="260" y="16" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-size="11" fill="#aaaaaa">
+                    <tspan>- State </tspan><tspan font-style="italic">s</tspan><tspan> &#x2208; </tspan><tspan font-style="italic">S</tspan>
+                </text>
+                <text x="260" y="32" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-size="11" fill="#aaaaaa">
+                    <tspan>- Take action </tspan><tspan font-style="italic">a</tspan><tspan> &#x2208; </tspan><tspan font-style="italic">A</tspan>
+                </text>
+
+                <!-- ===== BOTTOM ARROW ===== -->
+                <path d="M388,160 C325,235 195,235 132,160" fill="none" stroke="#e8a87c" stroke-width="1.8" marker-end="url(#rl-arr-c)"/>
+                <text x="260" y="244" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-size="11" fill="#aaaaaa">
+                    <tspan>- Get reward </tspan><tspan font-style="italic">r</tspan>
+                </text>
+                <text x="260" y="260" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-size="11" fill="#aaaaaa">
+                    <tspan>- New state </tspan><tspan font-style="italic">s&#x2032;</tspan><tspan> &#x2208; </tspan><tspan font-style="italic">S</tspan>
+                </text>
+            </svg>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 7 — LEARNING FROM EXPERIENCE (COPY 2 — with agent annotation)
+     ═══════════════════════════════════════════════════ -->
+<section class="slide bg-warm" data-slide="5">
+    <span class="slide-num">05</span>
+    <svg class="logo-corner" viewBox="0 0 900 1400" fill="none"><path d="M700 450C700 588.071 588.071 700 450 700C311.929 700 200 588.071 200 450H700ZM450 0C509.095 0 567.611 11.6393 622.208 34.2539C676.804 56.8685 726.412 90.0155 768.198 131.802C809.985 173.588 843.131 223.196 865.746 277.792C888.361 332.389 900 390.905 900 450H700C700 311.929 588.071 200 450 200C311.929 200 200 311.929 200 450H0C0 390.905 11.6394 332.389 34.2539 277.793C56.8685 223.196 90.0154 173.588 131.802 131.802C173.588 90.0155 223.196 56.8685 277.792 34.2539C332.389 11.6393 390.905 0 450 0Z" fill="#E8E8E8"/><path d="M200 950C200 811.929 311.929 700 450 700C588.071 700 700 811.929 700 950H200ZM450 1400C390.905 1400 332.389 1388.36 277.792 1365.75C223.196 1343.13 173.588 1309.98 131.802 1268.2C90.0155 1226.41 56.8685 1176.8 34.2539 1122.21C11.6393 1067.61 0 1009.09 0 950H200C200 1088.07 311.929 1200 450 1200C588.071 1200 700 1088.07 700 950H900C900 1009.09 888.361 1067.61 865.746 1122.21C843.131 1176.8 809.985 1226.41 768.198 1268.2C726.412 1309.98 676.804 1343.13 622.208 1365.75C567.611 1388.36 509.095 1400 450 1400Z" fill="#E8E8E8"/></svg>
+    <div class="slide-content" style="gap: var(--element-gap);">
+        <h2 class="reveal">How Agents Learn from Experience</h2>
+        <div class="reveal" style="width:100%;max-width:min(90vw,800px);display:flex;justify-content:center;">
+            <svg viewBox="-25 0 585 295" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;max-height:min(48vh,360px);">
+                <defs>
+                    <marker id="rl-arr-c2" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                        <path d="M0,0.5 L7,3 L0,5.5" fill="#e8a87c"/>
+                    </marker>
+                </defs>
+
+                <!-- ===== AGENT (cute robot) ===== -->
+                <g transform="translate(78,135)" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M-34,5 L-34,-14 C-34,-50 34,-50 34,-14 L34,5 Z" fill="none" stroke="#d8d4d0" stroke-width="2.5"/>
+                    <line x1="0" y1="-44" x2="0" y2="-60" stroke="#d8d4d0" stroke-width="2"/>
+                    <circle cx="0" cy="-64" r="4.5" fill="#e8a87c"/>
+                    <circle cx="0" cy="-64" r="9" fill="#e8a87c" opacity="0.08"/>
+                    <circle cx="-14" cy="-16" r="10" fill="none" stroke="#d8d4d0" stroke-width="2"/>
+                    <circle cx="-14" cy="-16" r="4.5" fill="#e8a87c"/>
+                    <circle cx="-17" cy="-19.5" r="2" fill="white" opacity="0.85"/>
+                    <circle cx="-11.5" cy="-14" r="0.9" fill="white" opacity="0.5"/>
+                    <circle cx="14" cy="-16" r="10" fill="none" stroke="#d8d4d0" stroke-width="2"/>
+                    <circle cx="14" cy="-16" r="4.5" fill="#e8a87c"/>
+                    <circle cx="11" cy="-19.5" r="2" fill="white" opacity="0.85"/>
+                    <circle cx="16.5" cy="-14" r="0.9" fill="white" opacity="0.5"/>
+                    <ellipse cx="-27" cy="-4" rx="5.5" ry="3.5" fill="#e8a87c" opacity="0.12"/>
+                    <ellipse cx="27" cy="-4" rx="5.5" ry="3.5" fill="#e8a87c" opacity="0.12"/>
+                    <path d="M-11,-3 Q0,8 11,-3" fill="none" stroke="#d8d4d0" stroke-width="1.8"/>
+                    <rect x="-40" y="-26" width="6" height="16" rx="2.5" fill="none" stroke="#d8d4d0" stroke-width="1.5"/>
+                    <line x1="-37" y1="-22" x2="-37" y2="-14" stroke="#e8a87c" stroke-width="1" opacity="0.45"/>
+                    <rect x="34" y="-26" width="6" height="16" rx="2.5" fill="none" stroke="#d8d4d0" stroke-width="1.5"/>
+                    <line x1="37" y1="-22" x2="37" y2="-14" stroke="#e8a87c" stroke-width="1" opacity="0.45"/>
+                    <rect x="-23" y="10" width="46" height="42" rx="13" fill="none" stroke="#d8d4d0" stroke-width="2.5"/>
+                    <circle cx="0" cy="31" r="6" fill="#e8a87c" opacity="0.1" stroke="#e8a87c" stroke-width="0.8"/>
+                    <line x1="-23" y1="22" x2="-40" y2="6" stroke="#d8d4d0" stroke-width="2"/>
+                    <circle cx="-42" cy="4" r="3.5" fill="#d8d4d0"/>
+                    <line x1="23" y1="26" x2="40" y2="38" stroke="#d8d4d0" stroke-width="2"/>
+                    <circle cx="42" cy="40" r="3.5" fill="#d8d4d0"/>
+                    <line x1="-10" y1="52" x2="-10" y2="66" stroke="#d8d4d0" stroke-width="2"/>
+                    <ellipse cx="-10" cy="69" rx="5" ry="2.5" fill="#d8d4d0"/>
+                    <line x1="10" y1="52" x2="10" y2="66" stroke="#d8d4d0" stroke-width="2"/>
+                    <ellipse cx="10" cy="69" rx="5" ry="2.5" fill="#d8d4d0"/>
+                </g>
+
+                <!-- AGENT label -->
+                <text x="78" y="52" text-anchor="middle" font-family="'Syne',sans-serif" font-size="15" font-weight="700" fill="#e0dbd7" letter-spacing="1.5">AGENT</text>
+
+                <!-- ===== AGENT ANNOTATION ===== -->
+                <line x1="78" y1="207" x2="78" y2="215" stroke="rgba(255,255,255,0.3)" stroke-width="1" stroke-dasharray="2,2"/>
+                <!-- Outer annotation box (centered at agent x=78) -->
+                <rect x="-22" y="215" width="200" height="75" rx="5" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.22)" stroke-width="1"/>
+                <!-- Model inner box -->
+                <rect x="-16" y="221" width="62" height="63" rx="3" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.18)" stroke-width="0.8"/>
+                <!-- Model dumbbell icon (scaled 1.5×, centered in Model box at x=15) -->
+                <g transform="translate(6,239) scale(1.5)">
+                    <rect x="2" y="2.5" width="8" height="3" rx="1" fill="#f472b6"/>
+                    <rect x="1" y="1.5" width="2" height="5" rx="0.5" fill="#db5fa0"/>
+                    <rect x="0" y="0.5" width="1.5" height="7" rx="0.5" fill="#be4d88"/>
+                    <rect x="9" y="1.5" width="2" height="5" rx="0.5" fill="#db5fa0"/>
+                    <rect x="10.5" y="0.5" width="1.5" height="7" rx="0.5" fill="#be4d88"/>
+                </g>
+                <text x="15" y="271" text-anchor="middle" font-family="'Syne',sans-serif" font-size="8" font-weight="600" fill="#e0dbd7">Model</text>
+                <!-- Plus sign between Model and Harness -->
+                <text x="49" y="255" text-anchor="middle" font-family="'Syne',sans-serif" font-size="8" font-weight="400" fill="rgba(240,235,231,0.55)">+</text>
+                <!-- Harness inner box -->
+                <rect x="52" y="221" width="124" height="63" rx="3" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.18)" stroke-width="0.8"/>
+                <!-- Harness label -->
+                <text x="114" y="230" text-anchor="middle" font-family="'Syne',sans-serif" font-size="8" font-weight="600" fill="#e0dbd7">Harness</text>
+                <!-- Prompt mini-box -->
+                <rect x="56" y="233" width="37" height="45" rx="2" fill="rgba(126,179,207,0.06)" stroke="rgba(126,179,207,0.3)" stroke-width="0.7"/>
+                <g transform="translate(71,241)">
+                    <rect x="0" y="0" width="8" height="10" rx="1" fill="#7eb3cf" opacity="0.75"/>
+                    <line x1="1.5" y1="3.5" x2="6.5" y2="3.5" stroke="white" stroke-width="0.9" stroke-linecap="round"/>
+                    <line x1="1.5" y1="6" x2="6.5" y2="6" stroke="white" stroke-width="0.9" stroke-linecap="round"/>
+                    <line x1="1.5" y1="8.5" x2="5" y2="8.5" stroke="white" stroke-width="0.9" stroke-linecap="round"/>
+                </g>
+                <text x="74" y="268" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-size="7" fill="#7eb3cf">Prompt</text>
+                <!-- Tools mini-box -->
+                <rect x="95" y="233" width="37" height="45" rx="2" fill="rgba(110,207,128,0.06)" stroke="rgba(110,207,128,0.3)" stroke-width="0.7"/>
+                <g transform="translate(109,241)">
+                    <path d="M8 1 C5 0 2 2 3 5 L0 9 C-1 10 0 11 1 10 L4 7 C7 8 10 6 9 3 L7 4.5 L5.5 3 Z" fill="#6ecf80" opacity="0.8"/>
+                </g>
+                <text x="113" y="268" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-size="7" fill="#6ecf80">Tools</text>
+                <!-- Memory mini-box -->
+                <rect x="134" y="233" width="38" height="45" rx="2" fill="rgba(232,168,124,0.06)" stroke="rgba(232,168,124,0.3)" stroke-width="0.7"/>
+                <g transform="translate(149,242)">
+                    <ellipse cx="4" cy="2" rx="4" ry="2" fill="#e8a87c" opacity="0.8"/>
+                    <rect x="0" y="2" width="8" height="6" fill="#e8a87c" opacity="0.55"/>
+                    <ellipse cx="4" cy="8" rx="4" ry="2" fill="#e8a87c" opacity="0.8"/>
+                    <ellipse cx="4" cy="5" rx="4" ry="2" fill="none" stroke="#c4724a" stroke-width="0.7" opacity="0.5"/>
+                </g>
+                <text x="153" y="268" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-size="7" fill="#e8a87c">Memory</text>
+
+                <!-- ===== ENVIRONMENT (globe) ===== -->
+                <g transform="translate(454,122)">
+                    <circle cx="0" cy="0" r="54" fill="#5C85A8"/>
+                    <path d="M-18,22 C-12,32 -2,28 0,22 C2,14 -8,10 -14,10 C-20,10 -22,16 -18,22Z" fill="#7BA656"/>
+                    <path d="M10,26 C16,30 22,26 24,18 C24,12 18,10 12,14 C8,18 8,22 10,26Z" fill="#7BA656"/>
+                    <path d="M14,4 C20,8 26,2 26,-6 C26,-14 20,-20 14,-18 C8,-14 6,-4 10,2Z" fill="#7BA656"/>
+                    <path d="M-26,2 C-20,8 -14,4 -12,-4 C-10,-12 -16,-18 -22,-16 C-28,-14 -30,-4 -26,2Z" fill="#7BA656"/>
+                    <path d="M26,-14 C32,-10 36,-18 34,-24 C30,-26 26,-22 26,-14Z" fill="#7BA656"/>
+                    <ellipse cx="0" cy="0" rx="25" ry="54" fill="none" stroke="white" stroke-width="0.5" opacity="0.25"/>
+                    <ellipse cx="0" cy="0" rx="44" ry="54" fill="none" stroke="white" stroke-width="0.4" opacity="0.2"/>
+                    <line x1="-54" y1="0" x2="54" y2="0" stroke="white" stroke-width="0.5" opacity="0.25"/>
+                    <path d="M-50,22 Q0,16 50,22" fill="none" stroke="white" stroke-width="0.4" opacity="0.2"/>
+                    <path d="M-50,-22 Q0,-16 50,-22" fill="none" stroke="white" stroke-width="0.4" opacity="0.2"/>
+                    <circle cx="0" cy="0" r="54" fill="none" stroke="#e0dbd7" stroke-width="2"/>
+                </g>
+                <text x="454" y="46" text-anchor="middle" font-family="'Syne',sans-serif" font-size="15" font-weight="700" fill="#e0dbd7" letter-spacing="1.5">ENVIRONMENT</text>
+
+                <!-- ===== TOP ARROW ===== -->
+                <path d="M132,95 C195,20 325,20 388,95" fill="none" stroke="#e8a87c" stroke-width="1.8" marker-end="url(#rl-arr-c2)"/>
+                <text x="260" y="16" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-size="11" fill="#aaaaaa">
+                    <tspan>- State </tspan><tspan font-style="italic">s</tspan><tspan> &#x2208; </tspan><tspan font-style="italic">S</tspan>
+                </text>
+                <text x="260" y="32" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-size="11" fill="#aaaaaa">
+                    <tspan>- Take action </tspan><tspan font-style="italic">a</tspan><tspan> &#x2208; </tspan><tspan font-style="italic">A</tspan>
+                </text>
+
+                <!-- ===== BOTTOM ARROW ===== -->
+                <path d="M388,160 C325,235 195,235 132,160" fill="none" stroke="#e8a87c" stroke-width="1.8" marker-end="url(#rl-arr-c2)"/>
+                <text x="260" y="244" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-size="11" fill="#aaaaaa">
+                    <tspan>- Get reward </tspan><tspan font-style="italic">r</tspan>
+                </text>
+                <text x="260" y="260" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-size="11" fill="#aaaaaa">
+                    <tspan>- New state </tspan><tspan font-style="italic">s&#x2032;</tspan><tspan> &#x2208; </tspan><tspan font-style="italic">S</tspan>
+                </text>
+            </svg>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 8 — LEARNING FLYWHEEL
      ═══════════════════════════════════════════════════ -->
 <section class="slide bg-deep" data-slide="5">
     <span class="slide-num">05</span>
@@ -1148,7 +1437,7 @@
         <div class="milestones">
             <div class="ms-row reveal"><div class="ms-badge">Month 1</div><div class="ms-text">Launch 2 paid design partnerships. First hire (researcher/engineer). Close first US enterprise LOI.</div></div>
             <div class="ms-row reveal"><div class="ms-badge">Month 3</div><div class="ms-text">2-3 active partnerships generating revenue. Multi-step agent training pipeline live. ICML results published.</div></div>
-            <div class="ms-row reveal"><div class="ms-badge">Month 6</div><div class="ms-text">2 US pilot partners. Continuous improvement platform with HITL. First joint venture. Pre-seed round closed. Demo Day.</div></div>
+            <div class="ms-row reveal"><div class="ms-badge">Month 6</div><div class="ms-text">+2 US pilot partners. Continuous improvement platform with HITL. First joint venture. Pre-seed round closed. Demo Day.</div></div>
         </div>
     </div>
 </section>
@@ -1160,7 +1449,7 @@
     <span class="slide-num">10</span>
     <svg class="logo-corner" viewBox="0 0 900 1400" fill="none"><path d="M700 450C700 588.071 588.071 700 450 700C311.929 700 200 588.071 200 450H700ZM450 0C509.095 0 567.611 11.6393 622.208 34.2539C676.804 56.8685 726.412 90.0155 768.198 131.802C809.985 173.588 843.131 223.196 865.746 277.792C888.361 332.389 900 390.905 900 450H700C700 311.929 588.071 200 450 200C311.929 200 200 311.929 200 450H0C0 390.905 11.6394 332.389 34.2539 277.793C56.8685 223.196 90.0154 173.588 131.802 131.802C173.588 90.0155 223.196 56.8685 277.792 34.2539C332.389 11.6393 390.905 0 450 0Z" fill="#E8E8E8"/><path d="M200 950C200 811.929 311.929 700 450 700C588.071 700 700 811.929 700 950H200ZM450 1400C390.905 1400 332.389 1388.36 277.792 1365.75C223.196 1343.13 173.588 1309.98 131.802 1268.2C90.0155 1226.41 56.8685 1176.8 34.2539 1122.21C11.6393 1067.61 0 1009.09 0 950H200C200 1088.07 311.929 1200 450 1200C588.071 1200 700 1088.07 700 950H900C900 1009.09 888.361 1067.61 865.746 1122.21C843.131 1176.8 809.985 1226.41 768.198 1268.2C726.412 1309.98 676.804 1343.13 622.208 1365.75C567.611 1388.36 509.095 1400 450 1400Z" fill="#E8E8E8"/></svg>
     <div class="slide-content" style="gap: var(--content-gap);">
-        <h2 class="reveal">Orchestrate the Future Together</h2>
+        <h2 class="reveal">Enabling Learning by Experience</h2>
         <div class="team-grid">
             <div class="team-member reveal-scale">
                 <img class="founder-photo" src="../ressources/pictures/Robert.jpg" alt="Founder — AI Research">
@@ -1184,7 +1473,7 @@
                 <h3>Founder</h3>
                 <span class="role">Operations &amp; Strategy</span>
                 <ul>
-                    <li>Design &amp; implementation of $2.6B national-scale crisis management</li>
+                    <li>Design &amp; implementation of $3.3B national-scale crisis management</li>
                     <li>Cross-sector coordination across disciplines &amp; government levels</li>
                     <li>Generative AI in Public Health, Medicine &amp; Climate</li>
                 </ul>
@@ -1202,6 +1491,7 @@
                     <li>Cloud deployment of custom RAG agents</li>
                 </ul>
                 <div class="logo-grid" style="margin-top:var(--element-gap);">
+                    <img src="../ressources/pictures/TUM.png" alt="TU Munich">
                     <img src="../ressources/pictures/BMW.jpg" alt="BMW Group">
                     <img src="../ressources/pictures/LS&amp;Co.jpg" alt="Levi Strauss">
                 </div>
@@ -1224,7 +1514,7 @@
             <div class="ask-item reveal-scale"><h3 style="color:var(--accent-warm);">$200K Investment</h3><p>Fund two hires (researcher + engineer) and compute for enterprise pilots.</p></div>
         </div>
         <div class="highlight-box reveal">
-            <p><strong>Target:</strong> 2-3 paying design partnerships by Month 3. Pre-seed closed by Demo Day. Series A by Q1 2027.</p>
+            <p><strong>Target:</strong> 2-3 paying design partnerships by Month 3. Pre-seed closed by Demo Day. Series A by Q2 2027.</p>
         </div>
     </div>
 </section>
