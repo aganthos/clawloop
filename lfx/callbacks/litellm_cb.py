@@ -108,10 +108,17 @@ class LfxCallback:
         # Build input Message objects (including tool_calls from prior turns)
         ep_messages: list[Message] = []
         for m in input_messages:
+            raw_content = m.get("content")
+            if raw_content is None:
+                content = ""
+            elif isinstance(raw_content, str):
+                content = raw_content
+            else:
+                content = str(raw_content)  # list/dict (vision) → string
             ep_messages.append(
                 Message(
                     role=m.get("role", "user"),
-                    content=m.get("content", "") if isinstance(m.get("content"), str) else str(m.get("content", "")),
+                    content=content,
                     name=m.get("name"),
                     tool_calls=parse_tool_calls(m.get("tool_calls")),
                     tool_call_id=m.get("tool_call_id"),

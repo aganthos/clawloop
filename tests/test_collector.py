@@ -305,6 +305,14 @@ class TestIngestExternal:
         )
         assert len(batches) == 1
 
+    def test_empty_messages_no_step_mismatch(self) -> None:
+        """Ingesting empty messages should produce empty steps and step_boundaries."""
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        ep = collector.ingest([], task_id="t1", session_id="s1")
+        assert ep.messages == []
+        assert ep.step_boundaries == []
+        assert ep.steps == []
+
     def test_external_episodes_get_reward_pipeline(self) -> None:
         from lfx.extractors.execution import ExecutionExtractor
         collector = EpisodeCollector(

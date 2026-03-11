@@ -185,12 +185,17 @@ class SkyRLExporter(TraceExporter):
                     # tool-result tokens are masked out
                     l_mask.extend([0] * len(tokens))
 
-            # Collect logprobs from assistant messages in this step
+            # Collect logprobs from assistant messages in this step.
+            # Only usable when logprobs cover ALL response tokens (len matches
+            # response_ids); otherwise set to None to avoid SkyRL assertion.
             step_lps: list[float] = []
             for msg in episode.messages[resp_start:step_end]:
                 if msg.role == "assistant" and msg.logprobs:
                     step_lps.extend(lp.logprob for lp in msg.logprobs)
-            rollout_logprobs.append(step_lps if step_lps else None)
+            if step_lps and len(step_lps) == len(r_ids):
+                rollout_logprobs.append(step_lps)
+            else:
+                rollout_logprobs.append(None)
 
             prompt_token_ids.append(list(p_ids))
             response_ids.append(r_ids)

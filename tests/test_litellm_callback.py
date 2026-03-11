@@ -217,6 +217,27 @@ class TestLfxCallbackBasic:
         )
         assert collector.metrics["episodes_collected"] == 0
 
+    def test_none_content_not_stringified(self) -> None:
+        """Messages with content=None (e.g. tool-call-only) must become '' not 'None'."""
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        cb = LfxCallback(collector=collector)
+        kwargs = {
+            "messages": [
+                {"role": "user", "content": "call search"},
+                {"role": "assistant", "content": None, "tool_calls": [
+                    {"id": "tc-1", "type": "function",
+                     "function": {"name": "search", "arguments": '{"q":"x"}'}},
+                ]},
+                {"role": "tool", "content": "found x", "tool_call_id": "tc-1"},
+            ],
+        }
+        response = _make_mock_response(content="Here is x")
+        cb.log_success_event(kwargs, response, time.time(), time.time())
+        ep = list(collector._episode_index.values())[0]
+        asst_input = [m for m in ep.messages if m.role == "assistant"][0]
+        assert asst_input.content == ""
+        assert asst_input.content != "None"
+
     def test_log_failure_is_noop(self) -> None:
         collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
         cb = LfxCallback(collector=collector)

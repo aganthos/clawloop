@@ -94,7 +94,7 @@ class EpisodeCollector:
                     done=True,
                     timing_ms=timing_ms or 0.0,
                 )
-            ],
+            ] if messages else [],
             summary=EpisodeSummary(
                 token_usage=usage,
                 timing=Timing(total_ms=timing_ms or 0.0) if timing_ms else None,
