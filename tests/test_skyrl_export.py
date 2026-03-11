@@ -217,7 +217,12 @@ class TestTrajectoryID:
 class TestSkyRLLogprobs:
     def test_rollout_logprobs_populated(self) -> None:
         """When assistant messages have logprobs, they flow into rollout_logprobs."""
-        lps = [TokenLogProb(token="Done", logprob=-0.2), TokenLogProb(token=" step", logprob=-0.5)]
+        # FakeTokenizer splits on whitespace: "Done step 0" → 3 tokens
+        lps = [
+            TokenLogProb(token="Done", logprob=-0.2),
+            TokenLogProb(token="step", logprob=-0.5),
+            TokenLogProb(token="0", logprob=-0.1),
+        ]
         messages = [
             Message(role="system", content="You are helpful."),
             Message(role="user", content="Do step 0"),
@@ -237,7 +242,7 @@ class TestSkyRLLogprobs:
         result = exporter.export([ep])
         assert result["rollout_logprobs"] is not None
         assert len(result["rollout_logprobs"]) == 1
-        assert result["rollout_logprobs"][0] == [-0.2, -0.5]
+        assert result["rollout_logprobs"][0] == [-0.2, -0.5, -0.1]
 
     def test_rollout_logprobs_none_when_no_logprobs(self) -> None:
         """When no messages have logprobs, rollout_logprobs is None (not a list of Nones).
@@ -278,3 +283,28 @@ class TestSkyRLLogprobs:
         result = exporter.export([ep])
         assert result["rollout_logprobs"][0] == [-0.1]
         assert result["rollout_logprobs"][1] == [-0.3]
+
+    def test_rollout_logprobs_dropped_when_tool_messages_present(self) -> None:
+        """When tool messages add response tokens, logprobs can't align — step gets None."""
+        lps = [TokenLogProb(token="A", logprob=-0.2)]
+        messages = [
+            Message(role="user", content="Do something"),
+            # Assistant with logprobs + tool call response in same step
+            Message(role="assistant", content="A", logprobs=lps),
+            Message(role="tool", content="tool result"),
+        ]
+        ep = Episode(
+            id="ep-tool",
+            state_id="s",
+            task_id="t",
+            bench="test",
+            messages=messages,
+            step_boundaries=[1],
+            steps=[StepMeta(t=0, reward=1.0, done=True, timing_ms=10.0)],
+            summary=EpisodeSummary(total_reward=1.0),
+        )
+        exporter = SkyRLExporter(tokenizer=FakeTokenizer())
+        result = exporter.export([ep])
+        # Logprobs cover 1 token (assistant) but response_ids has 2+ (assistant + tool)
+        # So this step's logprobs must be None
+        assert result["rollout_logprobs"] is None
