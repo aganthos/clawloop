@@ -52,6 +52,18 @@ the episode already has a high-confidence signal.
     def __init__(self, extractors: list[RewardExtractor]) -> None:
         self.extractors = extractors
 
+    @classmethod
+    def with_defaults(cls) -> RewardPipeline:
+        """Create a pipeline with default extractors (Execution + UserFeedback).
+
+        OutcomeExtractor (needs env) and Judge (costs tokens) stay opt-in.
+        Uses local imports to avoid circular dependencies.
+        """
+        from lfx.extractors.execution import ExecutionExtractor
+        from lfx.extractors.user_feedback import UserFeedbackExtractor
+
+        return cls([ExecutionExtractor(), UserFeedbackExtractor()])
+
     def enrich(self, episode: Episode) -> None:
         for ext in self.extractors:
             if ext.name == "judge" and not episode.summary.needs_judge():
