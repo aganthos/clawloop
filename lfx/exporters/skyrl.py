@@ -70,6 +70,7 @@ class SkyRLExporter(TraceExporter):
         loss_masks: list[list[int]] = []
         trajectory_ids: list[TrajectoryID] = []
         is_last_step: list[bool] = []
+        rollout_logprobs: list[list[float] | None] = []
 
         rep_idx = 0
         for ep in episodes:
@@ -83,6 +84,7 @@ class SkyRLExporter(TraceExporter):
             loss_masks.extend(result["loss_masks"])
             trajectory_ids.extend(result["trajectory_ids"])
             is_last_step.extend(result["is_last_step"])
+            rollout_logprobs.extend(result["rollout_logprobs"])
 
         return {
             "prompt_token_ids": prompt_token_ids,
@@ -91,7 +93,7 @@ class SkyRLExporter(TraceExporter):
             "loss_masks": loss_masks,
             "stop_reasons": None,
             "rollout_metrics": None,
-            "rollout_logprobs": None,
+            "rollout_logprobs": rollout_logprobs,
             "trajectory_ids": trajectory_ids,
             "is_last_step": is_last_step,
         }
@@ -116,6 +118,7 @@ class SkyRLExporter(TraceExporter):
         loss_masks: list[list[int]] = []
         trajectory_ids: list[TrajectoryID] = []
         is_last_step_flags: list[bool] = []
+        rollout_logprobs: list[list[float] | None] = []
 
         n_steps = len(episode.steps)
 
@@ -182,6 +185,13 @@ class SkyRLExporter(TraceExporter):
                     # tool-result tokens are masked out
                     l_mask.extend([0] * len(tokens))
 
+            # Collect logprobs from assistant messages in this step
+            step_lps: list[float] = []
+            for msg in episode.messages[resp_start:step_end]:
+                if msg.role == "assistant" and msg.logprobs:
+                    step_lps.extend(lp.logprob for lp in msg.logprobs)
+            rollout_logprobs.append(step_lps if step_lps else None)
+
             prompt_token_ids.append(list(p_ids))
             response_ids.append(r_ids)
             loss_masks.append(l_mask)
@@ -202,4 +212,5 @@ class SkyRLExporter(TraceExporter):
             "loss_masks": loss_masks,
             "trajectory_ids": trajectory_ids,
             "is_last_step": is_last_step_flags,
+            "rollout_logprobs": rollout_logprobs,
         }
