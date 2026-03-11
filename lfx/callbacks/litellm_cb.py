@@ -17,12 +17,12 @@ Usage::
 
 from __future__ import annotations
 
-import hashlib
 import logging
 from typing import Any
 
 from lfx.collector import EpisodeCollector
-from lfx.core.episode import Message, TokenLogProb, TokenUsage, ToolCall
+from lfx.core.episode import Message, TokenLogProb, TokenUsage, ToolCall, cap_logprobs
+from lfx.core.parse import parse_tool_calls, _safe_session_hash
 
 log = logging.getLogger(__name__)
 
@@ -46,8 +46,8 @@ class LfxCallback:
         self,
         kwargs: dict[str, Any],
         response_obj: Any,
-        start_time: float,
-        end_time: float,
+        start_time: Any,
+        end_time: Any,
     ) -> None:
         """Called by litellm after a successful completion."""
         try:
@@ -59,8 +59,8 @@ class LfxCallback:
         self,
         kwargs: dict[str, Any],
         response_obj: Any,
-        start_time: float,
-        end_time: float,
+        start_time: Any,
+        end_time: Any,
         exception: Exception | None = None,
     ) -> None:
         """Called by litellm after a failed completion. Currently a no-op."""
@@ -70,8 +70,8 @@ class LfxCallback:
         self,
         kwargs: dict[str, Any],
         response_obj: Any,
-        start_time: float,
-        end_time: float,
+        start_time: Any,
+        end_time: Any,
     ) -> None:
         """Async variant — delegates to sync."""
         self.log_success_event(kwargs, response_obj, start_time, end_time)
@@ -80,8 +80,8 @@ class LfxCallback:
         self,
         kwargs: dict[str, Any],
         response_obj: Any,
-        start_time: float,
-        end_time: float,
+        start_time: Any,
+        end_time: Any,
         exception: Exception | None = None,
     ) -> None:
         """Async variant — delegates to sync."""
@@ -93,8 +93,8 @@ class LfxCallback:
         self,
         kwargs: dict[str, Any],
         response_obj: Any,
-        start_time: float,
-        end_time: float,
+        start_time: Any,
+        end_time: Any,
     ) -> None:
         """Extract messages and metadata from litellm response."""
         input_messages = kwargs.get("messages", [])
@@ -105,14 +105,15 @@ class LfxCallback:
         text = choice.message.content or ""
         model = getattr(response_obj, "model", kwargs.get("model"))
 
-        # Build input Message objects
+        # Build input Message objects (including tool_calls from prior turns)
         ep_messages: list[Message] = []
         for m in input_messages:
             ep_messages.append(
                 Message(
                     role=m.get("role", "user"),
-                    content=m.get("content", ""),
+                    content=m.get("content", "") if isinstance(m.get("content"), str) else str(m.get("content", "")),
                     name=m.get("name"),
+                    tool_calls=parse_tool_calls(m.get("tool_calls")),
                     tool_call_id=m.get("tool_call_id"),
                 )
             )
@@ -130,18 +131,18 @@ class LfxCallback:
                 for tc in raw_tc
             ]
 
-        # Extract logprobs
+        # Extract logprobs (with cap)
         logprobs = None
         raw_logprobs = getattr(choice, "logprobs", None)
         if raw_logprobs and hasattr(raw_logprobs, "content") and raw_logprobs.content:
-            logprobs = [
+            logprobs = cap_logprobs([
                 TokenLogProb(
                     token=lp.token,
                     token_id=getattr(lp, "token_id", None),
                     logprob=lp.logprob,
                 )
                 for lp in raw_logprobs.content
-            ]
+            ])
 
         # Build assistant message
         ep_messages.append(
@@ -151,7 +152,6 @@ class LfxCallback:
                 model=model,
                 tool_calls=tool_calls,
                 logprobs=logprobs,
-                timestamp=end_time,
             )
         )
 
@@ -165,8 +165,11 @@ class LfxCallback:
                 total_tokens=getattr(raw_usage, "total_tokens", 0),
             )
 
-        # Timing
-        timing_ms = (end_time - start_time) * 1000
+        # Timing — litellm passes datetime objects, not floats
+        if hasattr(start_time, "timestamp"):
+            timing_ms = (end_time.timestamp() - start_time.timestamp()) * 1000
+        else:
+            timing_ms = (end_time - start_time) * 1000
 
         # Session ID from metadata or hash of first user message
         metadata = kwargs.get("metadata", {}) or {}
@@ -174,8 +177,7 @@ class LfxCallback:
         if not session_id:
             for m in input_messages:
                 if m.get("role") == "user":
-                    content = m.get("content", "")
-                    session_id = hashlib.sha256(content.encode()).hexdigest()[:16]
+                    session_id = _safe_session_hash(m.get("content", ""))
                     break
 
         self.collector.ingest(

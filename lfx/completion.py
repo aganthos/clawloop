@@ -20,11 +20,19 @@ class CompletionResult:
 
     Carries the generated text plus all available metadata.
     String-compatible: ``str()``, ``==``, ``hash()``, ``len()``,
-    ``in``, and f-string formatting all delegate to ``.text``.
+    ``in``, ``+``, and f-string formatting all delegate to ``.text``.
 
     **Equality and hashing are text-only by design.** Two results with
     the same text but different metadata (model, logprobs, etc.) are
     considered equal. Metadata is auxiliary, not identity.
+
+    **Not a real str.** ``isinstance(result, str)`` returns ``False``.
+    Methods like ``.startswith()``, ``.split()``, ``re.search()`` require
+    ``str(result)`` or ``result.text``. Use those when you need a real str.
+
+    **raw_response is ephemeral.** It holds the provider's raw response
+    object for immediate inspection but should not be persisted — it can
+    pin large objects in memory.
     """
 
     text: str
@@ -61,6 +69,12 @@ class CompletionResult:
 
     def __len__(self) -> int:
         return len(self.text)
+
+    def __add__(self, other: str) -> str:
+        return self.text + other
+
+    def __radd__(self, other: str) -> str:
+        return other + self.text
 
     def __format__(self, format_spec: str) -> str:
         return format(self.text, format_spec)

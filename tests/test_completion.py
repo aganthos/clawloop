@@ -76,3 +76,11 @@ class TestCompletionResultStringCompat:
     def test_format_string(self) -> None:
         r = CompletionResult(text="answer")
         assert f"The {r}" == "The answer"
+
+    def test_add_string(self) -> None:
+        r = CompletionResult(text="hello")
+        assert r + " world" == "hello world"
+
+    def test_radd_string(self) -> None:
+        r = CompletionResult(text="world")
+        assert "hello " + r == "hello world"

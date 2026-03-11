@@ -2,31 +2,14 @@
 
 from __future__ import annotations
 
-import hashlib
 import time
 from typing import Any
 from uuid import uuid4
 
 from lfx.collector import EpisodeCollector
 from lfx.completion import CompletionResult
-from lfx.core.episode import Message, ToolCall
-
-
-def _parse_tool_calls(raw: list[dict[str, Any]] | None) -> list[ToolCall] | None:
-    """Convert OpenAI-format tool_call dicts to ToolCall objects."""
-    if not raw:
-        return None
-    result = []
-    for tc in raw:
-        fn = tc.get("function", {})
-        result.append(
-            ToolCall(
-                id=tc.get("id", ""),
-                name=fn.get("name", "") if isinstance(fn, dict) else "",
-                arguments=fn.get("arguments", "{}") if isinstance(fn, dict) else "{}",
-            )
-        )
-    return result
+from lfx.core.episode import Message
+from lfx.core.parse import parse_tool_calls, _safe_session_hash
 
 
 class WrappedClient:
@@ -71,7 +54,7 @@ class WrappedClient:
                     role=m.get("role", "user"),
                     content=m.get("content", ""),
                     name=m.get("name"),
-                    tool_calls=_parse_tool_calls(m.get("tool_calls")),
+                    tool_calls=parse_tool_calls(m.get("tool_calls")),
                     tool_call_id=m.get("tool_call_id"),
                 )
             )
@@ -95,8 +78,7 @@ class WrappedClient:
         session_id = ""
         for m in messages:
             if m.get("role") == "user":
-                content = m.get("content", "")
-                session_id = hashlib.sha256(content.encode()).hexdigest()[:16]
+                session_id = _safe_session_hash(m.get("content", ""))
                 break
 
         self._collector.ingest(

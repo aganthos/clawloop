@@ -15,46 +15,13 @@ from lfx.core.episode import (
     Message,
     StepMeta,
     Timing,
-    TokenLogProb,
     TokenUsage,
-    ToolCall,
 )
+from lfx.core.parse import parse_logprobs, parse_tool_calls
 from lfx.core.reward import RewardPipeline, RewardSignal
 from lfx.extractors.formatting import FormattingFilter
 
 log = logging.getLogger(__name__)
-
-
-def _parse_tool_calls(raw: list[dict[str, Any]] | None) -> list[ToolCall] | None:
-    """Convert OpenAI-format tool_call dicts to ToolCall objects."""
-    if not raw:
-        return None
-    result = []
-    for tc in raw:
-        fn = tc.get("function", {})
-        result.append(
-            ToolCall(
-                id=tc.get("id", ""),
-                name=fn.get("name", "") if isinstance(fn, dict) else "",
-                arguments=fn.get("arguments", "{}") if isinstance(fn, dict) else "{}",
-            )
-        )
-    return result
-
-
-def _parse_logprobs(raw: list[dict[str, Any]] | None) -> list[TokenLogProb] | None:
-    """Convert logprob dicts to TokenLogProb objects."""
-    if not raw:
-        return None
-    return [
-        TokenLogProb(
-            token=lp.get("token", ""),
-            token_id=lp.get("token_id"),
-            logprob=lp.get("logprob", 0.0),
-            top_logprobs=lp.get("top_logprobs"),
-        )
-        for lp in raw
-    ]
 
 
 class EpisodeCollector:
@@ -195,27 +162,31 @@ class EpisodeCollector:
         usage:
             Token counts: ``{"prompt_tokens": N, "completion_tokens": N, "total_tokens": N}``.
         """
+        # Find last assistant index for response_logprobs attachment
+        last_assistant_idx = -1
+        if response_logprobs:
+            for i in range(len(messages) - 1, -1, -1):
+                if messages[i].get("role") == "assistant":
+                    last_assistant_idx = i
+                    break
+
         ep_messages: list[Message] = []
-        for m in messages:
-            msg_logprobs = _parse_logprobs(m.get("logprobs"))
+        for i, m in enumerate(messages):
+            msg_logprobs = parse_logprobs(m.get("logprobs"))
+            # Attach response_logprobs at construction (no post-mutation)
+            if i == last_assistant_idx and response_logprobs and not msg_logprobs:
+                msg_logprobs = parse_logprobs(response_logprobs)
             ep_messages.append(
                 Message(
                     role=m.get("role", "user"),
                     content=m.get("content", ""),
                     name=m.get("name"),
-                    tool_calls=_parse_tool_calls(m.get("tool_calls")),
+                    tool_calls=parse_tool_calls(m.get("tool_calls")),
                     tool_call_id=m.get("tool_call_id"),
                     model=m.get("model"),
                     logprobs=msg_logprobs,
                 )
             )
-
-        # Attach response_logprobs to last assistant message
-        if response_logprobs:
-            for msg in reversed(ep_messages):
-                if msg.role == "assistant":
-                    msg.logprobs = _parse_logprobs(response_logprobs)
-                    break
 
         token_usage = None
         if usage:
