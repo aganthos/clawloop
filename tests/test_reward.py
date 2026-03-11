@@ -334,3 +334,19 @@ class TestRewardPipeline:
         pipeline.enrich(ep)
         assert len(ep.summary.signals) == 2
         assert ep.summary.effective_reward() == pytest.approx(0.9)
+
+
+class TestRewardPipelineWithDefaults:
+    def test_with_defaults_includes_execution_and_user_feedback(self) -> None:
+        pipeline = RewardPipeline.with_defaults()
+        names = [ext.name for ext in pipeline.extractors]
+        assert "execution" in names
+        assert "user" in names
+
+    def test_with_defaults_has_two_extractors(self) -> None:
+        pipeline = RewardPipeline.with_defaults()
+        assert len(pipeline.extractors) == 2
+
+    def test_empty_pipeline_stays_empty(self) -> None:
+        pipeline = RewardPipeline([])
+        assert len(pipeline.extractors) == 0
