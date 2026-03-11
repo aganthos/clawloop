@@ -1,0 +1,155 @@
+"""Tests for LfxCallback — litellm integration for Mode B capture."""
+
+from __future__ import annotations
+
+import time
+from unittest.mock import MagicMock
+
+from lfx.callbacks.litellm_cb import LfxCallback
+from lfx.collector import EpisodeCollector
+from lfx.core.reward import RewardPipeline
+
+
+def _make_mock_response(
+    content: str = "Hello",
+    model: str = "gpt-4o",
+    prompt_tokens: int = 10,
+    completion_tokens: int = 5,
+    tool_calls: list | None = None,
+    logprobs_content: list | None = None,
+) -> MagicMock:
+    """Build a mock litellm ModelResponse."""
+    response = MagicMock()
+    response.model = model
+
+    choice = MagicMock()
+    choice.message.content = content
+    choice.message.tool_calls = tool_calls
+
+    if logprobs_content is not None:
+        lp_mock = MagicMock()
+        lp_mock.content = logprobs_content
+        choice.logprobs = lp_mock
+    else:
+        choice.logprobs = None
+
+    response.choices = [choice]
+
+    usage = MagicMock()
+    usage.prompt_tokens = prompt_tokens
+    usage.completion_tokens = completion_tokens
+    usage.total_tokens = prompt_tokens + completion_tokens
+    response.usage = usage
+
+    return response
+
+
+class TestLfxCallbackBasic:
+    def test_log_success_creates_episode(self) -> None:
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        cb = LfxCallback(collector=collector)
+        kwargs = {"messages": [{"role": "user", "content": "What is 2+2?"}], "model": "gpt-4o"}
+        response = _make_mock_response(content="4")
+        start = time.time()
+        cb.log_success_event(kwargs, response, start, start + 0.1)
+        assert collector.metrics["episodes_collected"] == 1
+
+    def test_captures_model(self) -> None:
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        cb = LfxCallback(collector=collector)
+        kwargs = {"messages": [{"role": "user", "content": "hi"}]}
+        response = _make_mock_response(model="gpt-4o-2024-08-06")
+        cb.log_success_event(kwargs, response, time.time(), time.time())
+        ep = list(collector._episode_index.values())[0]
+        assert ep.model == "gpt-4o-2024-08-06"
+
+    def test_captures_usage(self) -> None:
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        cb = LfxCallback(collector=collector)
+        kwargs = {"messages": [{"role": "user", "content": "hi"}]}
+        response = _make_mock_response(prompt_tokens=50, completion_tokens=20)
+        cb.log_success_event(kwargs, response, time.time(), time.time())
+        ep = list(collector._episode_index.values())[0]
+        assert ep.summary.token_usage is not None
+        assert ep.summary.token_usage.prompt_tokens == 50
+
+    def test_captures_timing(self) -> None:
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        cb = LfxCallback(collector=collector)
+        kwargs = {"messages": [{"role": "user", "content": "hi"}]}
+        response = _make_mock_response()
+        start = time.time()
+        cb.log_success_event(kwargs, response, start, start + 0.25)
+        ep = list(collector._episode_index.values())[0]
+        assert ep.summary.timing is not None
+        assert ep.summary.timing.total_ms >= 200
+
+    def test_captures_logprobs(self) -> None:
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        cb = LfxCallback(collector=collector)
+        lp1 = MagicMock()
+        lp1.token = "Hello"
+        lp1.logprob = -0.3
+        lp1.token_id = None
+        lp1.top_logprobs = None
+        kwargs = {"messages": [{"role": "user", "content": "hi"}]}
+        response = _make_mock_response(content="Hello", logprobs_content=[lp1])
+        cb.log_success_event(kwargs, response, time.time(), time.time())
+        ep = list(collector._episode_index.values())[0]
+        assistant_msg = [m for m in ep.messages if m.role == "assistant"][0]
+        assert assistant_msg.logprobs is not None
+        assert assistant_msg.logprobs[0].token == "Hello"
+        assert assistant_msg.logprobs[0].logprob == -0.3
+
+    def test_captures_tool_calls(self) -> None:
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        cb = LfxCallback(collector=collector)
+        tc = MagicMock()
+        tc.id = "tc-1"
+        tc.function.name = "search"
+        tc.function.arguments = '{"q": "x"}'
+        kwargs = {"messages": [{"role": "user", "content": "search x"}]}
+        response = _make_mock_response(content="", tool_calls=[tc])
+        cb.log_success_event(kwargs, response, time.time(), time.time())
+        ep = list(collector._episode_index.values())[0]
+        assistant_msg = [m for m in ep.messages if m.role == "assistant"][0]
+        assert assistant_msg.tool_calls is not None
+        assert assistant_msg.tool_calls[0].name == "search"
+
+    def test_triggers_batch(self) -> None:
+        batches: list[list] = []
+        collector = EpisodeCollector(
+            pipeline=RewardPipeline([]),
+            batch_size=2,
+            on_batch=lambda eps: batches.append(eps),
+        )
+        cb = LfxCallback(collector=collector)
+        kwargs = {"messages": [{"role": "user", "content": "hi"}]}
+        response = _make_mock_response(content="hello there friend")
+        cb.log_success_event(kwargs, response, time.time(), time.time())
+        cb.log_success_event(kwargs, response, time.time(), time.time())
+        assert len(batches) == 1
+
+    def test_session_id_from_metadata(self) -> None:
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        cb = LfxCallback(collector=collector)
+        kwargs = {
+            "messages": [{"role": "user", "content": "hi"}],
+            "metadata": {"session_id": "sess-abc"},
+        }
+        response = _make_mock_response()
+        cb.log_success_event(kwargs, response, time.time(), time.time())
+        ep = list(collector._episode_index.values())[0]
+        assert ep.session_id == "sess-abc"
+
+    def test_log_failure_is_noop(self) -> None:
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        cb = LfxCallback(collector=collector)
+        cb.log_failure_event(
+            kwargs={"messages": []},
+            response_obj=None,
+            start_time=time.time(),
+            end_time=time.time(),
+            exception=ValueError("test"),
+        )
+        assert collector.metrics["episodes_collected"] == 0
