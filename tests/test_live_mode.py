@@ -3,8 +3,11 @@
 import time
 
 from lfx.collector import EpisodeCollector
+from lfx.completion import CompletionResult
+from lfx.core.episode import TokenLogProb, ToolCall, TokenUsage
 from lfx.core.loop import AgentState
 from lfx.core.reward import RewardPipeline
+from lfx.exporters.skyrl import SkyRLExporter
 from lfx.extractors.execution import ExecutionExtractor
 from lfx.extractors.user_feedback import UserFeedbackExtractor
 from lfx.layers.harness import Playbook, PlaybookEntry
@@ -64,3 +67,80 @@ class TestLiveModeEndToEnd:
 
         ep = collector._episode_index[ep_id]
         assert ep.summary.effective_reward() == -1.0
+
+
+class TestRichPipelineEndToEnd:
+    """Full pipeline: MockLLMClient with rich metadata → wrap → collector → exporter."""
+
+    def test_logprobs_flow_through_to_exporter(self) -> None:
+        """Logprobs on MockLLMClient → wrapper → Episode → SkyRL rollout_logprobs."""
+        lps = [
+            TokenLogProb(token="Here", logprob=-0.1),
+            TokenLogProb(token=" is", logprob=-0.2),
+            TokenLogProb(token=" help", logprob=-0.3),
+        ]
+        client = MockLLMClient(
+            responses=["Here is help"],
+            model="gpt-4o",
+            logprobs=[lps],
+        )
+
+        collected_episodes = []
+
+        pipeline = RewardPipeline([])
+        collector = EpisodeCollector(
+            pipeline=pipeline,
+            batch_size=100,
+            on_batch=lambda eps: collected_episodes.extend(eps),
+        )
+        wrapped = wrap(client, collector=collector)
+        result = wrapped.complete([{"role": "user", "content": "help me"}])
+
+        # Result is CompletionResult
+        assert isinstance(result, CompletionResult)
+        assert result.model == "gpt-4o"
+        assert result.logprobs is not None
+
+        # Episode captured with rich metadata
+        ep = list(collector._episode_index.values())[0]
+        assert ep.model == "gpt-4o"
+
+        assistant_msg = [m for m in ep.messages if m.role == "assistant"][0]
+        assert assistant_msg.logprobs is not None
+        assert len(assistant_msg.logprobs) == 3
+
+        # Exporter wires logprobs through
+        from tests.test_skyrl_export import FakeTokenizer
+        exporter = SkyRLExporter(tokenizer=FakeTokenizer())
+        exported = exporter.export([ep])
+        assert exported["rollout_logprobs"] is not None
+        assert exported["rollout_logprobs"][0] == [-0.1, -0.2, -0.3]
+
+    def test_tool_calls_captured_end_to_end(self) -> None:
+        """Tool calls on response flow through to Episode messages."""
+        tc = ToolCall(id="tc-1", name="search", arguments='{"q":"x"}')
+        client = MockLLMClient(
+            responses=["I found x"],
+            tool_calls=[[tc]],
+        )
+        pipeline = RewardPipeline([])
+        collector = EpisodeCollector(pipeline=pipeline, batch_size=100)
+        wrapped = wrap(client, collector=collector)
+        result = wrapped.complete([{"role": "user", "content": "find x"}])
+
+        assert result.tool_calls is not None
+        ep = list(collector._episode_index.values())[0]
+        assistant_msg = [m for m in ep.messages if m.role == "assistant"][0]
+        assert assistant_msg.tool_calls[0].name == "search"
+
+    def test_provider_without_logprobs_works(self) -> None:
+        """A client returning no logprobs should work fine — None flows through."""
+        client = MockLLMClient(responses=["hello"])
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        wrapped = wrap(client, collector=collector)
+        result = wrapped.complete([{"role": "user", "content": "hi"}])
+
+        assert result.logprobs is None
+        ep = list(collector._episode_index.values())[0]
+        assistant_msg = [m for m in ep.messages if m.role == "assistant"][0]
+        assert assistant_msg.logprobs is None
