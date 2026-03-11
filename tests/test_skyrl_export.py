@@ -1,6 +1,6 @@
 """Tests for lfx.exporters.skyrl — Episode -> GeneratorOutput serialization."""
 
-from lfx.core.episode import Episode, EpisodeSummary, Message, StepMeta, TokenUsage
+from lfx.core.episode import Episode, EpisodeSummary, Message, StepMeta, TokenLogProb, TokenUsage
 from lfx.exporters.skyrl import SkyRLExporter, TrajectoryID
 
 
@@ -212,3 +212,66 @@ class TestTrajectoryID:
     def test_to_string(self) -> None:
         tid = TrajectoryID(instance_id="task-1", repetition_id=2)
         assert tid.to_string() == "task-1_2"
+
+
+class TestSkyRLLogprobs:
+    def test_rollout_logprobs_populated(self) -> None:
+        """When assistant messages have logprobs, they flow into rollout_logprobs."""
+        lps = [TokenLogProb(token="Done", logprob=-0.2), TokenLogProb(token=" step", logprob=-0.5)]
+        messages = [
+            Message(role="system", content="You are helpful."),
+            Message(role="user", content="Do step 0"),
+            Message(role="assistant", content="Done step 0", logprobs=lps),
+        ]
+        ep = Episode(
+            id="ep-lp",
+            state_id="s",
+            task_id="task-lp",
+            bench="test",
+            messages=messages,
+            step_boundaries=[1],
+            steps=[StepMeta(t=0, reward=1.0, done=True, timing_ms=10.0)],
+            summary=EpisodeSummary(total_reward=1.0),
+        )
+        exporter = SkyRLExporter(tokenizer=FakeTokenizer())
+        result = exporter.export([ep])
+        assert result["rollout_logprobs"] is not None
+        assert len(result["rollout_logprobs"]) == 1
+        assert result["rollout_logprobs"][0] == [-0.2, -0.5]
+
+    def test_rollout_logprobs_none_when_no_logprobs(self) -> None:
+        """When no messages have logprobs, rollout_logprobs entries are None."""
+        ep = _make_episode(n_steps=1)
+        exporter = SkyRLExporter(tokenizer=FakeTokenizer())
+        result = exporter.export([ep])
+        assert result["rollout_logprobs"] is not None
+        assert result["rollout_logprobs"][0] is None
+
+    def test_multi_step_logprobs(self) -> None:
+        """Each step gets its own logprobs from its assistant message(s)."""
+        lps1 = [TokenLogProb(token="A", logprob=-0.1)]
+        lps2 = [TokenLogProb(token="B", logprob=-0.3)]
+        messages = [
+            Message(role="system", content="You are helpful."),
+            Message(role="user", content="Step 0"),
+            Message(role="assistant", content="A", logprobs=lps1),
+            Message(role="user", content="Step 1"),
+            Message(role="assistant", content="B", logprobs=lps2),
+        ]
+        ep = Episode(
+            id="ep-ms",
+            state_id="s",
+            task_id="t",
+            bench="test",
+            messages=messages,
+            step_boundaries=[1, 3],
+            steps=[
+                StepMeta(t=0, reward=0.0, done=False, timing_ms=10.0),
+                StepMeta(t=1, reward=1.0, done=True, timing_ms=10.0),
+            ],
+            summary=EpisodeSummary(total_reward=1.0),
+        )
+        exporter = SkyRLExporter(tokenizer=FakeTokenizer())
+        result = exporter.export([ep])
+        assert result["rollout_logprobs"][0] == [-0.1]
+        assert result["rollout_logprobs"][1] == [-0.3]
