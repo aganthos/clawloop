@@ -151,6 +151,54 @@ class TestStepMeta:
         assert step.info["key"] == "val"
 
 
+class TestEpisodeOptionalFields:
+    """New optional fields have defaults and don't break existing call sites."""
+
+    def test_defaults(self) -> None:
+        ep = _make_episode()
+        assert ep.session_id == ""
+        assert ep.model is None
+        assert ep.created_at is None
+        assert ep.metadata == {}
+
+    def test_explicit_values(self) -> None:
+        ep = _make_episode()
+        # Override after creation (dataclass fields)
+        ep2 = Episode(
+            id=ep.id,
+            state_id=ep.state_id,
+            task_id=ep.task_id,
+            bench=ep.bench,
+            messages=ep.messages,
+            step_boundaries=ep.step_boundaries,
+            steps=ep.steps,
+            summary=ep.summary,
+            session_id="sess-abc",
+            model="claude-opus-4-6",
+            created_at=1234567890.0,
+            metadata={"source": "test"},
+        )
+        assert ep2.session_id == "sess-abc"
+        assert ep2.model == "claude-opus-4-6"
+        assert ep2.created_at == 1234567890.0
+        assert ep2.metadata == {"source": "test"}
+
+    def test_existing_call_sites_unaffected(self) -> None:
+        """Creating Episode with only required fields still works."""
+        ep = Episode(
+            id="ep-test",
+            state_id="s0",
+            task_id="t0",
+            bench="test",
+            messages=[Message(role="user", content="hi")],
+            step_boundaries=[0],
+            steps=[],
+            summary=EpisodeSummary(),
+        )
+        assert ep.id == "ep-test"
+        assert ep.session_id == ""
+
+
 class TestLearningUpdate:
     def test_creation(self) -> None:
         ep = _make_episode()
