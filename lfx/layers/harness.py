@@ -423,8 +423,10 @@ class Harness:
                 )
                 continue
 
-            # Injection patterns
-            if any(p.search(insight.content) for p in _INJECTION_PATTERNS):
+            # Injection patterns (content + tags)
+            if any(p.search(insight.content) for p in _INJECTION_PATTERNS) or any(
+                p.search(tag) for tag in insight.tags for p in _INJECTION_PATTERNS
+            ):
                 log.warning("Dropping insight — matches injection pattern")
                 continue
 

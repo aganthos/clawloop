@@ -196,7 +196,7 @@ class Reflector:
 
         for item in data:
             if not isinstance(item, dict):
-                log.warning("Reflector: skipping non-dict item in response array")
+                log.warning("Reflector: skipping non-dict item in response array, got %s", type(item).__name__)
                 continue
             try:
                 insight = Insight(
