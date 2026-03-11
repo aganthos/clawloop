@@ -13,6 +13,7 @@ from lfx.core.episode import (
     Episode,
     EpisodeSummary,
     Message,
+    StepMeta,
     Timing,
     TokenLogProb,
     TokenUsage,
@@ -119,7 +120,14 @@ class EpisodeCollector:
             bench=bench,
             messages=list(messages),
             step_boundaries=[0] if messages else [],
-            steps=[],
+            steps=[
+                StepMeta(
+                    t=0,
+                    reward=0.0,
+                    done=True,
+                    timing_ms=timing_ms or 0.0,
+                )
+            ],
             summary=EpisodeSummary(
                 token_usage=usage,
                 timing=Timing(total_ms=timing_ms or 0.0) if timing_ms else None,
