@@ -30,6 +30,34 @@ class ToolCall:
     error: str | None = None
 
 
+MAX_LOGPROBS_PER_MESSAGE = 4096
+
+
+@dataclass(frozen=True)
+class TokenLogProb:
+    """Per-token log probability from LLM generation.
+
+    Used for GRPO importance weighting: log π_θ(a|s).
+    Logprobs are for assistant-generated tokens only — tool result
+    and user message tokens never carry logprobs.
+    """
+
+    token: str
+    token_id: int | None = None
+    logprob: float = 0.0
+    top_logprobs: dict[str, float] | None = None
+
+
+def cap_logprobs(
+    lps: list[TokenLogProb] | None,
+    limit: int = MAX_LOGPROBS_PER_MESSAGE,
+) -> list[TokenLogProb] | None:
+    """Truncate logprobs to *limit* entries to prevent memory bloat."""
+    if lps is None or len(lps) <= limit:
+        return lps
+    return lps[:limit]
+
+
 @dataclass
 class Message:
     """OpenAI-format chat message with optional tool-call metadata."""
@@ -42,6 +70,7 @@ class Message:
     timestamp: float | None = None
     token_count: int | None = None
     model: str | None = None  # which model generated this
+    logprobs: list[TokenLogProb] | None = None  # per-token log probs from generation
 
     def to_openai_dict(self) -> dict[str, Any]:
         """Serialize to the dict format expected by OpenAI-compatible APIs."""

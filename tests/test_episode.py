@@ -1,14 +1,17 @@
 """Tests for lfx.core.episode."""
 
 from lfx.core.episode import (
+    MAX_LOGPROBS_PER_MESSAGE,
     Episode,
     EpisodeSummary,
     LearningUpdate,
     Message,
     StepMeta,
     Timing,
+    TokenLogProb,
     TokenUsage,
     ToolCall,
+    cap_logprobs,
 )
 
 
@@ -214,3 +217,68 @@ class TestLearningUpdate:
         assert update.decision == "accept"
         assert len(update.evidence) == 1
         assert update.created_at > 0
+
+
+class TestTokenLogProb:
+    def test_basic_construction(self) -> None:
+        lp = TokenLogProb(token="Hello", token_id=1234, logprob=-0.5)
+        assert lp.token == "Hello"
+        assert lp.token_id == 1234
+        assert lp.logprob == -0.5
+        assert lp.top_logprobs is None
+
+    def test_with_top_logprobs(self) -> None:
+        lp = TokenLogProb(
+            token="Hello",
+            logprob=-0.5,
+            top_logprobs={"Hello": -0.5, "Hi": -1.2},
+        )
+        assert lp.top_logprobs == {"Hello": -0.5, "Hi": -1.2}
+
+    def test_defaults(self) -> None:
+        lp = TokenLogProb(token="x")
+        assert lp.token_id is None
+        assert lp.logprob == 0.0
+        assert lp.top_logprobs is None
+
+    def test_frozen(self) -> None:
+        import pytest
+        lp = TokenLogProb(token="x", logprob=-0.1)
+        with pytest.raises(AttributeError):
+            lp.token = "y"  # type: ignore[misc]
+
+
+class TestCapLogprobs:
+    def test_cap_under_limit(self) -> None:
+        lps = [TokenLogProb(token=f"t{i}", logprob=-0.1) for i in range(10)]
+        assert cap_logprobs(lps) is lps  # no copy needed
+
+    def test_cap_over_limit(self) -> None:
+        lps = [TokenLogProb(token=f"t{i}", logprob=-0.1) for i in range(MAX_LOGPROBS_PER_MESSAGE + 100)]
+        capped = cap_logprobs(lps)
+        assert len(capped) == MAX_LOGPROBS_PER_MESSAGE
+
+    def test_cap_none(self) -> None:
+        assert cap_logprobs(None) is None
+
+
+class TestMessageLogprobs:
+    def test_message_default_no_logprobs(self) -> None:
+        msg = Message(role="assistant", content="hello")
+        assert msg.logprobs is None
+
+    def test_message_with_logprobs(self) -> None:
+        lps = [
+            TokenLogProb(token="hello", logprob=-0.3),
+            TokenLogProb(token=" world", logprob=-0.7),
+        ]
+        msg = Message(role="assistant", content="hello world", logprobs=lps)
+        assert len(msg.logprobs) == 2
+        assert msg.logprobs[0].logprob == -0.3
+
+    def test_logprobs_not_in_openai_dict(self) -> None:
+        """logprobs are internal metadata, not part of the OpenAI wire format."""
+        lps = [TokenLogProb(token="hi", logprob=-0.1)]
+        msg = Message(role="assistant", content="hi", logprobs=lps)
+        d = msg.to_openai_dict()
+        assert "logprobs" not in d

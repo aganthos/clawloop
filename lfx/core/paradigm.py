@@ -93,11 +93,11 @@ class ParadigmBreakthrough:
         ]
 
         try:
-            raw = self.client.complete(
+            raw = str(self.client.complete(
                 messages,
                 temperature=self.config.temperature,
                 max_tokens=self.config.max_tokens,
-            )
+            ))
         except Exception:
             log.exception("LLM call failed during paradigm generation")
             return []

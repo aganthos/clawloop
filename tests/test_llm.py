@@ -1,10 +1,18 @@
 """Tests for lfx.llm — LLM client abstraction."""
 
+from lfx.completion import CompletionResult
+from lfx.core.episode import TokenLogProb, ToolCall
 from lfx.llm import LiteLLMClient, MockLLMClient
 
 
 class TestMockLLMClient:
-    def test_returns_canned_response(self) -> None:
+    def test_returns_completion_result(self) -> None:
+        client = MockLLMClient(responses=["hello world"])
+        result = client.complete([{"role": "user", "content": "hi"}])
+        assert isinstance(result, CompletionResult)
+        assert result.text == "hello world"
+
+    def test_string_compat(self) -> None:
         client = MockLLMClient(responses=["hello world"])
         result = client.complete([{"role": "user", "content": "hi"}])
         assert result == "hello world"
@@ -13,7 +21,7 @@ class TestMockLLMClient:
         client = MockLLMClient(responses=["a", "b"])
         assert client.complete([]) == "a"
         assert client.complete([]) == "b"
-        assert client.complete([]) == "a"  # wraps around
+        assert client.complete([]) == "a"
 
     def test_records_calls(self) -> None:
         client = MockLLMClient(responses=["ok"])
@@ -27,6 +35,26 @@ class TestMockLLMClient:
     def test_default_response(self) -> None:
         client = MockLLMClient()
         assert client.complete([]) == "mock response"
+
+    def test_mock_model_field(self) -> None:
+        client = MockLLMClient(responses=["ok"], model="mock-v1")
+        result = client.complete([])
+        assert result.model == "mock-v1"
+
+    def test_mock_with_tool_calls(self) -> None:
+        tc = ToolCall(id="tc-1", name="search", arguments='{"q":"x"}')
+        client = MockLLMClient(
+            responses=["I'll search for that"],
+            tool_calls=[[tc]],
+        )
+        result = client.complete([])
+        assert result.tool_calls == [tc]
+
+    def test_mock_with_logprobs(self) -> None:
+        lps = [TokenLogProb(token="ok", logprob=-0.1)]
+        client = MockLLMClient(responses=["ok"], logprobs=[lps])
+        result = client.complete([])
+        assert result.logprobs == lps
 
 
 class TestLiteLLMClient:

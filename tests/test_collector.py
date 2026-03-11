@@ -137,3 +137,195 @@ class TestEpisodeCollector:
         assert m["episodes_filtered"] == 1
         assert m["feedback_received"] == 0
         assert m["feedback_missed"] == 1
+
+
+from lfx.core.episode import TokenUsage, Timing, TokenLogProb, ToolCall
+
+
+class TestCollectorRichMetadata:
+    def test_ingest_with_usage(self) -> None:
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        msgs = [
+            Message(role="user", content="hello"),
+            Message(role="assistant", content="hi there, how can I help?"),
+        ]
+        usage = TokenUsage(prompt_tokens=10, completion_tokens=20, total_tokens=30)
+        ep = collector.ingest(msgs, task_id="t1", session_id="s1", usage=usage)
+        assert ep.summary.token_usage is not None
+        assert ep.summary.token_usage.total_tokens == 30
+
+    def test_ingest_with_timing(self) -> None:
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        msgs = [
+            Message(role="user", content="hello"),
+            Message(role="assistant", content="hi there, how can I help?"),
+        ]
+        ep = collector.ingest(msgs, task_id="t1", session_id="s1", timing_ms=150.5)
+        assert ep.summary.timing is not None
+        assert ep.summary.timing.total_ms == 150.5
+
+    def test_ingest_with_model(self) -> None:
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        msgs = [
+            Message(role="user", content="hello"),
+            Message(role="assistant", content="hi there, how can I help?"),
+        ]
+        ep = collector.ingest(msgs, task_id="t1", session_id="s1", model="gpt-4o")
+        assert ep.model == "gpt-4o"
+
+    def test_ingest_sets_created_at(self) -> None:
+        import time
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        msgs = [
+            Message(role="user", content="hello"),
+            Message(role="assistant", content="hi there, how can I help?"),
+        ]
+        before = time.time()
+        ep = collector.ingest(msgs, task_id="t1", session_id="s1")
+        after = time.time()
+        assert ep.created_at is not None
+        assert before <= ep.created_at <= after
+
+
+class TestIngestExternal:
+    def test_basic_openai_messages(self) -> None:
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        ep = collector.ingest_external(
+            messages=[
+                {"role": "system", "content": "You are helpful."},
+                {"role": "user", "content": "What is 2+2?"},
+                {"role": "assistant", "content": "4"},
+            ],
+            task_id="math-1",
+            model="gpt-4o",
+        )
+        assert ep.task_id == "math-1"
+        assert ep.model == "gpt-4o"
+        assert ep.bench == "external"
+        assert len(ep.messages) == 3
+
+    def test_with_tool_calls(self) -> None:
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        ep = collector.ingest_external(
+            messages=[
+                {"role": "user", "content": "search for x"},
+                {
+                    "role": "assistant",
+                    "content": "",
+                    "tool_calls": [
+                        {
+                            "id": "tc-1",
+                            "type": "function",
+                            "function": {"name": "search", "arguments": '{"q":"x"}'},
+                        }
+                    ],
+                },
+                {"role": "tool", "content": "found x", "tool_call_id": "tc-1", "name": "search"},
+                {"role": "assistant", "content": "Here is x."},
+            ],
+        )
+        asst = ep.messages[1]
+        assert asst.tool_calls is not None
+        assert asst.tool_calls[0].name == "search"
+        tool_msg = ep.messages[2]
+        assert tool_msg.tool_call_id == "tc-1"
+
+    def test_with_response_logprobs(self) -> None:
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        ep = collector.ingest_external(
+            messages=[
+                {"role": "user", "content": "hi"},
+                {"role": "assistant", "content": "hello there friend"},
+            ],
+            response_logprobs=[
+                {"token": "hello", "logprob": -0.3, "token_id": 1234},
+            ],
+        )
+        assistant_msg = ep.messages[1]
+        assert assistant_msg.logprobs is not None
+        assert assistant_msg.logprobs[0].token == "hello"
+        assert assistant_msg.logprobs[0].logprob == -0.3
+
+    def test_with_per_message_logprobs(self) -> None:
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        ep = collector.ingest_external(
+            messages=[
+                {"role": "user", "content": "hi"},
+                {
+                    "role": "assistant",
+                    "content": "hello there friend",
+                    "logprobs": [{"token": "hello", "logprob": -0.3}],
+                },
+            ],
+        )
+        assert ep.messages[1].logprobs is not None
+        assert ep.messages[1].logprobs[0].logprob == -0.3
+
+    def test_with_usage_dict(self) -> None:
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        ep = collector.ingest_external(
+            messages=[
+                {"role": "user", "content": "hi"},
+                {"role": "assistant", "content": "hello there friend"},
+            ],
+            usage={"prompt_tokens": 5, "completion_tokens": 3, "total_tokens": 8},
+        )
+        assert ep.summary.token_usage is not None
+        assert ep.summary.token_usage.total_tokens == 8
+
+    def test_custom_bench(self) -> None:
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        ep = collector.ingest_external(
+            messages=[
+                {"role": "user", "content": "hi"},
+                {"role": "assistant", "content": "hello there friend"},
+            ],
+            bench="openclaw",
+        )
+        assert ep.bench == "openclaw"
+
+    def test_external_episodes_trigger_batch(self) -> None:
+        batches = []
+        collector = EpisodeCollector(
+            pipeline=RewardPipeline([]),
+            batch_size=2,
+            on_batch=lambda eps: batches.append(eps),
+        )
+        collector.ingest_external(
+            messages=[
+                {"role": "user", "content": "q1"},
+                {"role": "assistant", "content": "a" * 20},
+            ],
+        )
+        collector.ingest_external(
+            messages=[
+                {"role": "user", "content": "q2"},
+                {"role": "assistant", "content": "a" * 20},
+            ],
+        )
+        assert len(batches) == 1
+
+    def test_empty_messages_no_step_mismatch(self) -> None:
+        """Ingesting empty messages should produce empty steps and step_boundaries."""
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        ep = collector.ingest([], task_id="t1", session_id="s1")
+        assert ep.messages == []
+        assert ep.step_boundaries == []
+        assert ep.steps == []
+
+    def test_external_episodes_get_reward_pipeline(self) -> None:
+        from lfx.extractors.execution import ExecutionExtractor
+        collector = EpisodeCollector(
+            pipeline=RewardPipeline([ExecutionExtractor()]),
+            batch_size=100,
+        )
+        ep = collector.ingest_external(
+            messages=[
+                {"role": "user", "content": "do something"},
+                {"role": "assistant", "content": "calling tool"},
+                {"role": "tool", "content": "Error: file not found"},
+                {"role": "assistant", "content": "sorry, that failed"},
+            ],
+        )
+        assert "execution" in ep.summary.signals
+        assert ep.summary.signals["execution"].value < 0
