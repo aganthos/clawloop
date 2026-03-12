@@ -178,3 +178,57 @@ class TestHarnessInjection:
         )
         harness_prompt = agent.harness.system_prompt("car")
         assert harness_prompt == ""
+
+
+class TestReconcileToolCallId:
+    """_reconcile_tool_call_id rewrites assistant tool_call ids to match green's."""
+
+    def test_rewrites_matching_tool_name(self):
+        messages = [
+            {"role": "system", "content": "sys"},
+            {"role": "user", "content": "hi"},
+            {
+                "role": "assistant",
+                "content": "",
+                "tool_calls": [
+                    {"id": "llm_call_1", "type": "function",
+                     "function": {"name": "get_location", "arguments": "{}"}},
+                ],
+            },
+        ]
+        CarPurpleAgent._reconcile_tool_call_id(messages, "get_location", "green_id_99")
+        assert messages[2]["tool_calls"][0]["id"] == "green_id_99"
+
+    def test_no_match_leaves_unchanged(self):
+        messages = [
+            {
+                "role": "assistant",
+                "content": "",
+                "tool_calls": [
+                    {"id": "llm_call_1", "type": "function",
+                     "function": {"name": "other_tool", "arguments": "{}"}},
+                ],
+            },
+        ]
+        CarPurpleAgent._reconcile_tool_call_id(messages, "get_location", "green_id_99")
+        assert messages[0]["tool_calls"][0]["id"] == "llm_call_1"
+
+    def test_multiple_tool_calls_rewrites_correct_one(self):
+        messages = [
+            {
+                "role": "assistant",
+                "content": "",
+                "tool_calls": [
+                    {"id": "llm_a", "type": "function",
+                     "function": {"name": "tool_a", "arguments": "{}"}},
+                    {"id": "llm_b", "type": "function",
+                     "function": {"name": "tool_b", "arguments": "{}"}},
+                ],
+            },
+        ]
+        CarPurpleAgent._reconcile_tool_call_id(messages, "tool_b", "green_b")
+        assert messages[0]["tool_calls"][0]["id"] == "llm_a"  # unchanged
+        assert messages[0]["tool_calls"][1]["id"] == "green_b"  # rewritten
+
+    def test_empty_messages_no_crash(self):
+        CarPurpleAgent._reconcile_tool_call_id([], "fn", "id")
