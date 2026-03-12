@@ -27,3 +27,8 @@ docs/
 ressources/*.aux
 ressources/*.log
 ressources/*.xdv
+
+# Benchmark artifacts
+benchmarks/*/output/
+benchmarks/*/.venv/
+benchmarks/*/.env

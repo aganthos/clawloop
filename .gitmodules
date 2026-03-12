@@ -1,3 +1,6 @@
 [submodule "lfx/skyrl"]
 	path = lfx/skyrl
 	url = https://github.com/NovaSky-AI/SkyRL
+[submodule "benchmarks/car-bench"]
+	path = benchmarks/car-bench
+	url = https://github.com/CAR-bench/car-bench-agentbeats.git
