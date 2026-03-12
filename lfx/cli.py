@@ -155,13 +155,20 @@ def cmd_run(args: argparse.Namespace) -> None:
 
 
 def cmd_eval(args: argparse.Namespace) -> None:
+    config = _load_config(args.config)
     adapter = _get_adapter(args.bench)
-    adapter.setup(_load_config(args.config))
+    adapter.setup(config)
     agent_state = AgentState()
-    tasks = adapter.list_tasks()
+
+    try:
+        tasks = adapter.list_tasks()
+        selected = tasks[: args.episodes]
+    except NotImplementedError:
+        task_type = config.get("task_type", "base")
+        selected = [f"{task_type}_{i}" for i in range(args.episodes)]
 
     episodes = []
-    for task in tasks[: args.episodes]:
+    for task in selected:
         ep = adapter.run_episode(task, agent_state)
         episodes.append(ep)
 

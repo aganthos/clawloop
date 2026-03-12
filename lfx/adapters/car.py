@@ -240,7 +240,7 @@ max_steps = 50
         }
         return Episode(
             id=uuid4().hex,
-            state_id="",
+            state_id=getattr(self, "_current_state_id", ""),
             task_id=f"car:{task_id}",
             bench="car",
             model=self._model,
