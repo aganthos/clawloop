@@ -47,7 +47,11 @@ class CARAdapter(EnvAdapter):
         self._output_dir.mkdir(parents=True, exist_ok=True)
         self._task_type = config.get("task_type", "base")
         self._task_split = config.get("task_split", "test")
-        self._agentbeats_cmd = config.get("agentbeats_cmd", "agentbeats-run")
+        # Default: use uv run from car-bench dir (agentbeats-run is a uv script)
+        self._agentbeats_cmd = config.get(
+            "agentbeats_cmd",
+            str(self._car_bench_path / ".venv" / "bin" / "agentbeats-run"),
+        )
         self._green_port = config.get("green_port", 8081)
         self._api_base = config.get("api_base")
         self._api_key = config.get("api_key")

@@ -106,6 +106,26 @@ def _load_config(path: str | None) -> dict[str, Any]:
         sys.exit(1)
 
 
+def _build_reflector(config: dict[str, Any]) -> Any | None:
+    """Create a Reflector with LiteLLMClient if api_base is configured."""
+    api_base = config.get("api_base")
+    if not api_base:
+        log.warning("No api_base in config — Reflector disabled (no learning)")
+        return None
+
+    from lfx.core.reflector import Reflector, ReflectorConfig
+    from lfx.llm import LiteLLMClient
+
+    model = config.get("reflector_model", config.get("model", "anthropic/claude-haiku-4-5-20251001"))
+    client = LiteLLMClient(
+        model=model,
+        api_base=api_base,
+        api_key=config.get("api_key"),
+    )
+    log.info("Reflector enabled: model=%s via %s", model, api_base)
+    return Reflector(client=client, config=ReflectorConfig())
+
+
 def cmd_run(args: argparse.Namespace) -> None:
     config = _load_config(args.config)
     # CLI args override config file
@@ -126,11 +146,17 @@ def cmd_run(args: argparse.Namespace) -> None:
     if args.seed is not None:
         random.seed(args.seed)
 
+    # Wire Reflector into harness for ICL learning
+    reflector = _build_reflector(config)
     agent_state = AgentState()
+    agent_state.harness.reflector = reflector
+
     try:
         tasks = adapter.list_tasks()
     except NotImplementedError:
         tasks = None
+
+    output_dir = config.get("output")
 
     if tasks is not None:
         _, state_id = learning_loop(
@@ -139,6 +165,7 @@ def cmd_run(args: argparse.Namespace) -> None:
             tasks=tasks,
             n_episodes=args.episodes,
             n_iterations=args.iterations,
+            output_dir=output_dir,
         )
     else:
         # Batch-oriented adapter (e.g. CAR) — generate task IDs from config
@@ -150,6 +177,7 @@ def cmd_run(args: argparse.Namespace) -> None:
             tasks=task_ids,
             n_episodes=args.episodes,
             n_iterations=args.iterations,
+            output_dir=output_dir,
         )
     print(f"Final state: {state_id.combined_hash}")
 
@@ -193,9 +221,11 @@ def main() -> None:
     parser = _build_parser()
     args = parser.parse_args()
 
+    log_level = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(
-        level=logging.DEBUG if args.verbose else logging.INFO,
-        format="%(levelname)s %(name)s: %(message)s",
+        level=log_level,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        datefmt="%H:%M:%S",
     )
 
     handlers = {

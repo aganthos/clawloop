@@ -8,9 +8,12 @@ loop -- see ``gate.py``.
 
 from __future__ import annotations
 
+import json
 import logging
 import random
+import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Protocol
 
 from lfx.core.episode import Episode
@@ -26,6 +29,80 @@ log = logging.getLogger(__name__)
 
 
 LAYER_NAMES = ("harness", "router", "weights")
+
+
+class ExperimentLog:
+    """Append-only JSONL experiment logger.
+
+    Writes one JSON line per iteration to ``<output_dir>/experiment.jsonl``.
+    Each line contains: iteration, timestamp, rewards, playbook snapshot,
+    insights generated, fb/optim results.  Designed to survive crashes
+    (flush after each write).
+    """
+
+    def __init__(self, output_dir: str | Path | None = None):
+        self._path: Path | None = None
+        if output_dir:
+            self._path = Path(output_dir) / "experiment.jsonl"
+            self._path.parent.mkdir(parents=True, exist_ok=True)
+
+    def log_iteration(
+        self,
+        iteration: int,
+        episodes: list[Episode],
+        fb_results: dict[str, FBResult],
+        harness: Harness | None = None,
+    ) -> None:
+        if self._path is None:
+            return
+        rewards = [ep.summary.total_reward for ep in episodes]
+        per_task = {
+            ep.task_id: {
+                "reward": ep.summary.total_reward,
+                "signals": {
+                    k: {"value": s.value, "confidence": s.confidence}
+                    for k, s in ep.summary.signals.items()
+                } if ep.summary.signals else {},
+                "error": ep.metadata.get("error") if ep.metadata else None,
+            }
+            for ep in episodes
+        }
+        entry: dict[str, Any] = {
+            "iteration": iteration,
+            "timestamp": time.time(),
+            "n_episodes": len(episodes),
+            "avg_reward": sum(rewards) / len(rewards) if rewards else 0.0,
+            "min_reward": min(rewards) if rewards else 0.0,
+            "max_reward": max(rewards) if rewards else 0.0,
+            "per_task": per_task,
+            "fb_results": {
+                name: {"status": r.status, "metrics": r.metrics}
+                for name, r in fb_results.items()
+            },
+        }
+        if harness is not None:
+            entry["playbook_size"] = len(harness.playbook.entries)
+            entry["playbook_entries"] = [
+                {
+                    "id": e.id,
+                    "content": e.content[:200],
+                    "helpful": e.helpful,
+                    "harmful": e.harmful,
+                    "tags": e.tags,
+                }
+                for e in harness.playbook.entries
+            ]
+        with open(self._path, "a") as f:
+            f.write(json.dumps(entry) + "\n")
+            f.flush()
+        log.info(
+            "  [log] iter=%d avg=%.4f min=%.4f max=%.4f playbook=%d",
+            iteration,
+            entry["avg_reward"],
+            entry["min_reward"],
+            entry["max_reward"],
+            entry.get("playbook_size", 0),
+        )
 
 
 @dataclass
@@ -63,6 +140,7 @@ def learning_loop(
     active_layers: list[str] | None = None,
     intensity: AdaptiveIntensity | None = None,
     paradigm: ParadigmBreakthrough | None = None,
+    output_dir: str | Path | None = None,
 ) -> tuple[AgentState, StateID]:
     """Run the unified learning loop.
 
@@ -94,6 +172,7 @@ def learning_loop(
     """
     state_id = agent_state.state_id()
     layers = agent_state.get_layers(active_layers)
+    exp_log = ExperimentLog(output_dir)
     log.info("Starting learning loop — initial state: %s", state_id.combined_hash[:12])
 
     for iteration in range(n_iterations):
@@ -184,7 +263,11 @@ def learning_loop(
             except Exception:
                 log.exception("paradigm breakthrough failed")
 
-        # 5. Recompute state identity
+        # 5. Log iteration results
+        harness_ref = agent_state.harness if isinstance(agent_state.harness, Harness) else None
+        exp_log.log_iteration(iteration, episodes, fb_results, harness_ref)
+
+        # 6. Recompute state identity
         state_id = agent_state.state_id()
 
     log.info("Loop complete — final state: %s", state_id.combined_hash[:12])
