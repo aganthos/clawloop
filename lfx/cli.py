@@ -33,6 +33,13 @@ def _build_parser() -> argparse.ArgumentParser:
         "--episodes", type=int, default=10, help="Episodes per iteration"
     )
     run_p.add_argument("--config", type=str, default=None, help="Config JSON file")
+    run_p.add_argument("--model", type=str, default=None, help="LLM model (litellm format)")
+    run_p.add_argument("--task-type", type=str, default="base",
+                       help="Task type: base, hallucination, disambiguation")
+    run_p.add_argument("--task-split", type=str, default="test",
+                       help="Data split: train, test")
+    run_p.add_argument("--output", type=str, default=None, help="Output directory")
+    run_p.add_argument("--seed", type=int, default=None, help="Random seed")
 
     # -- eval --
     eval_p = sub.add_parser("eval", help="Evaluate current state (no learning)")
@@ -99,8 +106,25 @@ def _load_config(path: str | None) -> dict[str, Any]:
 
 
 def cmd_run(args: argparse.Namespace) -> None:
+    config = _load_config(args.config)
+    # CLI args override config file
+    if args.model:
+        config["model"] = args.model
+    if args.output:
+        config["output"] = args.output
+    if hasattr(args, "task_type"):
+        config["task_type"] = args.task_type
+    if hasattr(args, "task_split"):
+        config["task_split"] = args.task_split
+    if hasattr(args, "seed") and args.seed is not None:
+        config["seed"] = args.seed
+
     adapter = _get_adapter(args.bench)
-    adapter.setup(_load_config(args.config))
+    adapter.setup(config)
+
+    if args.seed is not None:
+        import random
+        random.seed(args.seed)
 
     agent_state = AgentState()
     tasks = adapter.list_tasks()
