@@ -107,10 +107,16 @@ def learning_loop(
                 selected_tasks = random.sample(tasks, n_episodes)
             else:
                 selected_tasks = random.choices(tasks, k=n_episodes)
-            episodes = []
-            for task in selected_tasks:
-                ep = adapter.run_episode(task, agent_state)
-                episodes.append(ep)
+
+            if hasattr(adapter, "run_batch") and callable(
+                getattr(adapter, "run_batch", None)
+            ):
+                episodes = adapter.run_batch(agent_state, selected_tasks)
+            else:
+                episodes = []
+                for task in selected_tasks:
+                    ep = adapter.run_episode(task, agent_state)
+                    episodes.append(ep)
 
         avg_reward = (
             sum(ep.summary.total_reward for ep in episodes) / len(episodes)
