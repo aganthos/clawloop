@@ -49,6 +49,8 @@ class CARAdapter(EnvAdapter):
         self._task_split = config.get("task_split", "test")
         self._agentbeats_cmd = config.get("agentbeats_cmd", "agentbeats-run")
         self._green_port = config.get("green_port", 8081)
+        self._api_base = config.get("api_base")
+        self._api_key = config.get("api_key")
         self._iteration_count = 0
         self._purple: CarPurpleAgent | None = None
         self._purple_port: int = 0
@@ -62,7 +64,11 @@ class CARAdapter(EnvAdapter):
         from lfx.layers.harness import Harness
 
         self._purple = CarPurpleAgent(
-            model=self._model, harness=Harness(), bench="car"
+            model=self._model,
+            harness=Harness(),
+            bench="car",
+            api_base=self._api_base,
+            api_key=self._api_key,
         )
         _, self._purple_port = start_purple_server(self._purple)
         log.info("Purple agent started on port %d", self._purple_port)

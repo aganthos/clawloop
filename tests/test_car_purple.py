@@ -154,6 +154,23 @@ class TestNormalizeAssistantMsg:
         assert result["tool_calls"][0]["id"] == "call_123"
 
 
+class TestApiBasePassthrough:
+    """api_base and api_key are stored and available for litellm calls."""
+
+    def test_api_base_stored(self):
+        agent = CarPurpleAgent(
+            model="test", harness=_make_harness(),
+            api_base="http://localhost:9999", api_key="sk-test",
+        )
+        assert agent.api_base == "http://localhost:9999"
+        assert agent.api_key == "sk-test"
+
+    def test_defaults_to_none(self):
+        agent = CarPurpleAgent(model="test", harness=_make_harness())
+        assert agent.api_base is None
+        assert agent.api_key is None
+
+
 class TestHarnessInjection:
     """Harness system prompt is prepended to CAR's system prompt."""
 

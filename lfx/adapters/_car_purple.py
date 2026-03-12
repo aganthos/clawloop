@@ -25,10 +25,19 @@ log = logging.getLogger(__name__)
 class CarPurpleAgent:
     """A2A-compliant purple agent that injects lfx harness state into LLM calls."""
 
-    def __init__(self, model: str, harness: Harness, bench: str = "car"):
+    def __init__(
+        self,
+        model: str,
+        harness: Harness,
+        bench: str = "car",
+        api_base: str | None = None,
+        api_key: str | None = None,
+    ):
         self.model = model
         self.harness = harness
         self.bench = bench
+        self.api_base = api_base
+        self.api_key = api_key
         self._sessions: dict[str, list[dict]] = {}
         self._tool_cache: dict[str, list[dict]] = {}
         self._captured: dict[str, list[dict]] = {}
@@ -185,6 +194,10 @@ class CarPurpleAgent:
         }
         if tools:
             completion_kwargs["tools"] = tools
+        if self.api_base:
+            completion_kwargs["api_base"] = self.api_base
+        if self.api_key:
+            completion_kwargs["api_key"] = self.api_key
 
         response = litellm.completion(**completion_kwargs)
         assistant_msg = response.choices[0].message
