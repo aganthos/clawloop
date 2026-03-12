@@ -105,9 +105,12 @@ class CARAdapter(EnvAdapter):
                 f"STDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
             )
             if result.returncode != 0:
-                log.warning(
-                    "agentbeats-run exited %d", result.returncode
+                log.error(
+                    "agentbeats-run exited with code %d. See green_agent.log.",
+                    result.returncode,
                 )
+                self._iteration_count += 1
+                return [self._make_failed_episode(tid, "agentbeats_error") for tid in str_ids]
         except subprocess.TimeoutExpired:
             log.error("agentbeats-run timed out")
             self._iteration_count += 1

@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import random
 import sys
 from typing import Any
 
@@ -123,7 +124,6 @@ def cmd_run(args: argparse.Namespace) -> None:
     adapter.setup(config)
 
     if args.seed is not None:
-        import random
         random.seed(args.seed)
 
     agent_state = AgentState()

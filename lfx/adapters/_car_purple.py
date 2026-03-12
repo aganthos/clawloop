@@ -205,13 +205,26 @@ class CarPurpleAgent:
         Green generates its own tool_call_ids. The LLM needs matching ids between
         assistant tool_calls and tool-role messages. We rewrite the assistant msg's
         id to match what green sent back.
+
+        Handles duplicate tool names by only rewriting tool calls that haven't
+        already been reconciled (i.e., still have their original LLM-generated id).
         """
+        # Collect green IDs already used in existing tool-role messages
+        used_green_ids = {
+            m["tool_call_id"]
+            for m in messages
+            if m.get("role") == "tool" and "tool_call_id" in m
+        }
         # Walk backwards to find the last assistant message with tool_calls
         for msg in reversed(messages):
             if msg.get("role") != "assistant" or "tool_calls" not in msg:
                 continue
             for tc in msg["tool_calls"]:
-                if tc["function"]["name"] == tool_name and tc["id"] != green_id:
+                # Match by name, skip if already reconciled (id is a known green id)
+                if (
+                    tc["function"]["name"] == tool_name
+                    and tc["id"] not in used_green_ids
+                ):
                     tc["id"] = green_id
                     return
             return  # found assistant msg but no matching tool name
@@ -267,18 +280,19 @@ def start_purple_server(
     import socket
     import time
 
-    # Bind socket first to avoid race condition with port 0
+    # Bind socket to get a free port; pass it directly to uvicorn to avoid race.
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind((host, port))
     actual_port = sock.getsockname()[1]
-    sock.close()
 
     app = create_app(agent, actual_port)
     config = uvicorn.Config(app, host=host, port=actual_port, log_level="warning")
     server = uvicorn.Server(config)
 
-    thread = threading.Thread(target=server.run, daemon=True)
+    thread = threading.Thread(
+        target=server.run, kwargs={"sockets": [sock]}, daemon=True
+    )
     thread.start()
 
     # Poll for readiness

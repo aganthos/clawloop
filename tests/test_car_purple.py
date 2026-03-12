@@ -232,3 +232,30 @@ class TestReconcileToolCallId:
 
     def test_empty_messages_no_crash(self):
         CarPurpleAgent._reconcile_tool_call_id([], "fn", "id")
+
+    def test_duplicate_tool_names_reconciled_separately(self):
+        """Two calls to same tool get different green IDs."""
+        messages = [
+            {
+                "role": "assistant",
+                "content": "",
+                "tool_calls": [
+                    {"id": "llm_1", "type": "function",
+                     "function": {"name": "get_poi", "arguments": '{"q":"a"}'}},
+                    {"id": "llm_2", "type": "function",
+                     "function": {"name": "get_poi", "arguments": '{"q":"b"}'}},
+                ],
+            },
+        ]
+        # First reconcile: rewrites llm_1 → green_1
+        CarPurpleAgent._reconcile_tool_call_id(messages, "get_poi", "green_1")
+        assert messages[0]["tool_calls"][0]["id"] == "green_1"
+        assert messages[0]["tool_calls"][1]["id"] == "llm_2"  # untouched
+
+        # Simulate tool result for first call already in messages
+        messages.append({"role": "tool", "tool_call_id": "green_1", "content": "result1"})
+
+        # Second reconcile: should skip already-reconciled llm_1→green_1, rewrite llm_2→green_2
+        CarPurpleAgent._reconcile_tool_call_id(messages, "get_poi", "green_2")
+        assert messages[0]["tool_calls"][0]["id"] == "green_1"  # still first
+        assert messages[0]["tool_calls"][1]["id"] == "green_2"  # now rewritten
