@@ -1,6 +1,7 @@
 {
   "model": "anthropic/claude-haiku-4-5-20251001",
-  "api_base": "http://localhost:PORT",
+  "api_base": "http://127.0.0.1:8317/v1",
+  "api_key": "kuhhandel-bench-key",
   "car_bench_path": "benchmarks/car-bench",
   "task_type": "base",
   "task_split": "train",
