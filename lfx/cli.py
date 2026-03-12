@@ -127,15 +127,30 @@ def cmd_run(args: argparse.Namespace) -> None:
         random.seed(args.seed)
 
     agent_state = AgentState()
-    tasks = adapter.list_tasks()
+    try:
+        tasks = adapter.list_tasks()
+    except NotImplementedError:
+        tasks = None
 
-    _, state_id = learning_loop(
-        adapter=adapter,
-        agent_state=agent_state,
-        tasks=tasks,
-        n_episodes=args.episodes,
-        n_iterations=args.iterations,
-    )
+    if tasks is not None:
+        _, state_id = learning_loop(
+            adapter=adapter,
+            agent_state=agent_state,
+            tasks=tasks,
+            n_episodes=args.episodes,
+            n_iterations=args.iterations,
+        )
+    else:
+        # Batch-oriented adapter (e.g. CAR) — generate task IDs from config
+        task_type = config.get("task_type", "base")
+        task_ids = [f"{task_type}_{i}" for i in range(args.episodes)]
+        _, state_id = learning_loop(
+            adapter=adapter,
+            agent_state=agent_state,
+            tasks=task_ids,
+            n_episodes=args.episodes,
+            n_iterations=args.iterations,
+        )
     print(f"Final state: {state_id.combined_hash}")
 
 

@@ -245,7 +245,7 @@ def create_app(agent: CarPurpleAgent, port: int = 0) -> Starlette:
             )
 
         # Run sync litellm call in thread to avoid blocking event loop
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         result = await loop.run_in_executor(
             None, agent.handle_message_sync, body
         )
@@ -264,24 +264,33 @@ def start_purple_server(
     agent: CarPurpleAgent, host: str = "127.0.0.1", port: int = 0
 ) -> tuple[threading.Thread, int]:
     """Start the purple agent server in a background thread. Returns (thread, actual_port)."""
-    app = create_app(agent, port)
-    config = uvicorn.Config(app, host=host, port=port, log_level="warning")
-    server = uvicorn.Server(config)
+    import socket
+    import time
 
-    # Get actual bound port
-    actual_port = port
-    if port == 0:
-        import socket
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.bind((host, 0))
-        actual_port = sock.getsockname()[1]
-        sock.close()
-        config.port = actual_port
-        app = create_app(agent, actual_port)
-        config = uvicorn.Config(app, host=host, port=actual_port, log_level="warning")
-        server = uvicorn.Server(config)
+    # Bind socket first to avoid race condition with port 0
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.bind((host, port))
+    actual_port = sock.getsockname()[1]
+    sock.close()
+
+    app = create_app(agent, actual_port)
+    config = uvicorn.Config(app, host=host, port=actual_port, log_level="warning")
+    server = uvicorn.Server(config)
 
     thread = threading.Thread(target=server.run, daemon=True)
     thread.start()
+
+    # Poll for readiness
+    import httpx
+    for _ in range(50):
+        try:
+            r = httpx.get(f"http://{host}:{actual_port}/.well-known/agent.json", timeout=0.5)
+            if r.status_code == 200:
+                break
+        except httpx.ConnectError:
+            time.sleep(0.1)
+    else:
+        log.warning("Purple server did not become ready within 5s")
 
     return thread, actual_port

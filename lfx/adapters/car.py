@@ -48,6 +48,7 @@ class CARAdapter(EnvAdapter):
         self._task_type = config.get("task_type", "base")
         self._task_split = config.get("task_split", "test")
         self._agentbeats_cmd = config.get("agentbeats_cmd", "agentbeats-run")
+        self._green_port = config.get("green_port", 8081)
         self._iteration_count = 0
         self._purple: CarPurpleAgent | None = None
         self._purple_port: int = 0
@@ -81,6 +82,7 @@ class CARAdapter(EnvAdapter):
         # Update harness + clear sessions
         self._purple.update_harness(agent_state.harness)
         self._purple.clear_all_sessions()
+        self._current_state_id = agent_state.state_id().combined_hash
 
         # Generate scenario
         str_ids = [str(tid) for tid in task_ids]
@@ -168,10 +170,11 @@ class CARAdapter(EnvAdapter):
 
         filter_block = "\n".join(lines)
 
+        gp = getattr(self, "_green_port", 8081)
         return f"""\
 [green_agent]
-endpoint = "http://127.0.0.1:8081"
-cmd = "python src/green_car_bench_agent/server.py --host 127.0.0.1 --port 8081"
+endpoint = "http://127.0.0.1:{gp}"
+cmd = "python src/green_car_bench_agent/server.py --host 127.0.0.1 --port {gp}"
 
 [[participants]]
 role = "agent"
@@ -211,7 +214,7 @@ max_steps = 50
 
         return Episode(
             id=uuid4().hex,
-            state_id="",
+            state_id=getattr(self, "_current_state_id", ""),
             task_id=task_id,
             bench="car",
             model=self._model,
