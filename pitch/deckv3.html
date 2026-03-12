@@ -1755,6 +1755,28 @@
     </section>
 
     <!-- ===========================================
+     DECK FILTER — runs before SlidePresentation so
+     removed slides are never picked up by the controller
+     =========================================== -->
+    <script>
+      (function () {
+        const params  = new URLSearchParams(window.location.search);
+        const deck    = params.get('deck');
+        const variant = params.get('variant');
+
+        if (!deck && !variant) return;
+
+        document.querySelectorAll('section.slide[data-deck]').forEach(slide => {
+          const slideDeck    = slide.dataset.deck;
+          const slideVariant = slide.dataset.variant;
+
+          if (deck && slideDeck !== deck) { slide.remove(); return; }
+          if (slideVariant && slideVariant !== variant) { slide.remove(); }
+        });
+      })();
+    </script>
+
+    <!-- ===========================================
      SLIDE PRESENTATION CONTROLLER
      =========================================== -->
     <script>
@@ -1875,31 +1897,6 @@
         new SlidePresentation();
     </script>
 
-    <script>
-      (function () {
-        const params  = new URLSearchParams(window.location.search);
-        const deck    = params.get('deck');     // e.g. "vc", "client"
-        const variant = params.get('variant');  // e.g. "skydeck"
-
-        // No params → show everything (default / preview mode)
-        if (!deck && !variant) return;
-
-        document.querySelectorAll('section.slide[data-deck]').forEach(slide => {
-          const slideDeck    = slide.dataset.deck;
-          const slideVariant = slide.dataset.variant;
-
-          // Hide if deck doesn't match
-          if (deck && slideDeck !== deck) {
-            slide.style.display = 'none';
-            return;
-          }
-          // Hide variant-specific slides if no variant requested, or wrong variant
-          if (slideVariant && slideVariant !== variant) {
-            slide.style.display = 'none';
-          }
-        });
-      })();
-    </script>
 
 </body>
 
