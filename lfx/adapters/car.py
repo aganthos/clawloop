@@ -210,8 +210,10 @@ class CARAdapter(EnvAdapter):
         pp = purple_port
         car_dir = self._car_bench_path.resolve()
         green_server = car_dir / "src" / "green_car_bench_agent" / "server.py"
-        green_python = car_dir / ".venv" / "bin" / "python"
         lfx_server = car_dir / "src" / "purple_car_bench_agent" / "lfx_server.py"
+        # Derive python from agentbeats_cmd's venv (e.g. .../bin/agentbeats-run → .../bin/python)
+        agentbeats_bin = Path(self._agentbeats_cmd).parent
+        green_python = agentbeats_bin / "python" if agentbeats_bin.name == "bin" else "python"
 
         return f"""\
 [green_agent]
