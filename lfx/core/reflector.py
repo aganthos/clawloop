@@ -49,8 +49,10 @@ Return ONLY the JSON array.  No explanation, no markdown outside the JSON.
 """.strip()
 
 
-def _sanitize_str(text: str) -> str:
+def _sanitize_str(text: str | None) -> str:
     """Strip null bytes from a string (defense-in-depth)."""
+    if text is None:
+        return ""
     return text.replace("\x00", "")
 
 

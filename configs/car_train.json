@@ -1,0 +1,10 @@
+{
+  "model": "openai/claude-haiku-4-5-20251001",
+  "reflector_model": "openai/claude-sonnet-4-20250514",
+  "api_base": "http://127.0.0.1:8317/v1",
+  "api_key": "kuhhandel-bench-key",
+  "car_bench_path": "benchmarks/car-bench",
+  "task_type": "base",
+  "task_split": "train",
+  "output": "./runs/car/train_001"
+}
