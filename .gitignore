@@ -32,3 +32,6 @@ ressources/*.xdv
 benchmarks/*/output/
 benchmarks/*/.venv/
 benchmarks/*/.env
+
+#runs
+/runs

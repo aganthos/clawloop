@@ -64,18 +64,26 @@ class CarPurpleAgent:
 
     @staticmethod
     def _convert_tools_to_openai(car_tools: list[dict]) -> list[dict]:
-        """Convert CAR tool schemas to OpenAI function-calling format."""
-        return [
-            {
-                "type": "function",
-                "function": {
-                    "name": t["name"],
-                    "description": t.get("description", ""),
-                    "parameters": t.get("parameters", {}),
-                },
-            }
-            for t in car_tools
-        ]
+        """Normalize tool schemas to OpenAI function-calling format.
+
+        Green agent may send tools already wrapped ({type: function, function: ...})
+        or flat ({name, description, parameters}).  Handle both.
+        """
+        result = []
+        for t in car_tools:
+            if t.get("type") == "function" and "function" in t:
+                # Already in OpenAI format
+                result.append(t)
+            else:
+                result.append({
+                    "type": "function",
+                    "function": {
+                        "name": t["name"],
+                        "description": t.get("description", ""),
+                        "parameters": t.get("parameters", {}),
+                    },
+                })
+        return result
 
     @staticmethod
     def _normalize_assistant_msg(litellm_msg: Any) -> dict:
@@ -252,7 +260,19 @@ def create_app(agent: CarPurpleAgent, port: int = 0) -> Starlette:
             "description": "LfX harness-optimized agent under test",
             "url": f"http://127.0.0.1:{port}/",
             "version": "0.1.0",
-            "capabilities": {"streaming": False, "pushNotifications": False},
+            "protocol_version": "0.3.0",
+            "preferred_transport": "JSONRPC",
+            "default_input_modes": ["text/plain"],
+            "default_output_modes": ["text/plain"],
+            "capabilities": {"streaming": False, "push_notifications": False},
+            "skills": [
+                {
+                    "id": "car_assistant",
+                    "name": "In-Car Voice Assistant",
+                    "description": "Agent under test for CAR-bench evaluation",
+                    "tags": ["benchmark", "car-bench"],
+                }
+            ],
         })
 
     async def handle_jsonrpc(request: Request) -> JSONResponse:
@@ -281,6 +301,7 @@ def create_app(agent: CarPurpleAgent, port: int = 0) -> Starlette:
     return Starlette(
         routes=[
             Route("/.well-known/agent.json", agent_card, methods=["GET"]),
+            Route("/.well-known/agent-card.json", agent_card, methods=["GET"]),
             Route("/", handle_jsonrpc, methods=["POST"]),
         ]
     )
@@ -312,7 +333,7 @@ def start_purple_server(
     import httpx
     for _ in range(50):
         try:
-            r = httpx.get(f"http://{host}:{actual_port}/.well-known/agent.json", timeout=0.5)
+            r = httpx.get(f"http://{host}:{actual_port}/.well-known/agent-card.json", timeout=0.5)
             if r.status_code == 200:
                 break
         except httpx.ConnectError:

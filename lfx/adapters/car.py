@@ -1,14 +1,16 @@
 # lfx/adapters/car.py
 """CAR-bench adapter — orchestrates agentbeats-run with lfx harness injection.
 
-Uses a custom A2A purple agent server that injects harness system prompt +
-playbook into LLM calls. Results parsed from CAR's results.json.
+Writes harness prompt to a JSON file, generates a scenario.toml that spawns
+lfx_server.py (which reads the file and injects the prompt into the system
+message), then runs agentbeats-run and parses results.
 """
 
 from __future__ import annotations
 
 import json
 import logging
+import os
 import subprocess
 import time
 from pathlib import Path
@@ -20,7 +22,6 @@ from lfx.adapters.base import EnvAdapter
 from lfx.core.episode import Episode, EpisodeSummary, Message, StepMeta
 
 if TYPE_CHECKING:
-    from lfx.adapters._car_purple import CarPurpleAgent
     from lfx.core.loop import AgentState
 
 log = logging.getLogger(__name__)
@@ -47,35 +48,14 @@ class CARAdapter(EnvAdapter):
         self._output_dir.mkdir(parents=True, exist_ok=True)
         self._task_type = config.get("task_type", "base")
         self._task_split = config.get("task_split", "test")
-        # Default: use uv run from car-bench dir (agentbeats-run is a uv script)
         self._agentbeats_cmd = config.get(
             "agentbeats_cmd",
-            str(self._car_bench_path / ".venv" / "bin" / "agentbeats-run"),
+            str(self._car_bench_path.resolve() / ".venv" / "bin" / "agentbeats-run"),
         )
-        self._green_port = config.get("green_port", 8081)
         self._api_base = config.get("api_base")
         self._api_key = config.get("api_key")
         self._iteration_count = 0
-        self._purple: CarPurpleAgent | None = None
-        self._purple_port: int = 0
         self._config = config
-
-    def _start_purple(self) -> None:
-        """Start the purple agent server (lazy — called on first run_batch)."""
-        if self._purple is not None:
-            return
-        from lfx.adapters._car_purple import CarPurpleAgent, start_purple_server
-        from lfx.layers.harness import Harness
-
-        self._purple = CarPurpleAgent(
-            model=self._model,
-            harness=Harness(),
-            bench="car",
-            api_base=self._api_base,
-            api_key=self._api_key,
-        )
-        _, self._purple_port = start_purple_server(self._purple)
-        log.info("Purple agent started on port %d", self._purple_port)
 
     def run_episode(self, task: Any, agent_state: "AgentState") -> Episode:
         """Run a single task. Delegates to run_batch with one task."""
@@ -85,31 +65,50 @@ class CARAdapter(EnvAdapter):
     def run_batch(
         self, agent_state: "AgentState", task_ids: list[Any]
     ) -> list[Episode]:
-        """Run a batch of tasks via agentbeats-run."""
-        self._start_purple()
-        assert self._purple is not None
-
-        # Update harness + clear sessions
-        self._purple.update_harness(agent_state.harness)
-        self._purple.clear_all_sessions()
+        """Run a batch of tasks via agentbeats-run with lfx harness injection."""
+        str_ids = [str(tid) for tid in task_ids]
         self._current_state_id = agent_state.state_id().combined_hash
 
-        # Generate scenario
-        str_ids = [str(tid) for tid in task_ids]
-        scenario = self._generate_scenario(str_ids)
-        iter_dir = self._output_dir / f"iter_{self._iteration_count}"
+        iter_dir = (self._output_dir / f"iter_{self._iteration_count}").resolve()
         iter_dir.mkdir(parents=True, exist_ok=True)
+
+        # Write harness prompt to file for lfx_server.py to read
+        harness_prompt = agent_state.harness.system_prompt("car")
+        harness_file = iter_dir / "harness_prompt.json"
+        harness_file.write_text(json.dumps({"prompt": harness_prompt}))
+        log.info(
+            "Harness prompt: %d chars, %d playbook entries",
+            len(harness_prompt),
+            len(agent_state.harness.playbook.entries),
+        )
+
+        # Pick free ports for this iteration to avoid collisions
+        green_port, purple_port = self._find_free_ports()
+
+        # Generate scenario pointing to lfx_server.py with harness file
+        scenario = self._generate_scenario(str_ids, str(harness_file), green_port, purple_port)
         scenario_path = iter_dir / "scenario.toml"
         scenario_path.write_text(scenario)
         results_path = iter_dir / "results.json"
+
+        # Build env with API credentials for purple agent (CLIProxyAPI)
+        env = dict(os.environ)
+        if self._api_base:
+            env["OPENAI_API_BASE"] = self._api_base
+        if self._api_key:
+            env["OPENAI_API_KEY"] = self._api_key
+        # Remove GOOGLE_API_KEY — litellm prefers it over GEMINI_API_KEY,
+        # and it's often a free-tier key from the system environment.
+        env.pop("GOOGLE_API_KEY", None)
 
         # Run agentbeats-run
         try:
             result = subprocess.run(
                 [self._agentbeats_cmd, str(scenario_path), "--show-logs",
                  "--output", str(results_path)],
-                cwd=str(self._car_bench_path),
+                cwd=str(self._car_bench_path.resolve()),
                 capture_output=True, text=True, timeout=600,
+                env=env,
             )
             (iter_dir / "green_agent.log").write_text(
                 f"STDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
@@ -129,7 +128,7 @@ class CARAdapter(EnvAdapter):
         # Parse results
         episodes = self._parse_results(results_path, str_ids)
 
-        # Save harness state
+        # Save harness state for debugging/reproducibility
         harness_path = iter_dir / "harness_state.json"
         harness_path.write_text(json.dumps(agent_state.harness.to_dict(), indent=2))
 
@@ -149,8 +148,15 @@ class CARAdapter(EnvAdapter):
                 for tid in expected_task_ids
             ]
 
+        # agentbeats-run output: {"results": [{"detailed_results_by_split": {...}}]}
+        # Unwrap the results array to get detailed results
+        detailed = {}
+        if "detailed_results_by_split" in raw:
+            detailed = raw["detailed_results_by_split"]
+        elif "results" in raw and raw["results"]:
+            detailed = raw["results"][0].get("detailed_results_by_split", {})
+
         episodes = []
-        detailed = raw.get("detailed_results_by_split", {})
         for task_type_results in detailed.values():
             for task_result in task_type_results:
                 episodes.append(self._map_to_episode(task_result))
@@ -163,11 +169,28 @@ class CARAdapter(EnvAdapter):
 
         return episodes
 
-    def _generate_scenario(self, task_ids: list[str]) -> str:
+    @staticmethod
+    def _find_free_ports() -> tuple[int, int]:
+        """Find two free TCP ports for green and purple agents."""
+        import socket
+        socks = []
+        ports = []
+        for _ in range(2):
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.bind(("127.0.0.1", 0))
+            ports.append(s.getsockname()[1])
+            socks.append(s)
+        for s in socks:
+            s.close()
+        return ports[0], ports[1]
+
+    def _generate_scenario(
+        self, task_ids: list[str], harness_file: str,
+        green_port: int, purple_port: int,
+    ) -> str:
         """Generate scenario.toml for this batch."""
         by_type: dict[str, list[str]] = {}
         for tid in task_ids:
-            # "base_0" → "base", "hallucination_3" → "hallucination"
             parts = tid.rsplit("_", 1)
             task_type = parts[0] if len(parts) == 2 and parts[1].isdigit() else "base"
             by_type.setdefault(task_type, []).append(tid)
@@ -183,15 +206,22 @@ class CARAdapter(EnvAdapter):
 
         filter_block = "\n".join(lines)
 
-        gp = getattr(self, "_green_port", 8081)
+        gp = green_port
+        pp = purple_port
+        car_dir = self._car_bench_path.resolve()
+        green_server = car_dir / "src" / "green_car_bench_agent" / "server.py"
+        green_python = car_dir / ".venv" / "bin" / "python"
+        lfx_server = car_dir / "src" / "purple_car_bench_agent" / "lfx_server.py"
+
         return f"""\
 [green_agent]
 endpoint = "http://127.0.0.1:{gp}"
-cmd = "python src/green_car_bench_agent/server.py --host 127.0.0.1 --port {gp}"
+cmd = "{green_python} {green_server} --host 127.0.0.1 --port {gp}"
 
 [[participants]]
 role = "agent"
-endpoint = "http://127.0.0.1:{self._purple_port}"
+endpoint = "http://127.0.0.1:{pp}"
+cmd = "{green_python} {lfx_server} --host 127.0.0.1 --port {pp} --agent-llm {self._model} --temperature 0.0 --harness-file {harness_file}"
 
 [config]
 task_split = "{self._task_split}"
@@ -268,8 +298,6 @@ max_steps = 50
         return {"bench": "car", "episode_id": episode.id}
 
     def list_tasks(self, split: str = "base") -> list[Any]:
-        # TODO: parse from CAR-bench task definitions (HuggingFace auto-download)
-        # For now, return numbered task IDs
         raise NotImplementedError(
             "list_tasks requires CAR-bench data. Use run_batch with explicit task_ids."
         )
