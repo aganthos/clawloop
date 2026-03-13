@@ -26,7 +26,6 @@ class TestCARAdapterResultsParsing:
         adapter._model = "test-model"
         adapter._iteration_count = 0
         adapter._agentbeats_cmd = "echo"
-        adapter._purple = None
 
         # Write canned results directly
         iter_dir = tmp_path / "output" / "iter_0"
@@ -53,6 +52,35 @@ class TestCARAdapterResultsParsing:
         assert episodes[0].bench == "car"
         assert episodes[0].summary.signals["outcome"].value == 1.0
 
+    def test_parses_nested_results_format(self, tmp_path):
+        """agentbeats-run wraps detailed_results_by_split inside results[0]."""
+        adapter = CARAdapter()
+        adapter._model = "test"
+        adapter._output_dir = tmp_path
+
+        results_path = tmp_path / "results.json"
+        results_path.write_text(json.dumps({
+            "participants": {},
+            "results": [{
+                "score": 1.0,
+                "detailed_results_by_split": {
+                    "base": [{
+                        "task_id": "base_0",
+                        "reward": 1.0,
+                        "reward_info": {"r_actions_final": 1.0},
+                        "trajectory": [{"role": "user", "content": "Hi"}],
+                        "total_agent_cost": 0.01,
+                        "total_llm_latency_ms": 500.0,
+                    }]
+                }
+            }]
+        }))
+
+        episodes = adapter._parse_results(results_path, ["base_0"])
+        assert len(episodes) == 1
+        assert episodes[0].task_id == "car:base_0"
+        assert episodes[0].summary.signals["outcome"].value == 1.0
+
     def test_missing_task_creates_failed_episode(self, tmp_path):
         adapter = CARAdapter()
         adapter._model = "test"
@@ -75,25 +103,36 @@ class TestCARAdapterResultsParsing:
 class TestScenarioGeneration:
     """_generate_scenario produces valid TOML."""
 
-    def test_generates_valid_scenario(self):
+    def test_generates_valid_scenario(self, tmp_path):
         adapter = CARAdapter()
-        adapter._purple_port = 9999
         adapter._task_split = "test"
+        adapter._car_bench_path = tmp_path
+        adapter._model = "test-model"
 
-        scenario = adapter._generate_scenario(["base_0", "base_2"])
+        harness_file = str(tmp_path / "harness.json")
+        scenario = adapter._generate_scenario(
+            ["base_0", "base_2"], harness_file,
+            green_port=8081, purple_port=9999,
+        )
         assert "task_split" in scenario
         assert '"test"' in scenario
         assert "base_0" in scenario
         assert "9999" in scenario
+        assert harness_file in scenario
         # Unused types zeroed out
         assert "tasks_hallucination_num_tasks = 0" in scenario
         assert "tasks_disambiguation_num_tasks = 0" in scenario
 
-    def test_mixed_task_types(self):
+    def test_mixed_task_types(self, tmp_path):
         adapter = CARAdapter()
-        adapter._purple_port = 9999
         adapter._task_split = "test"
+        adapter._car_bench_path = tmp_path
+        adapter._model = "test-model"
 
-        scenario = adapter._generate_scenario(["base_0", "hallucination_1"])
+        harness_file = str(tmp_path / "harness.json")
+        scenario = adapter._generate_scenario(
+            ["base_0", "hallucination_1"], harness_file,
+            green_port=8081, purple_port=9999,
+        )
         assert "base_0" in scenario
         assert "hallucination_1" in scenario
