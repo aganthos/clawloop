@@ -108,6 +108,7 @@ class TestScenarioGeneration:
         adapter._task_split = "test"
         adapter._car_bench_path = tmp_path
         adapter._model = "test-model"
+        adapter._agentbeats_cmd = str(tmp_path / ".venv" / "bin" / "agentbeats-run")
 
         harness_file = str(tmp_path / "harness.json")
         scenario = adapter._generate_scenario(
@@ -128,6 +129,7 @@ class TestScenarioGeneration:
         adapter._task_split = "test"
         adapter._car_bench_path = tmp_path
         adapter._model = "test-model"
+        adapter._agentbeats_cmd = str(tmp_path / ".venv" / "bin" / "agentbeats-run")
 
         harness_file = str(tmp_path / "harness.json")
         scenario = adapter._generate_scenario(
