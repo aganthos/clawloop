@@ -38,9 +38,28 @@ class LfxCallback:
         self,
         collector: EpisodeCollector,
         bench: str = "litellm",
+        *,
+        tracer: Any = None,
     ) -> None:
         self.collector = collector
         self.bench = bench
+        self._tracer = tracer
+
+        # Resolve OpenInference span kind constant (same fallback as OTelExporter)
+        self._llm_kind_attr: str | None = None
+        self._llm_kind_value: str | None = None
+        if tracer:
+            try:
+                from openinference.semconv.trace import (
+                    OpenInferenceSpanKindValues,
+                    SpanAttributes,
+                )
+
+                self._llm_kind_attr = SpanAttributes.OPENINFERENCE_SPAN_KIND
+                self._llm_kind_value = OpenInferenceSpanKindValues.LLM.value
+            except ImportError:
+                self._llm_kind_attr = "openinference.span.kind"
+                self._llm_kind_value = "LLM"
 
     def log_success_event(
         self,
@@ -186,6 +205,31 @@ class LfxCallback:
                 if m.get("role") == "user":
                     session_id = _safe_session_hash(m.get("content", ""))
                     break
+
+        if self._tracer:
+            try:
+                import json as _json
+
+                span = self._tracer.start_span(
+                    f"chat {model or 'unknown'}",
+                    attributes={
+                        self._llm_kind_attr: self._llm_kind_value,
+                        "gen_ai.operation.name": "chat",
+                        "gen_ai.request.model": model or "",
+                        "gen_ai.input.messages": _json.dumps(input_messages),
+                        "gen_ai.output.messages": _json.dumps(
+                            [{"role": "assistant", "content": text}]
+                        ),
+                    },
+                )
+                if usage:
+                    span.set_attribute(
+                        "gen_ai.usage.output_tokens",
+                        usage.completion_tokens,
+                    )
+                span.end()
+            except Exception:
+                pass
 
         self.collector.ingest(
             ep_messages,

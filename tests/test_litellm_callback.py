@@ -249,3 +249,37 @@ class TestLfxCallbackBasic:
             exception=ValueError("test"),
         )
         assert collector.metrics["episodes_collected"] == 0
+
+
+class TestLfxCallbackTracer:
+    def test_accepts_tracer_kwarg(self) -> None:
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        cb = LfxCallback(collector=collector, tracer=None)
+        kwargs = {"messages": [{"role": "user", "content": "hi"}]}
+        response = _make_mock_response()
+        cb.log_success_event(kwargs, response, time.time(), time.time())
+        assert collector.metrics["episodes_collected"] == 1
+
+    def test_emits_span_with_tracer(self) -> None:
+        pytest = __import__("pytest")
+        pytest.importorskip("opentelemetry")
+
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+        from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
+
+        mem = InMemorySpanExporter()
+        provider = TracerProvider()
+        provider.add_span_processor(SimpleSpanProcessor(mem))
+        tracer = provider.get_tracer("test")
+
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        cb = LfxCallback(collector=collector, tracer=tracer)
+        kwargs = {"messages": [{"role": "user", "content": "hi"}]}
+        response = _make_mock_response(content="hello")
+        cb.log_success_event(kwargs, response, time.time(), time.time())
+
+        spans = mem.get_finished_spans()
+        assert len(spans) == 1
+        assert spans[0].attributes.get("openinference.span.kind") == "LLM"
+        assert collector.metrics["episodes_collected"] == 1
