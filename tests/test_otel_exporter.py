@@ -381,7 +381,9 @@ class TestLfxAttributes:
         events = root.events
         assert len(events) == 1
         assert events[0].name == "gen_ai.evaluation.result"
-        assert abs(events[0].attributes["gen_ai.evaluation.score"] - 0.8) < 1e-6
+        # evaluation score uses effective_reward() ([-1,1] canonical range)
+        # reward=0.8 → outcome signal value = 0.6, effective_reward() = 0.6
+        assert abs(events[0].attributes["gen_ai.evaluation.score"] - 0.6) < 1e-6
 
     def test_input_tokens_on_root(self) -> None:
         ep = _make_otel_episode()
@@ -716,6 +718,65 @@ class TestTracerInjection:
         exporter = OTelExporter(tracer=tracer)
         # Should not raise
         exporter.flush()
+
+    def test_flush_calls_force_flush_on_owned_provider(self) -> None:
+        """When OTelExporter owns the provider, flush() must call force_flush."""
+        from unittest.mock import MagicMock, patch as _patch
+
+        provider, _ = _make_provider()
+        tracer = provider.get_tracer("test")
+        exporter = OTelExporter(tracer=tracer)
+
+        # Simulate owned provider
+        mock_provider = MagicMock()
+        exporter._provider = mock_provider
+        exporter.flush(timeout_millis=3000)
+        mock_provider.force_flush.assert_called_once_with(timeout_millis=3000)
+
+
+# ---------------------------------------------------------------------------
+# TestStepIndexMultipleAssistants
+# ---------------------------------------------------------------------------
+
+
+class TestStepIndexMultipleAssistants:
+    """Step index resolution when a single step has multiple assistant messages."""
+
+    def test_two_assistants_in_same_step(self) -> None:
+        """Two assistant messages within one step should both resolve to step 0."""
+        messages = [
+            Message(role="system", content="sys", timestamp=_BASE_TS),
+            Message(role="user", content="q1", timestamp=_BASE_TS + 1),
+            Message(role="assistant", content="thinking...", model="gpt-4o",
+                    token_count=5, timestamp=_BASE_TS + 2),
+            Message(role="assistant", content="done", model="gpt-4o",
+                    token_count=10, timestamp=_BASE_TS + 3),
+        ]
+        ep = Episode(
+            id="ep-multi-asst",
+            state_id="s1",
+            task_id="t1",
+            bench="test",
+            messages=messages,
+            step_boundaries=[1],  # step 0 starts at msg index 1
+            steps=[StepMeta(t=0, reward=1.0, done=True, timing_ms=500)],
+            summary=EpisodeSummary(
+                signals={"outcome": RewardSignal(name="outcome", value=0.8, confidence=1.0)},
+                token_usage=TokenUsage(prompt_tokens=10, completion_tokens=15, total_tokens=25),
+                timing=Timing(total_ms=500.0, per_step_ms=[500.0]),
+                filtered=False,
+            ),
+            session_id="sess",
+            model="gpt-4o",
+            created_at=_BASE_TS,
+        )
+
+        spans = _run_export(ep)
+        llm_spans = [s for s in spans if s.name.startswith("llm:")]
+        assert len(llm_spans) == 2
+        # Both should be step 0
+        for ls in llm_spans:
+            assert ls.attributes["lfx.step.index"] == 0
 
 
 # ---------------------------------------------------------------------------
