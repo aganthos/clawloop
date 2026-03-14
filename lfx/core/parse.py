@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from lfx.core.episode import TokenLogProb, ToolCall
+
+_log = logging.getLogger(__name__)
 
 
 def parse_tool_calls(raw: list[dict[str, Any]] | None) -> list[ToolCall] | None:
@@ -37,6 +40,24 @@ def parse_logprobs(raw: list[dict[str, Any]] | None) -> list[TokenLogProb] | Non
         )
         for lp in raw
     ]
+
+
+def resolve_oi_span_kind() -> tuple[str, str]:
+    """Return (attribute_name, LLM_value) for OpenInference span kind.
+
+    Imports ``openinference.semconv.trace`` if available; falls back to
+    string literals so callers work without the optional dependency.
+    """
+    try:
+        from openinference.semconv.trace import (  # type: ignore[import-untyped]
+            OpenInferenceSpanKindValues,
+            SpanAttributes,
+        )
+
+        return SpanAttributes.OPENINFERENCE_SPAN_KIND, OpenInferenceSpanKindValues.LLM.value
+    except ImportError:
+        _log.debug("openinference not installed; using string literals for span kind")
+        return "openinference.span.kind", "LLM"
 
 
 def _safe_session_hash(content: Any) -> str:

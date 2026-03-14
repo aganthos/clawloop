@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json as _json
+import logging
 import time
 from typing import Any
 from uuid import uuid4
@@ -9,15 +11,25 @@ from uuid import uuid4
 from lfx.collector import EpisodeCollector
 from lfx.completion import CompletionResult
 from lfx.core.episode import Message
-from lfx.core.parse import parse_tool_calls, _safe_session_hash
+from lfx.core.parse import parse_tool_calls, resolve_oi_span_kind, _safe_session_hash
+
+log = logging.getLogger(__name__)
 
 
 class WrappedClient:
     """Drop-in LLMClient replacement that intercepts calls for learning."""
 
-    def __init__(self, client: Any, collector: EpisodeCollector) -> None:
+    def __init__(
+        self, client: Any, collector: EpisodeCollector, *, tracer: Any = None
+    ) -> None:
         self._client = client
         self._collector = collector
+        self._tracer = tracer
+
+        self._llm_kind_attr: str | None = None
+        self._llm_kind_value: str | None = None
+        if tracer:
+            self._llm_kind_attr, self._llm_kind_value = resolve_oi_span_kind()
 
     def complete(
         self, messages: list[dict[str, str]], **kwargs: Any
@@ -25,8 +37,35 @@ class WrappedClient:
         # Extract lfx-specific kwargs before forwarding to the client
         task_id = kwargs.pop("task_id", uuid4().hex)
 
+        _span = None
+        if self._tracer:
+            try:
+                _span = self._tracer.start_span(
+                    f"chat {kwargs.get('model', 'unknown')}",
+                    attributes={
+                        self._llm_kind_attr: self._llm_kind_value,
+                        "gen_ai.operation.name": "chat",
+                        "gen_ai.input.messages": _json.dumps(messages),
+                    },
+                )
+            except Exception:
+                log.warning("Failed to create OTel span", exc_info=True)
+                _span = None
+
         start = time.monotonic()
-        response = self._client.complete(messages, **kwargs)
+        try:
+            response = self._client.complete(messages, **kwargs)
+        except Exception:
+            if _span:
+                try:
+                    from opentelemetry.trace import Status, StatusCode
+
+                    _span.set_status(Status(StatusCode.ERROR, "LLM call failed"))
+                except Exception:
+                    log.warning("Failed to set error status on OTel span", exc_info=True)
+                finally:
+                    _span.end()
+            raise
         elapsed_ms = (time.monotonic() - start) * 1000
 
         # Normalize response to CompletionResult
@@ -45,6 +84,26 @@ class WrappedClient:
                 )
         else:
             result = CompletionResult(text=str(response), latency_ms=elapsed_ms)
+
+        if _span:
+            try:
+                _span.set_attribute(
+                    "gen_ai.output.messages",
+                    _json.dumps([{"role": "assistant", "content": result.text}]),
+                )
+                _span.set_attribute(
+                    "gen_ai.request.model",
+                    result.model or "",
+                )
+                if result.usage:
+                    _span.set_attribute(
+                        "gen_ai.usage.output_tokens",
+                        result.usage.completion_tokens,
+                    )
+            except Exception:
+                log.warning("Failed to set attributes on OTel span", exc_info=True)
+            finally:
+                _span.end()
 
         # Build rich Message objects from input messages
         ep_messages: list[Message] = []
@@ -93,12 +152,17 @@ class WrappedClient:
         return result
 
 
-def wrap(client: Any, collector: EpisodeCollector) -> WrappedClient:
+def wrap(
+    client: Any, collector: EpisodeCollector, *, tracer: Any = None
+) -> WrappedClient:
     """Wrap an LLMClient with live-mode episode collection.
 
     Usage::
 
         wrapped = lfx.wrap(my_client, collector=collector)
         result = wrapped.complete(messages)  # works exactly like before
+
+        # With OTel tracing:
+        wrapped = lfx.wrap(my_client, collector=collector, tracer=my_tracer)
     """
-    return WrappedClient(client, collector)
+    return WrappedClient(client, collector, tracer=tracer)

@@ -240,3 +240,71 @@ class TestRichWrapperCapture:
         result = wrapped.complete([{"role": "user", "content": "hi"}])
         assert result == "plain text"
         assert isinstance(result, CompletionResult)
+
+
+class TestWrapWithTracer:
+    def test_wrap_accepts_tracer_kwarg(self) -> None:
+        client = MockLLMClient(responses=["hello"])
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        wrapped = wrap(client, collector=collector, tracer=None)
+        result = wrapped.complete([{"role": "user", "content": "hi"}])
+        assert result == "hello"
+
+    def test_wrap_with_otel_tracer(self) -> None:
+        pytest = __import__("pytest")
+        pytest.importorskip("opentelemetry")
+
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+        from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
+
+        mem = InMemorySpanExporter()
+        provider = TracerProvider()
+        provider.add_span_processor(SimpleSpanProcessor(mem))
+        tracer = provider.get_tracer("test")
+
+        client = MockLLMClient(responses=["world"])
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        wrapped = wrap(client, collector=collector, tracer=tracer)
+        wrapped.complete([{"role": "user", "content": "hello"}])
+
+        spans = mem.get_finished_spans()
+        assert len(spans) == 1
+        assert spans[0].attributes.get("openinference.span.kind") == "LLM"
+
+    def test_wrap_without_tracer_still_works(self) -> None:
+        client = MockLLMClient(responses=["hello"])
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        wrapped = wrap(client, collector=collector)
+        result = wrapped.complete([{"role": "user", "content": "hi"}])
+        assert result == "hello"
+        assert collector.metrics["episodes_collected"] == 1
+
+    def test_tracer_span_ends_on_error(self) -> None:
+        pytest = __import__("pytest")
+        pytest.importorskip("opentelemetry")
+
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+        from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
+        from opentelemetry.trace import StatusCode
+
+        mem = InMemorySpanExporter()
+        provider = TracerProvider()
+        provider.add_span_processor(SimpleSpanProcessor(mem))
+        tracer = provider.get_tracer("test")
+
+        class FailingClient:
+            def complete(self, messages, **kwargs):
+                raise RuntimeError("boom")
+
+        collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+        wrapped = wrap(FailingClient(), collector=collector, tracer=tracer)
+
+        import pytest as _pytest
+        with _pytest.raises(RuntimeError, match="boom"):
+            wrapped.complete([{"role": "user", "content": "hi"}])
+
+        spans = mem.get_finished_spans()
+        assert len(spans) == 1
+        assert spans[0].status.status_code == StatusCode.ERROR

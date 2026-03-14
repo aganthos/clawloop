@@ -17,12 +17,13 @@ Usage::
 
 from __future__ import annotations
 
+import json as _json
 import logging
 from typing import Any
 
 from lfx.collector import EpisodeCollector
 from lfx.core.episode import Message, TokenLogProb, TokenUsage, ToolCall, cap_logprobs
-from lfx.core.parse import parse_tool_calls, _safe_session_hash
+from lfx.core.parse import parse_tool_calls, resolve_oi_span_kind, _safe_session_hash
 
 log = logging.getLogger(__name__)
 
@@ -38,9 +39,17 @@ class LfxCallback:
         self,
         collector: EpisodeCollector,
         bench: str = "litellm",
+        *,
+        tracer: Any = None,
     ) -> None:
         self.collector = collector
         self.bench = bench
+        self._tracer = tracer
+
+        self._llm_kind_attr: str | None = None
+        self._llm_kind_value: str | None = None
+        if tracer:
+            self._llm_kind_attr, self._llm_kind_value = resolve_oi_span_kind()
 
     def log_success_event(
         self,
@@ -186,6 +195,29 @@ class LfxCallback:
                 if m.get("role") == "user":
                     session_id = _safe_session_hash(m.get("content", ""))
                     break
+
+        if self._tracer:
+            try:
+                span = self._tracer.start_span(
+                    f"chat {model or 'unknown'}",
+                    attributes={
+                        self._llm_kind_attr: self._llm_kind_value,
+                        "gen_ai.operation.name": "chat",
+                        "gen_ai.request.model": model or "",
+                        "gen_ai.input.messages": _json.dumps(input_messages),
+                        "gen_ai.output.messages": _json.dumps(
+                            [{"role": "assistant", "content": text}]
+                        ),
+                    },
+                )
+                if usage:
+                    span.set_attribute(
+                        "gen_ai.usage.output_tokens",
+                        usage.completion_tokens,
+                    )
+                span.end()
+            except Exception:
+                log.warning("LfxCallback: failed to emit OTel span", exc_info=True)
 
         self.collector.ingest(
             ep_messages,
