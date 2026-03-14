@@ -356,6 +356,9 @@ class OTelExporter(TraceExporter):
                     tc_end_ns: int | None = None
                     if tc.latency_ms is not None:
                         tc_end_ns = tc_start_ns + _ms_to_ns(tc.latency_ms)
+                    elif llm_end_ns is not None:
+                        # Ensure tool span doesn't outlive its parent LLM span
+                        tc_end_ns = llm_end_ns
 
                     tool_span = self._tracer.start_span(
                         name=f"tool:{tc.name}",
