@@ -272,7 +272,7 @@ class OTelExporter(TraceExporter):
         # Evaluation event
         root_span.add_event(
             "gen_ai.evaluation.result",
-            {"gen_ai.evaluation.score": summary.normalized_reward()},
+            {"gen_ai.evaluation.score": summary.effective_reward()},
         )
 
         # ----------------------------------------------------------------
