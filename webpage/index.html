@@ -14,6 +14,11 @@
     content="We enable AI agents to learn from experience. RL post-training, distillation, model routing, and agentic deployment.">
   <meta property="og:url" content="https://aganthos.com/">
   <meta property="og:image" content="https://aganthos.com/logo.svg">
+  <!-- Font: Aptos (Microsoft system font, installed via Office) with fallbacks -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -21,9 +26,16 @@
         extend: {
           colors: {
             ag: {
-              950: '#FAF9F0', 900: '#FFFFFF', 800: '#F4F3EE', 700: '#B1ADA1',
-              600: '#780000', 500: '#780000', 400: '#5a0000', 300: '#780000',
-              200: '#780000', 100: '#131314', 50: '#131314',
+              bg: '#FAF9F0',
+              white: '#FFFFFF',
+              cream: '#F4F3EE',
+              border: '#D4D0C8',
+              muted: '#8A8A8A',
+              gray: '#6B6B6B',
+              dark: '#4A4A4A',
+              text: '#131314',
+              red: '#780000',
+              'red-hover': '#5a0000',
             }
           }
         }
@@ -39,6 +51,14 @@
 
     body {
       background: #FAF9F0;
+      font-family: 'Aptos', 'Inter', 'Segoe UI', system-ui, sans-serif;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+      font-family: 'Aptos Display', 'Aptos', 'Inter', 'Segoe UI', system-ui, sans-serif;
     }
 
     .page {
@@ -59,17 +79,38 @@
       border-color: #780000;
     }
 
-    .mode-card {
-      transition: transform 0.2s, box-shadow 0.2s;
+    .cat-card {
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
     }
 
-    .mode-card:hover {
+    .cat-card:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 32px rgba(120, 0, 0, 0.12);
+      box-shadow: 0 8px 32px rgba(120, 0, 0, 0.10);
+    }
+
+    .cat-card.active {
+      border-color: #780000;
+      box-shadow: 0 0 0 1px #780000;
+    }
+
+    .cat-chevron {
+      transition: transform 0.25s;
+      display: inline-block;
+    }
+
+    .cat-card.active .cat-chevron {
+      transform: rotate(90deg);
     }
 
     .method-card {
       cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    }
+
+    .method-card:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(120, 0, 0, 0.08);
     }
 
     .method-card.active {
@@ -84,14 +125,6 @@
 
     .method-card.active .method-chevron {
       transform: rotate(90deg);
-    }
-
-    #method-detail-panel {
-      display: none;
-    }
-
-    #method-detail-panel.open {
-      display: block;
     }
 
     .flywheel-arrow {
@@ -110,82 +143,13 @@
       }
     }
 
-    :root {
-      --c-perf: 203, 128, 68;
-      --c-cost: 106, 173, 120;
-      --c-priv: 92, 133, 168;
+    .tab-btn {
+      transition: color 0.2s, border-color 0.2s;
     }
 
-    .benefit-tag {
-      font-size: 0.65rem;
-      padding: 2px 8px;
-      border-radius: 9999px;
-    }
-
-    .tag-perf {
-      background: rgba(var(--c-perf), 0.08);
-      color: rgb(var(--c-perf));
-      border: 1px solid rgba(var(--c-perf), 0.2);
-    }
-
-    .tag-cost {
-      background: rgba(var(--c-cost), 0.08);
-      color: rgb(var(--c-cost));
-      border: 1px solid rgba(var(--c-cost), 0.2);
-    }
-
-    .tag-priv {
-      background: rgba(var(--c-priv), 0.08);
-      color: rgb(var(--c-priv));
-      border: 1px solid rgba(var(--c-priv), 0.2);
-    }
-
-    .card-perf {
-      border: 1px solid rgba(var(--c-perf), 0.2);
-    }
-
-    .card-perf h3,
-    .card-perf svg {
-      color: rgb(var(--c-perf));
-      stroke: rgb(var(--c-perf));
-    }
-
-    .card-cost {
-      border: 1px solid rgba(var(--c-cost), 0.2);
-    }
-
-    .card-cost h3,
-    .card-cost svg {
-      color: rgb(var(--c-cost));
-      stroke: rgb(var(--c-cost));
-    }
-
-    .card-priv {
-      border: 1px solid rgba(var(--c-priv), 0.2);
-    }
-
-    .card-priv h3,
-    .card-priv svg {
-      color: rgb(var(--c-priv));
-      stroke: rgb(var(--c-priv));
-    }
-
-    .challenge-cards .card-perf,
-    .challenge-cards .card-cost,
-    .challenge-cards .card-priv {
-      border: 1px solid rgba(120, 0, 0, 0.15);
-    }
-
-    .challenge-cards .card-perf h3,
-    .challenge-cards .card-cost h3,
-    .challenge-cards .card-priv h3 {
+    .tab-btn.active {
       color: #780000;
-    }
-
-    .challenge-cards .card-perf svg,
-    .challenge-cards .card-cost svg,
-    .challenge-cards .card-priv svg {
-      stroke: #780000;
+      border-color: #780000;
     }
 
     input,
@@ -199,29 +163,27 @@
 <body class="min-h-screen" style="color: #131314;">
 
   <!-- Navigation -->
-  <nav class="fixed top-0 w-full z-50 bg-ag-950/95 backdrop-blur border-b border-ag-700/30">
+  <nav class="fixed top-0 w-full z-50 bg-ag-bg/95 backdrop-blur border-b border-ag-border/50">
     <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
       <a href="#home" class="flex items-center gap-3">
         <img src="logo.svg" alt="Aganthos" class="h-8 w-auto">
         <span class="text-lg font-semibold tracking-tight">Aganthos</span>
       </a>
-      <div class="hidden md:flex items-center gap-8 text-sm">
+      <div class="hidden md:flex items-center gap-8 text-sm uppercase tracking-wide">
         <a href="#home" class="nav-link border-b-2 border-transparent pb-0.5">Home</a>
         <a href="#offering" class="nav-link border-b-2 border-transparent pb-0.5">Offering</a>
-        <a href="#projects" class="nav-link border-b-2 border-transparent pb-0.5">Projects</a>
         <a href="#contact" class="nav-link border-b-2 border-transparent pb-0.5">Contact</a>
       </div>
-      <button id="menu-btn" class="md:hidden text-ag-100">
+      <button id="menu-btn" class="md:hidden text-ag-text">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
     </div>
-    <div id="mobile-menu" class="hidden md:hidden border-t border-ag-700/30 bg-ag-950/[0.98] backdrop-blur">
-      <div class="px-6 py-4 flex flex-col gap-4 text-sm">
+    <div id="mobile-menu" class="hidden md:hidden border-t border-ag-border/50 bg-ag-bg/[0.98] backdrop-blur">
+      <div class="px-6 py-4 flex flex-col gap-4 text-sm uppercase tracking-wide">
         <a href="#home" class="nav-link nav-mobile">Home</a>
         <a href="#offering" class="nav-link nav-mobile">Offering</a>
-        <a href="#projects" class="nav-link nav-mobile">Projects</a>
         <a href="#contact" class="nav-link nav-mobile">Contact</a>
       </div>
     </div>
@@ -232,159 +194,205 @@
     <!-- ===== HOME ===== -->
     <div id="page-home" class="page active">
 
+      <!-- Hero -->
       <section class="relative min-h-[90vh] flex items-center justify-center px-6 overflow-hidden">
         <div class="absolute inset-0 bg-[radial-gradient(60%_40%_at_50%_-10%,rgba(120,0,0,0.08),transparent)]"></div>
-        <div class="absolute inset-0 bg-[radial-gradient(40%_30%_at_80%_120%,rgba(177,173,161,0.06),transparent)]">
-        </div>
         <div class="relative max-w-4xl text-center">
-          <p class="text-ag-200 text-sm font-mono tracking-widest uppercase mb-6">Learning from Experience Lab</p>
-          <h1 class="text-5xl md:text-7xl font-bold leading-tight text-ag-100">
-            AI agents that get<br><span class="text-ag-500">better every day</span>
+          <p class="text-ag-red text-sm font-mono tracking-widest uppercase mb-6">Learning from Experience Lab</p>
+          <h1 class="text-5xl md:text-7xl font-bold leading-tight text-ag-text uppercase">
+            AI agents that get<br><span class="text-ag-red">better every day</span>
           </h1>
-          <p class="mt-8 text-lg md:text-xl text-ag-100/[0.65] max-w-2xl mx-auto leading-relaxed">
-            We are a research lab building the methods that make AI agents learn from their own experience, improving
-            performance, cutting cost, and enabling full data privacy.
+          <p class="mt-8 text-lg md:text-xl text-ag-dark max-w-2xl mx-auto leading-relaxed">
+            We are a research lab building the methods that make AI agents learn from their own experience.
+            We improve both model weights and harness &mdash; improving performance, cutting cost, and enabling
+            full data privacy.
           </p>
           <div class="mt-12 flex flex-wrap gap-4 justify-center">
-            <a href="#offering" class="px-8 py-3 font-medium rounded-lg transition"
-              style="background:#780000; color:#FAF9F0;" onmouseover="this.style.background='#5a0000'"
-              onmouseout="this.style.background='#780000'">Our Offering</a>
+            <a href="#offering"
+              class="px-8 py-3 font-medium rounded-lg transition uppercase tracking-wide bg-ag-red text-ag-bg hover:bg-ag-red-hover">Our
+              Offering</a>
             <a href="#contact"
-              class="px-8 py-3 border border-ag-600/30 hover:border-ag-500 text-ag-500 rounded-lg transition">Get in
-              Touch</a>
+              class="px-8 py-3 border border-ag-red/30 hover:border-ag-red text-ag-red rounded-lg transition uppercase tracking-wide">Get
+              in Touch</a>
           </div>
         </div>
       </section>
 
-      <!-- Banner hidden while project is coming soon
-      <section class="max-w-4xl mx-auto px-6 py-6">
-        <div class="border border-ag-700/25 rounded-lg px-6 py-4 text-center bg-ag-900/70">
-          <p class="text-sm text-ag-100/60">Our RL-trained <span class="text-ag-200">Qwen2.5-7B</span> outperforms
-            o4-mini by <span class="text-ag-200">30%</span> on medical benchmarks <a href="#projects"
-              class="text-ag-200 underline hover:text-ag-500 transition ml-1">&rarr; Projects</a></p>
-        </div>
-      </section>
-      -->
-
+      <!-- Three Challenges -->
       <section class="max-w-6xl mx-auto px-6 py-24">
-        <h2 class="text-3xl md:text-4xl font-bold text-center mb-4 text-ag-100">AI agents hit a wall before becoming
-          productive</h2>
-        <p class="text-ag-100/60 text-center mb-16 max-w-2xl mx-auto">Unreliable performance, sensitive data concerns,
-          rising model costs. We solve all three.</p>
+        <h2 class="text-3xl md:text-4xl font-bold text-center mb-4 text-ag-text uppercase">AI Agents Hit a Wall Before
+          Becoming Productive</h2>
+        <p class="text-ag-dark text-center mb-16 max-w-2xl mx-auto">Unreliable performance, rising model costs,
+          sensitive data concerns. We solve all three.</p>
         <div class="grid md:grid-cols-3 gap-8">
-          <div class="bg-ag-900/70 card-perf rounded-xl p-8 text-center">
-            <div class="mb-4 flex justify-center"><svg class="w-10 h-10" viewBox="0 0 24 24" fill="none"
-                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="19" x2="12" y2="5" />
-                <polyline points="5 12 12 5 19 12" />
-              </svg></div>
-            <h3 class="text-2xl font-bold mb-3">Performance</h3>
-            <p class="text-ag-100/60 text-sm leading-relaxed">Higher success rates, fewer human escalations, better
-              decision quality</p>
+          <!-- Performance -->
+          <div class="bg-ag-white/70 border border-ag-red/15 rounded-xl p-8 text-center">
+            <div class="mb-4 flex justify-center">
+              <svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="#780000" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <circle cx="12" cy="12" r="6" />
+                <circle cx="12" cy="12" r="2" fill="#780000" />
+              </svg>
+            </div>
+            <h3 class="text-2xl font-bold mb-3 text-ag-red uppercase">Performance</h3>
+            <p class="text-ag-dark text-sm leading-relaxed">Off-the-shelf models get 50&ndash;60% on domain tasks where
+              you need 90%+. We close the gap with RL and in-context learning.</p>
           </div>
-          <div class="bg-ag-900/70 card-cost rounded-xl p-8 text-center">
-            <div class="mb-4 flex justify-center"><svg class="w-10 h-10" viewBox="0 0 24 24" fill="none"
-                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <polyline points="19 12 12 19 5 12" />
-              </svg></div>
-            <h3 class="text-2xl font-bold mb-3">Cost Reduction</h3>
-            <p class="text-ag-100/60 text-sm leading-relaxed">Intelligent model routing and small model distillation.
-              Lower cost per request, lower latency</p>
+          <!-- Cost -->
+          <div class="bg-ag-white/70 border border-ag-red/15 rounded-xl p-8 text-center">
+            <div class="mb-4 flex justify-center">
+              <svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="#780000" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="22 17 13.5 8.5 8.5 13.5 2 7" />
+                <polyline points="16 17 22 17 22 11" />
+              </svg>
+            </div>
+            <h3 class="text-2xl font-bold mb-3 text-ag-red uppercase">Cost Reduction</h3>
+            <p class="text-ag-dark text-sm leading-relaxed">Frontier API costs scale linearly. Smart routing and
+              distillation to smaller models cut your bill by up to 90%.</p>
           </div>
-          <div class="bg-ag-900/70 card-priv rounded-xl p-8 text-center">
-            <div class="mb-4 flex justify-center"><svg class="w-10 h-10" viewBox="0 0 24 24" fill="none"
-                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="11" width="18" height="11" rx="2" />
-                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-              </svg></div>
-            <h3 class="text-2xl font-bold mb-3">Privacy</h3>
-            <p class="text-ag-100/60 text-sm leading-relaxed">Data never leaves your organisation. Vendor independence
-              and regulatory compliance</p>
+          <!-- Privacy -->
+          <div class="bg-ag-white/70 border border-ag-red/15 rounded-xl p-8 text-center">
+            <div class="mb-4 flex justify-center">
+              <svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="#780000" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <polyline points="9 12 11 14 15 10" />
+              </svg>
+            </div>
+            <h3 class="text-2xl font-bold mb-3 text-ag-red uppercase">Privacy</h3>
+            <p class="text-ag-dark text-sm leading-relaxed">Data never leaves your organisation. We train and deploy
+              models on your infrastructure with full regulatory compliance.</p>
           </div>
         </div>
       </section>
 
+      <!-- Agent = Model + Harness -->
       <section class="max-w-5xl mx-auto px-6 py-24">
-        <h2 class="text-3xl md:text-4xl font-bold text-center mb-16 text-ag-100">The Learning Flywheel</h2>
-        <div class="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-4">
-          <!-- Box 1: Analyse -->
-          <div class="bg-ag-900/70 border border-ag-700/25 rounded-xl px-8 py-6 text-center min-w-[180px]">
-            <p class="text-ag-500 font-semibold">Analyse</p>
-            <p class="text-ag-100/40 text-sm mt-1">Understand your workflows</p>
-          </div>
-          <div class="text-ag-200 text-2xl flywheel-arrow hidden md:block">&#x2192;</div>
-          <div class="text-ag-200 text-2xl flywheel-arrow md:hidden">&#x2193;</div>
-          <!-- Box 2: Setup -->
-          <div class="bg-ag-900/70 border border-ag-700/25 rounded-xl px-8 py-6 text-center min-w-[180px]">
-            <p class="text-ag-500 font-semibold">Setup</p>
-            <p class="text-ag-100/40 text-sm mt-1">Configure agents &amp; tooling</p>
-          </div>
-          <div class="text-ag-200 text-2xl flywheel-arrow hidden md:block">&#x2192;</div>
-          <div class="text-ag-200 text-2xl flywheel-arrow md:hidden">&#x2193;</div>
-          <!-- Deploy & Collect <-> Train & Improve cycle -->
-          <div class="relative flex flex-col items-center">
-            <!-- Top: label + arrow (desktop) -->
-            <div class="hidden md:flex flex-col items-center mb-1">
-              <p class="text-ag-100/40 text-xs mb-1">logs, traces, feedback</p>
-              <svg class="w-[396px] h-[28px]" viewBox="0 0 396 28" overflow="visible"
-                xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <marker id="fw-top" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-                    <path d="M0,0 L8,3 L0,6" fill="#780000" />
-                  </marker>
-                </defs>
-                <path d="M 88,26 C 140,2 256,2 308,26" stroke="#780000" stroke-width="1.5" fill="none"
-                  marker-end="url(#fw-top)" />
-              </svg>
-            </div>
-            <div class="flex flex-col md:flex-row items-center gap-6 md:gap-8">
-              <!-- Box 3: Deploy & Collect -->
-              <div class="bg-ag-900/70 border border-ag-700/25 rounded-xl px-8 py-6 text-center min-w-[180px]">
-                <p class="text-ag-500 font-semibold">Deploy &amp; Collect</p>
-                <p class="text-ag-100/40 text-sm mt-1">In production</p>
+        <h2 class="text-3xl md:text-4xl font-bold text-center mb-4 text-ag-text uppercase">What is an AI Agent?</h2>
+        <p class="text-ag-dark text-center mb-12 max-w-2xl mx-auto">An agent is more than just a model. It is the model
+          plus everything around it.</p>
+
+        <!-- Robot + Globe SVG -->
+        <div class="flex justify-center mb-10">
+          <svg viewBox="0 0 900 400" class="w-full max-w-[700px]" xmlns="http://www.w3.org/2000/svg"
+            font-family="'Aptos', 'Inter', 'Segoe UI', system-ui, sans-serif">
+            <defs>
+              <marker id="arr" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                <path d="M0,0 L10,3.5 L0,7" fill="#780000" />
+              </marker>
+            </defs>
+
+            <!-- Robot -->
+            <g transform="translate(150, 190) scale(1.5)" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M-34,5 L-34,-14 C-34,-50 34,-50 34,-14 L34,5 Z" fill="none" stroke="#4A4A4A"
+                stroke-width="2.5" />
+              <line x1="0" y1="-44" x2="0" y2="-60" stroke="#4A4A4A" stroke-width="2" />
+              <circle cx="0" cy="-64" r="4.5" fill="#780000" />
+              <circle cx="0" cy="-64" r="9" fill="#780000" opacity="0.1" />
+              <circle cx="-14" cy="-16" r="10" fill="none" stroke="#4A4A4A" stroke-width="2" />
+              <circle cx="-14" cy="-16" r="4.5" fill="#780000" />
+              <circle cx="-17" cy="-19.5" r="2" fill="white" opacity="0.85" />
+              <circle cx="-11.5" cy="-14" r="0.9" fill="white" opacity="0.5" />
+              <circle cx="14" cy="-16" r="10" fill="none" stroke="#4A4A4A" stroke-width="2" />
+              <circle cx="14" cy="-16" r="4.5" fill="#780000" />
+              <circle cx="11" cy="-19.5" r="2" fill="white" opacity="0.85" />
+              <circle cx="16.5" cy="-14" r="0.9" fill="white" opacity="0.5" />
+              <ellipse cx="-27" cy="-4" rx="5.5" ry="3.5" fill="#780000" opacity="0.15" />
+              <ellipse cx="27" cy="-4" rx="5.5" ry="3.5" fill="#780000" opacity="0.15" />
+              <path d="M-11,-3 Q0,8 11,-3" fill="none" stroke="#4A4A4A" stroke-width="1.8" />
+              <rect x="-40" y="-26" width="6" height="16" rx="2.5" fill="none" stroke="#4A4A4A" stroke-width="1.5" />
+              <line x1="-37" y1="-22" x2="-37" y2="-14" stroke="#780000" stroke-width="1" opacity="0.6" />
+              <rect x="34" y="-26" width="6" height="16" rx="2.5" fill="none" stroke="#4A4A4A" stroke-width="1.5" />
+              <line x1="37" y1="-22" x2="37" y2="-14" stroke="#780000" stroke-width="1" opacity="0.6" />
+              <rect x="-23" y="10" width="46" height="42" rx="13" fill="none" stroke="#4A4A4A" stroke-width="2.5" />
+              <circle cx="0" cy="31" r="6" fill="#780000" opacity="0.1" stroke="#780000" stroke-width="0.8" />
+              <line x1="-23" y1="22" x2="-40" y2="6" stroke="#4A4A4A" stroke-width="2" />
+              <circle cx="-42" cy="4" r="3.5" fill="#4A4A4A" />
+              <line x1="23" y1="26" x2="40" y2="38" stroke="#4A4A4A" stroke-width="2" />
+              <circle cx="42" cy="40" r="3.5" fill="#4A4A4A" />
+              <line x1="-10" y1="52" x2="-10" y2="66" stroke="#4A4A4A" stroke-width="2" />
+              <ellipse cx="-10" cy="69" rx="5" ry="2.5" fill="#4A4A4A" />
+              <line x1="10" y1="52" x2="10" y2="66" stroke="#4A4A4A" stroke-width="2" />
+              <ellipse cx="10" cy="69" rx="5" ry="2.5" fill="#4A4A4A" />
+            </g>
+            <text x="150" y="30" text-anchor="middle" font-size="20" font-weight="bold" fill="#131314"
+              letter-spacing="2">YOUR AI AGENT</text>
+
+            <!-- Globe -->
+            <g transform="translate(750, 190) scale(1.2)">
+              <circle cx="0" cy="0" r="54" fill="#5C85A8" />
+              <path d="M-18,22 C-12,32 -2,28 0,22 C2,14 -8,10 -14,10 C-20,10 -22,16 -18,22Z" fill="#7BA656" />
+              <path d="M10,26 C16,30 22,26 24,18 C24,12 18,10 12,14 C8,18 8,22 10,26Z" fill="#7BA656" />
+              <path d="M14,4 C20,8 26,2 26,-6 C26,-14 20,-20 14,-18 C8,-14 6,-4 10,2Z" fill="#7BA656" />
+              <path d="M-26,2 C-20,8 -14,4 -12,-4 C-10,-12 -16,-18 -22,-16 C-28,-14 -30,-4 -26,2Z" fill="#7BA656" />
+              <path d="M26,-14 C32,-10 36,-18 34,-24 C30,-26 26,-22 26,-14Z" fill="#7BA656" />
+              <ellipse cx="0" cy="0" rx="25" ry="54" fill="none" stroke="white" stroke-width="0.7" opacity="0.3" />
+              <ellipse cx="0" cy="0" rx="44" ry="54" fill="none" stroke="white" stroke-width="0.5" opacity="0.25" />
+              <line x1="-54" y1="0" x2="54" y2="0" stroke="white" stroke-width="0.7" opacity="0.3" />
+              <path d="M-50,22 Q0,16 50,22" fill="none" stroke="white" stroke-width="0.5" opacity="0.25" />
+              <path d="M-50,-22 Q0,-16 50,-22" fill="none" stroke="white" stroke-width="0.5" opacity="0.25" />
+              <circle cx="0" cy="0" r="54" fill="none" stroke="#4A4A4A" stroke-width="2" />
+            </g>
+            <text x="750" y="30" text-anchor="middle" font-size="20" font-weight="bold" fill="#131314"
+              letter-spacing="2">YOUR WORKSPACE</text>
+
+            <!-- Arrows -->
+            <path d="M 230,145 C 360,70 540,70 670,145" stroke="#780000" stroke-width="2" fill="none"
+              marker-end="url(#arr)" />
+            <text x="450" y="60" text-anchor="middle" font-size="16" font-weight="500" fill="#4A4A4A">executes
+              actions</text>
+            <path d="M 670,245 C 540,320 360,320 230,245" stroke="#780000" stroke-width="2" fill="none"
+              marker-end="url(#arr)" />
+            <text x="450" y="345" text-anchor="middle" font-size="16" font-weight="500" fill="#4A4A4A">observes state
+              &amp; reward</text>
+          </svg>
+        </div>
+
+        <!-- Agent = Model + Harness equation -->
+        <div class="max-w-2xl mx-auto">
+          <div class="border border-ag-border rounded-xl p-6 bg-ag-white/70">
+            <div class="flex flex-col sm:flex-row items-center gap-4 justify-center">
+              <span class="text-lg font-bold text-ag-text uppercase tracking-wide">Agent</span>
+              <span class="text-ag-muted text-xl">=</span>
+              <div class="border border-ag-border rounded-lg px-5 py-3 text-center bg-ag-cream/50">
+                <p class="text-sm font-semibold text-ag-text">Model</p>
+                <p class="text-xs text-ag-gray mt-0.5">weights</p>
               </div>
-              <!-- Mobile arrows -->
-              <div class="text-ag-200 text-2xl flywheel-arrow md:hidden">&#x21C5;</div>
-              <!-- Box 4: Train & Improve -->
-              <div class="bg-ag-900/70 border border-ag-700/25 rounded-xl px-8 py-6 text-center min-w-[180px]">
-                <p class="text-ag-500 font-semibold">Train &amp; Improve</p>
-                <p class="text-ag-100/40 text-sm mt-1">RL, distillation, ICL</p>
+              <span class="text-ag-muted text-xl">+</span>
+              <div class="border border-ag-red/20 rounded-lg px-5 py-3 bg-ag-cream/50">
+                <p class="text-sm font-semibold text-ag-red mb-2 text-center">Harness</p>
+                <div class="flex gap-2">
+                  <span class="text-xs text-ag-dark bg-ag-bg border border-ag-border px-2.5 py-1 rounded">Prompt</span>
+                  <span class="text-xs text-ag-dark bg-ag-bg border border-ag-border px-2.5 py-1 rounded">Tools</span>
+                  <span class="text-xs text-ag-dark bg-ag-bg border border-ag-border px-2.5 py-1 rounded">Memory</span>
+                </div>
               </div>
             </div>
-            <!-- Bottom: arrow + label (desktop) -->
-            <div class="hidden md:flex flex-col items-center mt-1">
-              <svg class="w-[396px] h-[28px]" viewBox="0 0 396 28" overflow="visible"
-                xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <marker id="fw-bot" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-                    <path d="M0,0 L8,3 L0,6" fill="#780000" />
-                  </marker>
-                </defs>
-                <path d="M 308,2 C 256,26 140,26 88,2" stroke="#780000" stroke-width="1.5" fill="none"
-                  marker-end="url(#fw-bot)" />
-              </svg>
-              <p class="text-ag-100/40 text-xs mt-1">improved model</p>
-            </div>
+            <p class="text-ag-dark text-sm text-center mt-4">
+              The model generates responses. The harness is everything around it. <strong class="text-ag-red">We improve
+                both weights and harness continuously from real usage data.</strong>
+            </p>
           </div>
         </div>
-        <!-- Labels -->
-        <div class="flex flex-col md:flex-row items-stretch justify-center mt-4 gap-6 md:gap-4">
-          <div class="flex items-center justify-center gap-4" style="min-width: calc(360px + 2.5rem + 28px);">
-            <p class="text-ag-100/40 text-xs uppercase tracking-wider">Onboarding</p>
-          </div>
-          <div class="hidden md:block" style="width: 28px;"></div>
-          <div class="flex items-center justify-center" style="min-width: 396px;">
-            <p class="text-ag-100/40 text-xs uppercase tracking-wider">Continuously Learning</p>
-          </div>
-        </div>
+      </section>
+
+      <!-- How do I work with you? -->
+      <section class="max-w-4xl mx-auto px-6 py-16 text-center">
+        <h3 class="text-2xl md:text-3xl font-bold text-ag-text mb-4 uppercase">How Do We Work With You?</h3>
+        <p class="text-ag-dark text-lg mb-6">From scoping to production &mdash; and continuous improvement after
+          deployment.</p>
+        <a href="#offering"
+          class="inline-block px-8 py-3 bg-ag-red hover:bg-ag-red-hover text-ag-bg font-medium rounded-lg transition uppercase tracking-wide">See
+          Our Offering &amp; Engagement Model</a>
       </section>
 
       <section class="max-w-4xl mx-auto px-6 py-20 text-center">
-        <h3 class="text-2xl md:text-3xl font-bold text-ag-100 mb-6">Ready to make your AI agents learn?</h3>
+        <h3 class="text-2xl md:text-3xl font-bold text-ag-text mb-6 uppercase">Ready to Make Your AI Agents Learn?</h3>
         <a href="#contact"
-          class="inline-block px-8 py-3 bg-ag-500 hover:bg-ag-400 text-ag-950 font-medium rounded-lg transition">Get in
-          Touch</a>
+          class="inline-block px-8 py-3 bg-ag-red hover:bg-ag-red-hover text-ag-bg font-medium rounded-lg transition uppercase tracking-wide">Get
+          in Touch</a>
       </section>
 
     </div>
@@ -392,417 +400,495 @@
     <!-- ===== OFFERING ===== -->
     <div id="page-offering" class="page">
       <section class="max-w-6xl mx-auto px-6 py-24">
-        <p class="text-ag-200 text-sm font-mono tracking-widest uppercase mb-4">Our Offering</p>
-        <h2 class="text-4xl md:text-5xl font-bold mb-6 text-ag-100">What&rsquo;s holding your AI agents back?</h2>
-        <p class="text-ag-100/60 text-lg max-w-3xl mb-8">
-          Identify your challenge below. Then see how we solve it.
+        <p class="text-ag-red text-sm font-mono tracking-widest uppercase mb-4">Our Offering</p>
+        <h2 class="text-4xl md:text-5xl font-bold mb-6 text-ag-text uppercase">Make Your Agents Smarter, Cheaper,
+          Private</h2>
+        <p class="text-ag-dark text-lg max-w-3xl mb-16">
+          Pick your biggest challenge. We show you exactly how we solve it.
         </p>
 
-        <!-- Problem cards -->
-        <div class="challenge-cards grid md:grid-cols-3 gap-8 mb-20">
-          <div class="bg-ag-900/70 card-perf rounded-xl p-8 text-center">
-            <div class="mb-4 flex justify-center"><svg class="w-10 h-10" viewBox="0 0 24 24" fill="none"
-                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="19" x2="12" y2="5" />
-                <polyline points="5 12 12 5 19 12" />
-              </svg></div>
-            <h3 class="text-2xl font-bold mb-3">&ldquo;My agents aren&rsquo;t reliable enough&rdquo;</h3>
-            <p class="text-ag-100/60 text-sm">Wrong decisions, constant escalations, inconsistent quality. They should
-              be getting better, not staying stuck.</p>
-          </div>
-          <div class="bg-ag-900/70 card-cost rounded-xl p-8 text-center">
-            <div class="mb-4 flex justify-center"><svg class="w-10 h-10" viewBox="0 0 24 24" fill="none"
-                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <polyline points="19 12 12 19 5 12" />
-              </svg></div>
-            <h3 class="text-2xl font-bold mb-3">&ldquo;My AI costs keep growing&rdquo;</h3>
-            <p class="text-ag-100/60 text-sm">Expensive API calls, oversized models for simple tasks. Scaling up means
-              paying more without any efficiency gains.</p>
-          </div>
-          <div class="bg-ag-900/70 card-priv rounded-xl p-8 text-center">
-            <div class="mb-4 flex justify-center"><svg class="w-10 h-10" viewBox="0 0 24 24" fill="none"
-                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="11" width="18" height="11" rx="2" />
-                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-              </svg></div>
-            <h3 class="text-2xl font-bold mb-3">&ldquo;I can&rsquo;t use external AI APIs&rdquo;</h3>
-            <p class="text-ag-100/60 text-sm">Sensitive data, regulatory requirements, vendor lock-in. You need AI that
-              runs in-house.</p>
-          </div>
-        </div>
+        <!-- Two-level accordion -->
+        <div id="accordion-root" class="space-y-4">
 
-        <!-- Bridge caption -->
-        <div class="text-center mb-10">
-          <h3 class="text-2xl md:text-3xl font-bold text-ag-100 mb-3">How we solve it</h3>
-        </div>
-
-        <!-- Methods -->
-        <div id="methods-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-
-          <!-- Card 1: RL on Environments [Core] -->
-          <div id="method-rl-env"
-            class="mode-card method-card bg-ag-900/70 border border-ag-700/25 rounded-xl p-5 ring-1 ring-ag-500/20"
-            onclick="toggleMethod('rl-env')">
-            <div class="flex items-center gap-2 mb-2">
-              <h4 class="text-base font-semibold text-ag-100">Agents that learn by doing</h4>
-              <span
-                class="text-[10px] font-mono uppercase tracking-wider text-ag-500 bg-ag-500/10 border border-ag-500/20 px-2 py-0.5 rounded">Core</span>
-              <span class="method-chevron text-ag-400 ml-auto text-xs">&#x25B8;</span>
+          <!-- Category: Performance -->
+          <div>
+            <div id="cat-performance" class="cat-card bg-ag-white/70 border border-ag-border rounded-xl p-8"
+              onclick="toggleCategory('performance')">
+              <div class="flex items-center gap-4">
+                <svg class="w-10 h-10 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="#780000" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <circle cx="12" cy="12" r="6" />
+                  <circle cx="12" cy="12" r="2" fill="#780000" />
+                </svg>
+                <div class="flex-1">
+                  <h3 class="text-xl md:text-2xl font-bold text-ag-red uppercase">&ldquo;My Agents Aren&rsquo;t
+                    Reliable Enough&rdquo;</h3>
+                  <p class="text-ag-dark text-sm mt-1">Wrong decisions, constant escalations, inconsistent quality.
+                    They should be getting better, not staying stuck.</p>
+                </div>
+                <span class="cat-chevron text-ag-red text-xl ml-4">&#x25B8;</span>
+              </div>
             </div>
-            <div class="flex flex-wrap gap-1.5 mb-2">
-              <span class="benefit-tag tag-perf">&#x2191; Performance</span>
-              <span class="benefit-tag tag-cost">&#x2193; Cost</span>
-              <span class="benefit-tag tag-priv"><svg class="inline-block w-[1em] h-[1em]" viewBox="0 0 24 24"
-                  fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2" />
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg> Privacy</span>
+            <div id="cat-methods-performance" class="hidden mt-3 ml-4 md:ml-8 space-y-3">
+              <div id="method-rl-env" class="method-card bg-ag-white/70 border border-ag-border rounded-xl p-6"
+                onclick="toggleMethod('rl-env')">
+                <div class="flex items-center gap-3">
+                  <span
+                    class="text-[10px] font-mono uppercase tracking-wider text-ag-red bg-ag-red/10 border border-ag-red/20 px-2 py-0.5 rounded">Core</span>
+                  <h4 class="text-lg font-semibold text-ag-text flex-1">Agents That Learn by Doing</h4>
+                  <span class="method-chevron text-ag-red text-sm">&#x25B8;</span>
+                </div>
+                <p class="text-ag-dark text-sm mt-2">Your agent acts in a real or simulated environment and learns with
+                  every iteration.</p>
+              </div>
+              <div id="method-dyna" class="method-card bg-ag-white/70 border border-ag-border rounded-xl p-6"
+                onclick="toggleMethod('dyna')">
+                <div class="flex items-center gap-3">
+                  <h4 class="text-lg font-semibold text-ag-text flex-1">Learn From Your Existing Logs</h4>
+                  <span class="method-chevron text-ag-red text-sm">&#x25B8;</span>
+                </div>
+                <p class="text-ag-dark text-sm mt-2">No simulator? We build a training world from your data, then run RL
+                  on it.</p>
+              </div>
+              <div id="method-icl" class="method-card bg-ag-white/70 border border-ag-border rounded-xl p-6"
+                onclick="toggleMethod('icl')">
+                <div class="flex items-center gap-3">
+                  <h4 class="text-lg font-semibold text-ag-text flex-1">Agents That Remember and Adapt</h4>
+                  <span class="method-chevron text-ag-red text-sm">&#x25B8;</span>
+                </div>
+                <p class="text-ag-dark text-sm mt-2">User corrections and system feedback flow into the agent&rsquo;s
+                  memory for immediate improvement without retraining.</p>
+              </div>
             </div>
-            <p class="text-ag-100/60 text-sm leading-relaxed">Your agent acts in a real or simulated environment and
-              learns with every iteration.</p>
           </div>
 
-          <!-- Card 2: Dyna-Style RL -->
-          <div id="method-dyna" class="mode-card method-card bg-ag-900/70 border border-ag-700/25 rounded-xl p-5"
-            onclick="toggleMethod('dyna')">
-            <div class="flex items-center gap-2 mb-2">
-              <h4 class="text-base font-semibold text-ag-100">Learn from your existing logs</h4>
-              <span class="method-chevron text-ag-400 ml-auto text-xs">&#x25B8;</span>
+          <!-- Category: Cost -->
+          <div>
+            <div id="cat-cost" class="cat-card bg-ag-white/70 border border-ag-border rounded-xl p-8"
+              onclick="toggleCategory('cost')">
+              <div class="flex items-center gap-4">
+                <svg class="w-10 h-10 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="#780000" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="22 17 13.5 8.5 8.5 13.5 2 7" />
+                  <polyline points="16 17 22 17 22 11" />
+                </svg>
+                <div class="flex-1">
+                  <h3 class="text-xl md:text-2xl font-bold text-ag-red uppercase">&ldquo;My AI Costs Keep
+                    Growing&rdquo;</h3>
+                  <p class="text-ag-dark text-sm mt-1">Expensive API calls, oversized models for simple tasks. Scaling
+                    up means paying more without efficiency gains.</p>
+                </div>
+                <span class="cat-chevron text-ag-red text-xl ml-4">&#x25B8;</span>
+              </div>
             </div>
-            <div class="flex flex-wrap gap-1.5 mb-2">
-              <span class="benefit-tag tag-perf">&#x2191; Performance</span>
-              <span class="benefit-tag tag-cost">&#x2193; Cost</span>
-              <span class="benefit-tag tag-priv"><svg class="inline-block w-[1em] h-[1em]" viewBox="0 0 24 24"
-                  fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2" />
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg> Privacy</span>
+            <div id="cat-methods-cost" class="hidden mt-3 ml-4 md:ml-8 space-y-3">
+              <div id="method-routing" class="method-card bg-ag-white/70 border border-ag-border rounded-xl p-6"
+                onclick="toggleMethod('routing')">
+                <div class="flex items-center gap-3">
+                  <h4 class="text-lg font-semibold text-ag-text flex-1">Use Cheaper Models Where Possible</h4>
+                  <span class="method-chevron text-ag-red text-sm">&#x25B8;</span>
+                </div>
+                <p class="text-ag-dark text-sm mt-2">Automatically route easy requests to smaller models. Same quality,
+                  lower bill.</p>
+              </div>
+              <div id="method-distill" class="method-card bg-ag-white/70 border border-ag-border rounded-xl p-6"
+                onclick="toggleMethod('distill')">
+                <div class="flex items-center gap-3">
+                  <h4 class="text-lg font-semibold text-ag-text flex-1">Your Own Compact Expert Model</h4>
+                  <span class="method-chevron text-ag-red text-sm">&#x25B8;</span>
+                </div>
+                <p class="text-ag-dark text-sm mt-2">Compress frontier-model knowledge into a small model you own and
+                  run yourself.</p>
+              </div>
             </div>
-            <p class="text-ag-100/60 text-sm leading-relaxed">No simulator? We build a training world from your data,
-              then run RL on it.</p>
           </div>
 
-          <!-- Card 3: In-Context Learning -->
-          <div id="method-icl" class="mode-card method-card bg-ag-900/70 border border-ag-700/25 rounded-xl p-5"
-            onclick="toggleMethod('icl')">
-            <div class="flex items-center gap-2 mb-2">
-              <h4 class="text-base font-semibold text-ag-100">Agents that remember and adapt</h4>
-              <span class="method-chevron text-ag-400 ml-auto text-xs">&#x25B8;</span>
+          <!-- Category: Privacy -->
+          <div>
+            <div id="cat-privacy" class="cat-card bg-ag-white/70 border border-ag-border rounded-xl p-8"
+              onclick="toggleCategory('privacy')">
+              <div class="flex items-center gap-4">
+                <svg class="w-10 h-10 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="#780000" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  <polyline points="9 12 11 14 15 10" />
+                </svg>
+                <div class="flex-1">
+                  <h3 class="text-xl md:text-2xl font-bold text-ag-red uppercase">&ldquo;I Can&rsquo;t Use External AI
+                    APIs&rdquo;</h3>
+                  <p class="text-ag-dark text-sm mt-1">Sensitive data, regulatory requirements, vendor lock-in. You need
+                    AI that runs in-house.</p>
+                </div>
+                <span class="cat-chevron text-ag-red text-xl ml-4">&#x25B8;</span>
+              </div>
             </div>
-            <div class="flex flex-wrap gap-1.5 mb-2">
-              <span class="benefit-tag tag-perf">&#x2191; Performance</span>
+            <div id="cat-methods-privacy" class="hidden mt-3 ml-4 md:ml-8 space-y-3">
+              <div id="method-local" class="method-card bg-ag-white/70 border border-ag-border rounded-xl p-6"
+                onclick="toggleMethod('local')">
+                <div class="flex items-center gap-3">
+                  <h4 class="text-lg font-semibold text-ag-text flex-1">Everything on Your Infrastructure</h4>
+                  <span class="method-chevron text-ag-red text-sm">&#x25B8;</span>
+                </div>
+                <p class="text-ag-dark text-sm mt-2">Trained models run on your servers, connected to your tools. Full
+                  data sovereignty.</p>
+              </div>
             </div>
-            <p class="text-ag-100/60 text-sm leading-relaxed">User corrections and system feedback flow into the
-              agent&rsquo;s memory for immediate improvement without retraining.</p>
-          </div>
-
-          <!-- Card 4: Intelligent Model Routing -->
-          <div id="method-routing" class="mode-card method-card bg-ag-900/70 border border-ag-700/25 rounded-xl p-5"
-            onclick="toggleMethod('routing')">
-            <div class="flex items-center gap-2 mb-2">
-              <h4 class="text-base font-semibold text-ag-100">Use cheaper models where possible</h4>
-              <span class="method-chevron text-ag-400 ml-auto text-xs">&#x25B8;</span>
-            </div>
-            <div class="flex flex-wrap gap-1.5 mb-2">
-              <span class="benefit-tag tag-cost">&#x2193; Cost</span>
-            </div>
-            <p class="text-ag-100/60 text-sm leading-relaxed">Automatically route easy requests to smaller models. Same
-              quality, lower bill.</p>
-          </div>
-
-          <!-- Card 5: Distillation -->
-          <div id="method-distill" class="mode-card method-card bg-ag-900/70 border border-ag-700/25 rounded-xl p-5"
-            onclick="toggleMethod('distill')">
-            <div class="flex items-center gap-2 mb-2">
-              <h4 class="text-base font-semibold text-ag-100">Your own compact expert model</h4>
-              <span class="method-chevron text-ag-400 ml-auto text-xs">&#x25B8;</span>
-            </div>
-            <div class="flex flex-wrap gap-1.5 mb-2">
-              <span class="benefit-tag tag-cost">&#x2193; Cost</span>
-              <span class="benefit-tag tag-priv"><svg class="inline-block w-[1em] h-[1em]" viewBox="0 0 24 24"
-                  fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2" />
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg> Privacy</span>
-            </div>
-            <p class="text-ag-100/60 text-sm leading-relaxed">Compress frontier-model knowledge into a small model you
-              own and run yourself.</p>
-          </div>
-
-          <!-- Card 6: Local Deployment & Agentic Infra -->
-          <div id="method-local" class="mode-card method-card bg-ag-900/70 border border-ag-700/25 rounded-xl p-5"
-            onclick="toggleMethod('local')">
-            <div class="flex items-center gap-2 mb-2">
-              <h4 class="text-base font-semibold text-ag-100">Everything on your infrastructure</h4>
-              <span class="method-chevron text-ag-400 ml-auto text-xs">&#x25B8;</span>
-            </div>
-            <div class="flex flex-wrap gap-1.5 mb-2">
-              <span class="benefit-tag tag-priv"><svg class="inline-block w-[1em] h-[1em]" viewBox="0 0 24 24"
-                  fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2" />
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg> Privacy</span>
-            </div>
-            <p class="text-ag-100/60 text-sm leading-relaxed">Trained models run on your servers, connected to your
-              tools. Full data sovereignty.</p>
           </div>
 
         </div>
 
-        <!-- Dynamic caption (appears when a method is selected) -->
-        <p id="methods-caption" class="text-ag-100/60 text-sm text-center max-w-2xl mx-auto mt-6" style="display:none;">
-        </p>
-
-        <!-- Detail panel (appears below grid when a card is clicked) -->
-        <div id="method-detail-panel" class="mt-4 bg-ag-900/90 border border-ag-700/25 rounded-xl p-8">
+        <!-- Method detail panel -->
+        <div id="method-detail-panel"
+          class="hidden mt-4 ml-4 md:ml-8 bg-ag-white/90 border border-ag-red/20 rounded-xl p-8">
           <div class="flex items-start justify-between mb-4">
             <div>
-              <h3 id="mdp-title" class="text-xl font-bold text-ag-100 mb-1"></h3>
-              <p id="mdp-techname" class="text-ag-400 text-xs"></p>
+              <h3 id="mdp-title" class="text-xl font-bold text-ag-text mb-1"></h3>
+              <p id="mdp-techname" class="text-ag-gray text-xs mb-3"></p>
             </div>
             <button onclick="closeMethodPanel()"
-              class="text-ag-400 hover:text-ag-100 transition text-2xl leading-none ml-4">&times;</button>
+              class="text-ag-muted hover:text-ag-text transition text-2xl leading-none ml-4">&times;</button>
           </div>
           <div class="flex flex-col md:flex-row gap-8 items-start">
             <div id="mdp-svg" class="flex-shrink-0"></div>
             <div class="flex-1 min-w-0">
-              <p id="mdp-desc" class="text-ag-100/[0.65] text-sm leading-relaxed mb-4"></p>
-              <p id="mdp-requires" class="text-ag-100/25 text-xs"><strong class="text-ag-100/60">Requires:</strong>
-                <span id="mdp-req-text"></span>
-              </p>
+              <p id="mdp-desc" class="text-ag-dark text-sm leading-relaxed mb-5"></p>
+              <p class="text-ag-text text-xs font-bold uppercase tracking-wider mb-1">Requirements</p>
+              <p id="mdp-req-text" class="text-ag-dark text-sm mb-5"></p>
+              <p class="text-ag-text text-xs font-bold uppercase tracking-wider mb-1">Technical Approach</p>
+              <p id="mdp-tech-text" class="text-ag-dark text-sm mb-6"></p>
+              <button onclick="requestService(activeMethodId)"
+                class="px-6 py-2.5 bg-ag-red hover:bg-ag-red-hover text-ag-bg font-medium rounded-lg transition uppercase tracking-wide text-sm">
+                I&rsquo;m Interested
+              </button>
             </div>
           </div>
         </div>
 
-        <div class="mt-24">
-          <h3 class="text-2xl font-bold mb-12 text-center text-ag-100">Engagement Model</h3>
-          <div class="grid md:grid-cols-4 gap-6">
-            <div class="text-center">
-              <div
-                class="w-12 h-12 rounded-full bg-ag-800 border border-ag-700 flex items-center justify-center mx-auto mb-4 text-ag-200 font-mono font-bold">
-                1</div>
-              <h4 class="font-semibold mb-2 text-ag-100">Scope</h4>
-              <p class="text-ag-100/40 text-sm">Define target tasks and success metrics together</p>
-            </div>
-            <div class="text-center">
-              <div
-                class="w-12 h-12 rounded-full bg-ag-800 border border-ag-700 flex items-center justify-center mx-auto mb-4 text-ag-200 font-mono font-bold">
-                2</div>
-              <h4 class="font-semibold mb-2 text-ag-100">Instrument</h4>
-              <p class="text-ag-100/40 text-sm">Connect to your logs, traces, or environments</p>
-            </div>
-            <div class="text-center">
-              <div
-                class="w-12 h-12 rounded-full bg-ag-800 border border-ag-700 flex items-center justify-center mx-auto mb-4 text-ag-200 font-mono font-bold">
-                3</div>
-              <h4 class="font-semibold mb-2 text-ag-100">Train</h4>
-              <p class="text-ag-100/40 text-sm">RL, distillation, or routing, whichever fits</p>
-            </div>
-            <div class="text-center">
-              <div
-                class="w-12 h-12 rounded-full bg-ag-800 border border-ag-700 flex items-center justify-center mx-auto mb-4 text-ag-200 font-mono font-bold">
-                4</div>
-              <h4 class="font-semibold mb-2 text-ag-100">Deploy</h4>
-              <p class="text-ag-100/40 text-sm">Ship improved models, monitor, repeat</p>
-            </div>
+        <!-- Enabling Your Learning Flywheel -->
+        <div class="mt-24" id="engagement-model">
+          <h3 class="text-2xl md:text-3xl font-bold mb-4 text-center text-ag-text uppercase">Enabling Your Learning
+            Flywheel</h3>
+          <p class="text-ag-dark text-center mb-12 max-w-2xl mx-auto">How we work with you from first conversation to
+            continuous improvement.</p>
+
+          <!-- Flywheel SVG (aligned with pitch deck v3) -->
+          <div class="flex justify-center mb-8">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 310" class="w-full max-w-[800px]"
+              font-family="'Aptos', 'Inter', 'Segoe UI', system-ui, sans-serif">
+              <defs>
+                <marker id="fw-arr-r" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                  <path d="M0,0 L10,3.5 L0,7" fill="#780000" />
+                </marker>
+                <marker id="fw-arr-top" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                  <path d="M0,0 L8,3 L0,6" fill="#780000" />
+                </marker>
+                <marker id="fw-arr-bot" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                  <path d="M0,0 L8,3 L0,6" fill="#780000" />
+                </marker>
+              </defs>
+
+              <!-- Box 1: Analyse -->
+              <rect x="30" y="100" width="180" height="84" rx="12" fill="rgba(255,255,255,0.7)"
+                stroke="rgba(177,173,161,0.25)" stroke-width="1.5" />
+              <text x="120" y="134" text-anchor="middle" font-size="18" font-weight="600" fill="#780000">Analyse</text>
+              <text x="120" y="160" text-anchor="middle" font-size="14" fill="#4A4A4A">Understand workflows</text>
+
+              <!-- Arrow 1 -->
+              <line x1="220" y1="142" x2="258" y2="142" stroke="#780000" stroke-width="1.5"
+                marker-end="url(#fw-arr-r)" />
+
+              <!-- Box 2: Setup -->
+              <rect x="268" y="100" width="180" height="84" rx="12" fill="rgba(255,255,255,0.7)"
+                stroke="rgba(177,173,161,0.25)" stroke-width="1.5" />
+              <text x="358" y="134" text-anchor="middle" font-size="18" font-weight="600" fill="#780000">Setup</text>
+              <text x="358" y="160" text-anchor="middle" font-size="14" fill="#4A4A4A">Configure agents</text>
+
+              <!-- Arrow 2 -->
+              <line x1="458" y1="142" x2="496" y2="142" stroke="#780000" stroke-width="1.5"
+                marker-end="url(#fw-arr-r)" />
+
+              <!-- Box 3: Deploy & Collect -->
+              <rect x="506" y="100" width="190" height="84" rx="12" fill="rgba(255,255,255,0.7)"
+                stroke="rgba(177,173,161,0.25)" stroke-width="1.5" />
+              <text x="601" y="134" text-anchor="middle" font-size="18" font-weight="600" fill="#780000">Deploy &amp;
+                Collect</text>
+              <text x="601" y="160" text-anchor="middle" font-size="14" fill="#4A4A4A">In production</text>
+
+              <!-- Box 4: Train Agent -->
+              <rect x="746" y="100" width="190" height="84" rx="12" fill="rgba(255,255,255,0.7)"
+                stroke="rgba(177,173,161,0.25)" stroke-width="1.5" />
+              <text x="841" y="134" text-anchor="middle" font-size="18" font-weight="600" fill="#780000">Train
+                Agent</text>
+              <text x="841" y="160" text-anchor="middle" font-size="14" fill="#4A4A4A">Adapt weights &amp;
+                harness</text>
+
+              <!-- Top curved arrow: Deploy -> Train (logs, traces) -->
+              <text x="721" y="48" text-anchor="middle" font-size="13" fill="#4A4A4A">logs, traces</text>
+              <path d="M 601,98 C 640,62 802,62 841,98" stroke="#780000" stroke-width="1.5" fill="none"
+                marker-end="url(#fw-arr-top)" />
+
+              <!-- Bottom curved arrow: Train -> Deploy (improved model) -->
+              <path d="M 841,186 C 802,224 640,224 601,186" stroke="#780000" stroke-width="1.5" fill="none"
+                marker-end="url(#fw-arr-bot)" />
+              <text x="721" y="248" text-anchor="middle" font-size="13" fill="#4A4A4A">improved model</text>
+
+              <!-- Phase labels -->
+              <line x1="40" y1="264" x2="380" y2="264" stroke="rgba(19,19,20,0.25)" stroke-width="1" />
+              <text x="209" y="282" text-anchor="middle" font-size="12" font-weight="500" fill="#4A4A4A"
+                letter-spacing="2">ONBOARDING</text>
+              <line x1="516" y1="264" x2="926" y2="264" stroke="rgba(19,19,20,0.25)" stroke-width="1" />
+              <text x="721" y="282" text-anchor="middle" font-size="12" font-weight="500" fill="#4A4A4A"
+                letter-spacing="2">CONTINUOUS IMPROVEMENT</text>
+            </svg>
           </div>
+
+          <p class="text-ag-dark text-sm text-center max-w-2xl mx-auto">
+            We start with a scoping conversation to define target tasks, success metrics, and pricing.
+            Then we instrument your data, train your models, and deploy &mdash; with continuous improvement after
+            launch.
+          </p>
         </div>
 
         <div class="mt-24 text-center">
-          <h3 class="text-2xl md:text-3xl font-bold text-ag-100 mb-6">Ready to make your AI agents learn?</h3>
+          <h3 class="text-2xl md:text-3xl font-bold text-ag-text mb-6 uppercase">Ready to Make Your AI Agents Learn?
+          </h3>
           <a href="#contact"
-            class="inline-block px-8 py-3 bg-ag-500 hover:bg-ag-400 text-ag-950 font-medium rounded-lg transition">Get
-            in
-            Touch</a>
+            class="inline-block px-8 py-3 bg-ag-red hover:bg-ag-red-hover text-ag-bg font-medium rounded-lg transition uppercase tracking-wide">Get
+            in Touch</a>
         </div>
 
-      </section>
-    </div>
-
-    <!-- ===== PROJECTS ===== -->
-    <div id="page-projects" class="page">
-      <section class="max-w-4xl mx-auto px-6 py-24">
-        <p class="text-ag-200 text-sm font-mono tracking-widest uppercase mb-4">Projects</p>
-        <h2 class="text-4xl md:text-5xl font-bold mb-6 text-ag-100">Projects</h2>
-        <p class="text-ag-100/60 text-lg max-w-3xl mb-16">
-          Our work bridges reinforcement learning research and real-world deployment.
-        </p>
-
-        <!-- Project temporarily hidden
-        <article class="bg-ag-900/70 border border-ag-700/25 rounded-xl p-8 mb-8">
-          <div class="flex items-center gap-3 mb-4">
-            <span class="text-xs bg-ag-400/20 text-ag-200 px-3 py-1 rounded-full border border-ag-500/25">New</span>
-            <span class="text-xs text-ag-100/40">2026</span>
-          </div>
-          <h3 class="text-2xl font-semibold mb-4 text-ag-100">RL Post-Trained Medical Model with German University Hospital</h3>
-          <p class="text-ag-100/60 leading-relaxed mb-6">
-            We applied reinforcement learning post-training to a Qwen2.5-7B model on medical decision-making tasks in collaboration with a large German university hospital. The RL-trained model achieved a <strong class="text-ag-200">+30% improvement over o4-mini</strong> on clinical benchmarks, demonstrating that small, specialised models can outperform much larger general-purpose models when trained with the right methodology.
-          </p>
-          <div class="flex flex-wrap gap-2">
-            <span class="text-xs bg-ag-800/80 text-ag-500 px-3 py-1 rounded-full">Qwen2.5-7B</span>
-            <span class="text-xs bg-ag-800/80 text-ag-500 px-3 py-1 rounded-full">RL post-training</span>
-            <span class="text-xs bg-ag-800/80 text-ag-500 px-3 py-1 rounded-full">Medical AI</span>
-          </div>
-        </article>
-        -->
-
-        <p class="text-ag-100/60 text-sm text-center mt-12">Coming soon, stay tuned.</p>
       </section>
     </div>
 
     <!-- ===== CONTACT ===== -->
     <div id="page-contact" class="page">
       <section class="max-w-4xl mx-auto px-6 py-24">
-        <p class="text-ag-200 text-sm font-mono tracking-widest uppercase mb-4">Contact</p>
-        <h2 class="text-4xl md:text-5xl font-bold mb-6">Challenge Us</h2>
-        <p class="text-ag-100/60 text-lg max-w-2xl mb-12">
-          What's the AI problem you want solved?
+        <p class="text-ag-red text-sm font-mono tracking-widest uppercase mb-4">Contact</p>
+        <h2 class="text-4xl md:text-5xl font-bold mb-6 uppercase">Challenge Us</h2>
+        <p class="text-ag-dark text-lg max-w-2xl mb-10">
+          What&rsquo;s the AI problem you want solved?
         </p>
 
-        <!-- Contact Form - self-hosted, data stays on our server -->
-        <form id="contact-form" class="bg-ag-900/70 border border-ag-700/25 rounded-xl p-8 mb-16">
-          <!-- Honeypot for bots -->
+        <!-- Tabs -->
+        <div class="flex gap-6 border-b border-ag-border mb-8">
+          <button id="tab-general" onclick="switchContactTab('general')"
+            class="tab-btn pb-3 border-b-2 border-transparent text-sm uppercase tracking-wide font-medium text-ag-dark active">General
+            Inquiry</button>
+          <button id="tab-interest" onclick="switchContactTab('interest')"
+            class="tab-btn pb-3 border-b-2 border-transparent text-sm uppercase tracking-wide font-medium text-ag-dark">Request
+            a Service</button>
+        </div>
+
+        <!-- General Contact Form -->
+        <form id="contact-form-general" class="bg-ag-white/70 border border-ag-border rounded-xl p-8 mb-16">
           <input type="text" name="website" style="display:none" tabindex="-1" autocomplete="off">
 
           <div class="grid md:grid-cols-2 gap-6 mb-6">
             <div>
-              <label for="name" class="block text-sm text-ag-100 mb-2">Name *</label>
-              <input type="text" id="name" name="name" required
-                class="w-full px-4 py-3 bg-ag-950/80 border border-ag-700/25 rounded-lg text-ag-100 placeholder-ag-100/[0.45] focus:outline-none focus:border-ag-500 transition"
+              <label for="gen-name" class="block text-sm text-ag-text mb-2">Name *</label>
+              <input type="text" id="gen-name" name="name" required
+                class="w-full px-4 py-3 bg-ag-bg border border-ag-border rounded-lg text-ag-text placeholder-ag-muted focus:outline-none focus:border-ag-red transition"
                 placeholder="Your name">
             </div>
             <div>
-              <label for="role" class="block text-sm text-ag-100 mb-2">Role</label>
-              <input type="text" id="role" name="role"
-                class="w-full px-4 py-3 bg-ag-950/80 border border-ag-700/25 rounded-lg text-ag-100 placeholder-ag-100/[0.45] focus:outline-none focus:border-ag-500 transition"
+              <label for="gen-role" class="block text-sm text-ag-text mb-2">Role</label>
+              <input type="text" id="gen-role" name="role"
+                class="w-full px-4 py-3 bg-ag-bg border border-ag-border rounded-lg text-ag-text placeholder-ag-muted focus:outline-none focus:border-ag-red transition"
                 placeholder="e.g. CTO, Head of AI">
             </div>
           </div>
 
           <div class="grid md:grid-cols-2 gap-6 mb-6">
             <div>
-              <label for="email" class="block text-sm text-ag-100 mb-2">Email <span class="text-ag-100/[0.35]">(email
+              <label for="gen-email" class="block text-sm text-ag-text mb-2">Email <span class="text-ag-muted">(email
                   or LinkedIn required)</span></label>
-              <input type="email" id="email" name="email"
-                class="w-full px-4 py-3 bg-ag-950/80 border border-ag-700/25 rounded-lg text-ag-100 placeholder-ag-100/[0.45] focus:outline-none focus:border-ag-500 transition"
+              <input type="email" id="gen-email" name="email"
+                class="w-full px-4 py-3 bg-ag-bg border border-ag-border rounded-lg text-ag-text placeholder-ag-muted focus:outline-none focus:border-ag-red transition"
                 placeholder="you@company.com">
             </div>
             <div>
-              <label for="linkedin" class="block text-sm text-ag-100 mb-2">LinkedIn <span
-                  class="text-ag-100/[0.35]">(email or LinkedIn required)</span></label>
-              <input type="url" id="linkedin" name="linkedin"
-                class="w-full px-4 py-3 bg-ag-950/80 border border-ag-700/25 rounded-lg text-ag-100 placeholder-ag-100/[0.45] focus:outline-none focus:border-ag-500 transition"
+              <label for="gen-linkedin" class="block text-sm text-ag-text mb-2">LinkedIn <span
+                  class="text-ag-muted">(email or LinkedIn required)</span></label>
+              <input type="url" id="gen-linkedin" name="linkedin"
+                class="w-full px-4 py-3 bg-ag-bg border border-ag-border rounded-lg text-ag-text placeholder-ag-muted focus:outline-none focus:border-ag-red transition"
                 placeholder="https://linkedin.com/in/...">
             </div>
           </div>
 
           <div class="mb-6">
-            <label for="message" class="block text-sm text-ag-100 mb-2">Message *</label>
-            <textarea id="message" name="message" required rows="5"
-              class="w-full px-4 py-3 bg-ag-950/80 border border-ag-700/25 rounded-lg text-ag-100 placeholder-ag-100/[0.45] focus:outline-none focus:border-ag-500 transition resize-y"
+            <label for="gen-message" class="block text-sm text-ag-text mb-2">Message *</label>
+            <textarea id="gen-message" name="message" required rows="5"
+              class="w-full px-4 py-3 bg-ag-bg border border-ag-border rounded-lg text-ag-text placeholder-ag-muted focus:outline-none focus:border-ag-red transition resize-y"
               placeholder="Tell us about an AI challenge your team hasn't been able to crack."></textarea>
           </div>
 
-          <div id="form-error" class="hidden text-ag-500 text-sm mb-4"></div>
+          <div id="gen-form-error" class="hidden text-ag-red text-sm mb-4"></div>
 
-          <button type="submit" id="submit-btn"
-            class="px-8 py-3 bg-ag-500 hover:bg-ag-400 text-ag-950 font-medium rounded-lg transition w-full md:w-auto">
+          <button type="submit" id="gen-submit-btn"
+            class="px-8 py-3 bg-ag-red hover:bg-ag-red-hover text-ag-bg font-medium rounded-lg transition uppercase tracking-wide w-full md:w-auto">
             Send Message
           </button>
-          <p class="text-ag-100/30 text-xs mt-4">Your submission is stored securely on our servers. We'll get back to
-            you within 1-2 business days.</p>
+          <p class="text-ag-muted text-xs mt-4">Your submission is stored securely on our servers. We&rsquo;ll get back
+            to you within 1&ndash;2 business days.</p>
+        </form>
+
+        <!-- Interest / Service Request Form -->
+        <form id="contact-form-interest" class="hidden bg-ag-white/70 border border-ag-border rounded-xl p-8 mb-16">
+          <input type="text" name="website" style="display:none" tabindex="-1" autocomplete="off">
+
+          <div class="mb-6">
+            <label for="int-product" class="block text-sm text-ag-text mb-2">Service You&rsquo;re Interested In</label>
+            <select id="int-product"
+              class="w-full px-4 py-3 bg-ag-bg border border-ag-border rounded-lg text-ag-text focus:outline-none focus:border-ag-red transition">
+              <option value="">Select a service...</option>
+              <option value="rl-env">Agents that learn by doing (RL on Environments)</option>
+              <option value="dyna">Learn from your existing logs (Dyna-Style RL)</option>
+              <option value="icl">Agents that remember and adapt (In-Context Learning)</option>
+              <option value="routing">Use cheaper models where possible (Intelligent Routing)</option>
+              <option value="distill">Your own compact expert model (Knowledge Distillation)</option>
+              <option value="local">Everything on your infrastructure (Local Deployment)</option>
+            </select>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <label for="int-name" class="block text-sm text-ag-text mb-2">Name *</label>
+              <input type="text" id="int-name" name="name" required
+                class="w-full px-4 py-3 bg-ag-bg border border-ag-border rounded-lg text-ag-text placeholder-ag-muted focus:outline-none focus:border-ag-red transition"
+                placeholder="Your name">
+            </div>
+            <div>
+              <label for="int-role" class="block text-sm text-ag-text mb-2">Role</label>
+              <input type="text" id="int-role" name="role"
+                class="w-full px-4 py-3 bg-ag-bg border border-ag-border rounded-lg text-ag-text placeholder-ag-muted focus:outline-none focus:border-ag-red transition"
+                placeholder="e.g. CTO, Head of AI">
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <label for="int-email" class="block text-sm text-ag-text mb-2">Email <span class="text-ag-muted">(email
+                  or LinkedIn required)</span></label>
+              <input type="email" id="int-email" name="email"
+                class="w-full px-4 py-3 bg-ag-bg border border-ag-border rounded-lg text-ag-text placeholder-ag-muted focus:outline-none focus:border-ag-red transition"
+                placeholder="you@company.com">
+            </div>
+            <div>
+              <label for="int-linkedin" class="block text-sm text-ag-text mb-2">LinkedIn <span
+                  class="text-ag-muted">(email or LinkedIn required)</span></label>
+              <input type="url" id="int-linkedin" name="linkedin"
+                class="w-full px-4 py-3 bg-ag-bg border border-ag-border rounded-lg text-ag-text placeholder-ag-muted focus:outline-none focus:border-ag-red transition"
+                placeholder="https://linkedin.com/in/...">
+            </div>
+          </div>
+
+          <div class="mb-6">
+            <label for="int-message" class="block text-sm text-ag-text mb-2">Message (optional)</label>
+            <textarea id="int-message" name="message" rows="3"
+              class="w-full px-4 py-3 bg-ag-bg border border-ag-border rounded-lg text-ag-text placeholder-ag-muted focus:outline-none focus:border-ag-red transition resize-y"
+              placeholder="Tell us about your use case or any questions you have."></textarea>
+          </div>
+
+          <div id="int-form-error" class="hidden text-ag-red text-sm mb-4"></div>
+
+          <button type="submit" id="int-submit-btn"
+            class="px-8 py-3 bg-ag-red hover:bg-ag-red-hover text-ag-bg font-medium rounded-lg transition uppercase tracking-wide w-full md:w-auto">
+            Request Information
+          </button>
+          <p class="text-ag-muted text-xs mt-4">We&rsquo;ll reach out within 1&ndash;2 business days to discuss next
+            steps.</p>
         </form>
 
         <!-- Thank you -->
-        <div id="contact-thanks" class="hidden bg-ag-900/70 border border-ag-500/25 rounded-xl p-8 mb-16 text-center">
-          <p class="text-ag-200 text-xl font-semibold mb-2">Thank you!</p>
-          <p class="text-ag-100/60">We received your message and will get back to you shortly.</p>
+        <div id="contact-thanks" class="hidden bg-ag-white/70 border border-ag-red/25 rounded-xl p-8 mb-16 text-center">
+          <p class="text-ag-red text-xl font-semibold mb-2">Thank you!</p>
+          <p class="text-ag-dark">We received your message and will get back to you shortly.</p>
         </div>
 
         <div class="text-center mb-16">
-          <p class="text-ag-100/50 text-sm">Or email us directly at
+          <p class="text-ag-dark text-sm">Or email us directly at
             <a href="mailto:info@aganthos.com"
-              class="text-ag-200 underline hover:text-ag-500 transition">info@aganthos.com</a>
+              class="text-ag-red underline hover:text-ag-red-hover transition">info@aganthos.com</a>
           </p>
         </div>
 
         <!-- Legal -->
-        <div class="border-t border-ag-700/25 pt-12">
-          <div class="flex gap-6 text-sm text-ag-100/50 mb-8">
-            <button onclick="toggleLegal('impressum')" class="hover:text-ag-200 transition underline">Legal Notice
+        <div class="border-t border-ag-border pt-12">
+          <div class="flex gap-6 text-sm text-ag-dark mb-8">
+            <button onclick="toggleLegal('impressum')" class="hover:text-ag-red transition underline">Legal Notice
               (Impressum)</button>
-            <button onclick="toggleLegal('privacy')" class="hover:text-ag-200 transition underline">Privacy
+            <button onclick="toggleLegal('privacy')" class="hover:text-ag-red transition underline">Privacy
               Policy</button>
           </div>
 
           <div id="legal-impressum"
-            class="hidden bg-ag-900/50 border border-ag-700/[0.15] rounded-xl p-8 mb-8 text-sm text-ag-100/60 leading-relaxed">
-            <h3 class="text-lg font-semibold text-ag-100 mb-4">Legal Notice (Impressum)</h3>
-            <p class="mb-3"><strong class="text-ag-500">Operator and Contact:</strong><br>Aganthos GmbH<br>c/o Robert
+            class="hidden bg-ag-cream border border-ag-border rounded-xl p-8 mb-8 text-sm text-ag-dark leading-relaxed">
+            <h3 class="text-lg font-semibold text-ag-text mb-4">Legal Notice (Impressum)</h3>
+            <p class="mb-3"><strong class="text-ag-red">Operator and Contact:</strong><br>Aganthos GmbH<br>c/o Robert
               M&uuml;ller &amp; Tobias Magnus Schuster<br>Kirchgasse 20<br>6490 Andermatt, Switzerland</p>
-            <p class="mb-3"><strong class="text-ag-500">Represented by:</strong> Robert M&uuml;ller, Chairman of the
+            <p class="mb-3"><strong class="text-ag-red">Represented by:</strong> Robert M&uuml;ller, Chairman of the
               Management Board (Vorsitzender der Gesch&auml;ftsf&uuml;hrung)</p>
-            <p class="mb-3"><strong class="text-ag-500">Contact:</strong> <a href="mailto:info@aganthos.com"
+            <p class="mb-3"><strong class="text-ag-red">Contact:</strong> <a href="mailto:info@aganthos.com"
                 class="underline">info@aganthos.com</a> &middot; www.aganthos.com</p>
-            <p class="mb-3"><strong class="text-ag-500">Commercial Register (Switzerland):</strong><br>Registered
+            <p class="mb-3"><strong class="text-ag-red">Commercial Register (Switzerland):</strong><br>Registered
               Company Name: Aganthos GmbH<br>Commercial Register Office: Canton of Uri<br>Enterprise Identification
               Number (UID): CHE-239.273.202<br>Date of Incorporation: January 13, 2026</p>
-            <p class="mb-3"><strong class="text-ag-500">Ownership:</strong> Wholly owned subsidiary of Aganthos, Inc.
+            <p class="mb-3"><strong class="text-ag-red">Ownership:</strong> Wholly owned subsidiary of Aganthos, Inc.
               (USA).</p>
-            <p class="mb-3"><strong class="text-ag-500">Parent Company (USA):</strong><br>Aganthos, Inc. (A Delaware
+            <p class="mb-3"><strong class="text-ag-red">Parent Company (USA):</strong><br>Aganthos, Inc. (A Delaware
               Corporation)<br>File Number: 10351069<br>Incorporated on: September 30, 2025<br>Registered Agent: Legalinc
               Corporate Services Inc., Newark, Delaware</p>
-            <h4 class="text-ag-100 font-semibold mt-6 mb-2">Disclaimer</h4>
-            <p class="mb-3"><strong class="text-ag-500">Liability for Content:</strong> While we strive to keep the
+            <h4 class="text-ag-text font-semibold mt-6 mb-2">Disclaimer</h4>
+            <p class="mb-3"><strong class="text-ag-red">Liability for Content:</strong> While we strive to keep the
               information on this website accurate and up-to-date, Aganthos GmbH accepts no liability for the
               topicality, correctness, completeness, or quality of the information provided.</p>
-            <p class="mb-3"><strong class="text-ag-500">Liability for Links:</strong> Our website may contain links to
+            <p class="mb-3"><strong class="text-ag-red">Liability for Links:</strong> Our website may contain links to
               external websites. We have no influence on the content of these external sites and therefore accept no
               liability for them.</p>
-            <p><strong class="text-ag-500">Copyright:</strong> The content and works published on this website are
+            <p><strong class="text-ag-red">Copyright:</strong> The content and works published on this website are
               governed by the copyright laws of Switzerland. Any duplication, processing, distribution, or any form of
               utilization beyond the scope of copyright law shall require the prior written consent of the author or
               authors in question.</p>
           </div>
 
           <div id="legal-privacy"
-            class="hidden bg-ag-900/50 border border-ag-700/[0.15] rounded-xl p-8 mb-8 text-sm text-ag-100/60 leading-relaxed">
-            <h3 class="text-lg font-semibold text-ag-100 mb-4">Privacy Policy (Datenschutzerkl&auml;rung)</h3>
-            <p class="text-ag-100/[0.35] mb-4">Last updated: January 2026</p>
-            <h4 class="text-ag-100 font-semibold mt-4 mb-2">1. General Information</h4>
+            class="hidden bg-ag-cream border border-ag-border rounded-xl p-8 mb-8 text-sm text-ag-dark leading-relaxed">
+            <h3 class="text-lg font-semibold text-ag-text mb-4">Privacy Policy (Datenschutzerkl&auml;rung)</h3>
+            <p class="text-ag-muted mb-4">Last updated: January 2026</p>
+            <h4 class="text-ag-text font-semibold mt-4 mb-2">1. General Information</h4>
             <p class="mb-3">We take the protection of your personal data very seriously. Aganthos GmbH
               (&ldquo;we&rdquo;, &ldquo;us&rdquo;) processes personal data in accordance with the Swiss Federal Act on
               Data Protection (FADP/nDSG) and, where applicable, the European General Data Protection Regulation (GDPR).
               This privacy policy explains how we collect and process personal data when you visit our website
               www.aganthos.com or contact us.</p>
-            <h4 class="text-ag-100 font-semibold mt-4 mb-2">2. Controller</h4>
+            <h4 class="text-ag-text font-semibold mt-4 mb-2">2. Controller</h4>
             <p class="mb-3">Aganthos GmbH<br>c/o Robert M&uuml;ller &amp; Tobias Magnus Schuster<br>Kirchgasse 20, 6490
               Andermatt, Switzerland<br>Email: info@aganthos.com<br>Represented by: Robert M&uuml;ller (Chairman)</p>
-            <h4 class="text-ag-100 font-semibold mt-4 mb-2">3. Collection and Processing of Data</h4>
-            <p class="mb-2"><strong class="text-ag-500">3.1 Server Log Files:</strong> When you visit our website, the
+            <h4 class="text-ag-text font-semibold mt-4 mb-2">3. Collection and Processing of Data</h4>
+            <p class="mb-2"><strong class="text-ag-red">3.1 Server Log Files:</strong> When you visit our website, the
               hosting provider automatically collects and stores information in server log files: browser type and
               version, operating system, referrer URL, hostname, time of request, and IP address. This data is not
               combined with other data sources.</p>
-            <p class="mb-3"><strong class="text-ag-500">3.2 Contact Form and Email:</strong> If you send us inquiries
+            <p class="mb-3"><strong class="text-ag-red">3.2 Contact Form and Email:</strong> If you send us inquiries
               via email or contact forms, your details will be stored for the purpose of processing the request. We do
               not pass on this data without your consent.</p>
-            <h4 class="text-ag-100 font-semibold mt-4 mb-2">4. Data Transfer to the USA</h4>
+            <h4 class="text-ag-text font-semibold mt-4 mb-2">4. Data Transfer to the USA</h4>
             <p class="mb-3">Our company is a wholly-owned subsidiary of Aganthos, Inc. (Delaware, USA). If tools or
               service providers based in the USA are used, your personal data may be transferred to US servers. We
               ensure that data transfers are protected by appropriate safeguards, such as the Swiss-U.S. Data Privacy
               Framework or Standard Contractual Clauses (SCCs).</p>
-            <h4 class="text-ag-100 font-semibold mt-4 mb-2">5. Cookies and Analytics</h4>
+            <h4 class="text-ag-text font-semibold mt-4 mb-2">5. Cookies and Analytics</h4>
             <p class="mb-3">Our website may use cookies to enhance user experience. You can set your browser to refuse
               cookies.</p>
-            <h4 class="text-ag-100 font-semibold mt-4 mb-2">6. Data Security</h4>
+            <h4 class="text-ag-text font-semibold mt-4 mb-2">6. Data Security</h4>
             <p class="mb-3">We use SSL/TLS encryption for security reasons and to protect the transmission of
               confidential content.</p>
-            <h4 class="text-ag-100 font-semibold mt-4 mb-2">7. Your Rights</h4>
+            <h4 class="text-ag-text font-semibold mt-4 mb-2">7. Your Rights</h4>
             <p class="mb-3">Under the FADP (and GDPR where applicable), you have the right to: access, rectification,
               deletion, restriction of processing, and data portability. To exercise these rights, contact us at <a
                 href="mailto:info@aganthos.com" class="underline">info@aganthos.com</a>.</p>
-            <h4 class="text-ag-100 font-semibold mt-4 mb-2">8. Changes to this Privacy Policy</h4>
+            <h4 class="text-ag-text font-semibold mt-4 mb-2">8. Changes to this Privacy Policy</h4>
             <p>We reserve the right to adapt this privacy policy to comply with current legal requirements or to reflect
               changes to our services.</p>
           </div>
@@ -813,13 +899,13 @@
   </div>
 
   <!-- Footer -->
-  <footer class="border-t border-ag-700/25 mt-12">
+  <footer class="border-t border-ag-border mt-12">
     <div
-      class="max-w-6xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-ag-100/[0.35]">
+      class="max-w-6xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-ag-muted">
       <p>&copy; <span id="yr"></span> Aganthos GmbH. All rights reserved.</p>
       <div class="flex gap-6">
-        <a href="#contact" class="hover:text-ag-200 transition" onclick="showLegal('impressum')">Impressum</a>
-        <a href="#contact" class="hover:text-ag-200 transition" onclick="showLegal('privacy')">Privacy Policy</a>
+        <a href="#contact" class="hover:text-ag-red transition" onclick="showLegal('impressum')">Impressum</a>
+        <a href="#contact" class="hover:text-ag-red transition" onclick="showLegal('privacy')">Privacy Policy</a>
       </div>
     </div>
   </footer>
@@ -827,26 +913,28 @@
   <script>
     document.getElementById('yr').textContent = new Date().getFullYear();
 
-    // SPA navigation
+    // ── SPA navigation ──
     function navigate(hash) {
       var page = hash.replace('#', '') || 'home';
-      if (page === 'contact-thanks') {
-        page = 'contact';
-        setTimeout(function () { document.getElementById('contact-thanks').classList.remove('hidden'); }, 100);
-      }
       document.querySelectorAll('.page').forEach(function (p) { p.classList.remove('active'); });
       var target = document.getElementById('page-' + page);
-      if (target) { target.classList.add('active'); } else { document.getElementById('page-home').classList.add('active'); }
+      if (target) { target.classList.add('active'); } else { document.getElementById('page-home').classList.add('active'); page = 'home'; }
       document.querySelectorAll('.nav-link').forEach(function (l) {
         l.classList.toggle('active', l.getAttribute('href') === '#' + page);
       });
       window.scrollTo(0, 0);
+      // If navigating to contact with a pending product, activate interest tab
+      if (page === 'contact' && window.__pendingProduct) {
+        switchContactTab('interest');
+        var sel = document.getElementById('int-product');
+        if (sel) sel.value = window.__pendingProduct;
+        window.__pendingProduct = null;
+      }
     }
-
     window.addEventListener('hashchange', function () { navigate(location.hash); });
     if (location.hash) navigate(location.hash);
 
-    // Mobile menu
+    // ── Mobile menu ──
     document.getElementById('menu-btn').addEventListener('click', function () {
       document.getElementById('mobile-menu').classList.toggle('hidden');
     });
@@ -854,10 +942,8 @@
       a.addEventListener('click', function () { document.getElementById('mobile-menu').classList.add('hidden'); });
     });
 
-    // Legal toggles
-    function toggleLegal(id) {
-      document.getElementById('legal-' + id).classList.toggle('hidden');
-    }
+    // ── Legal ──
+    function toggleLegal(id) { document.getElementById('legal-' + id).classList.toggle('hidden'); }
     function showLegal(id) {
       navigate('#contact');
       setTimeout(function () {
@@ -867,119 +953,146 @@
       }, 150);
     }
 
-    // Method detail panel
+    // ── Contact tabs ──
+    function switchContactTab(tab) {
+      document.getElementById('tab-general').classList.toggle('active', tab === 'general');
+      document.getElementById('tab-interest').classList.toggle('active', tab === 'interest');
+      document.getElementById('contact-form-general').classList.toggle('hidden', tab !== 'general');
+      document.getElementById('contact-form-interest').classList.toggle('hidden', tab !== 'interest');
+    }
+
+    // ── Request service from offering ──
+    function requestService(methodId) {
+      window.__pendingProduct = methodId;
+      location.hash = '#contact';
+    }
+
+    // ── Two-level accordion ──
+    var openCategoryId = null;
+    var activeMethodId = null;
+
+    function toggleCategory(catId) {
+      var methodsEl = document.getElementById('cat-methods-' + catId);
+      var isOpen = openCategoryId === catId;
+      // Close all categories
+      document.querySelectorAll('[id^="cat-methods-"]').forEach(function (el) { el.classList.add('hidden'); });
+      document.querySelectorAll('.cat-card').forEach(function (el) { el.classList.remove('active'); });
+      closeMethodPanel();
+      if (!isOpen) {
+        methodsEl.classList.remove('hidden');
+        document.getElementById('cat-' + catId).classList.add('active');
+        openCategoryId = catId;
+        setTimeout(function () { methodsEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 50);
+      } else {
+        openCategoryId = null;
+      }
+    }
+
+    // ── Method detail panel ──
+    // ── Method detail panel ──
     var methodData = {
       'rl-env': {
-        title: 'Agents that learn by doing',
+        title: 'Agents That Learn by Doing',
         tech: 'Reinforcement Learning on Environments',
-        desc: 'When a training environment or simulator is available, we apply RL directly. The agent explores, gets rewards, and improves through trial and error.',
+        solves: ['Performance'],
+        desc: 'When a training environment or simulator is available, we apply RL directly. The agent explores, gets rewards, and improves both its model weights and harness through trial and error.',
         requires: 'Training environment or simulator.',
-        caption: 'Directly addresses reliability, cost, and privacy. Your agent trains on real tasks and gets better every round.',
-        svg: '<svg viewBox="0 0 280 110" class="w-full max-w-[280px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah1" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#780000"/></marker></defs><rect x="10" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="50" y="58" text-anchor="middle" fill="#131314" font-size="11">Agent \u2699</text><rect x="190" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="230" y="58" text-anchor="middle" fill="#131314" font-size="11">Environment</text><line x1="90" y1="45" x2="188" y2="45" stroke="#780000" stroke-width="1.5" marker-end="url(#ah1)"/><text x="140" y="40" text-anchor="middle" fill="#780000" font-size="9">action</text><line x1="190" y1="65" x2="92" y2="65" stroke="#780000" stroke-width="1.5" marker-end="url(#ah1)"/><text x="140" y="78" text-anchor="middle" fill="#780000" font-size="9">reward</text></svg>'
+        technical: 'We apply policy gradient methods (PPO/GRPO) directly in your environment. The agent explores, receives reward signals, and iteratively improves its strategy. We optimize the full system—updating model weights while jointly refining the agent harness (prompts, tool calls, and memory structure).',
+        svg: '<svg viewBox="0 0 280 110" class="w-full max-w-[280px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah1" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#780000"/></marker></defs><rect x="10" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#4A4A4A" stroke-width="1.5"/><text x="50" y="58" text-anchor="middle" fill="#131314" font-size="11">Agent</text><rect x="190" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#4A4A4A" stroke-width="1.5"/><text x="230" y="58" text-anchor="middle" fill="#131314" font-size="11">Environment</text><line x1="90" y1="45" x2="188" y2="45" stroke="#780000" stroke-width="1.5" marker-end="url(#ah1)"/><text x="140" y="40" text-anchor="middle" fill="#780000" font-size="9">action</text><line x1="190" y1="65" x2="92" y2="65" stroke="#780000" stroke-width="1.5" marker-end="url(#ah1)"/><text x="140" y="78" text-anchor="middle" fill="#780000" font-size="9">reward</text></svg>'
       },
       'dyna': {
-        title: 'Learn from your existing logs',
+        title: 'Learn From Your Existing Logs',
         tech: 'Dyna-Style RL with Learned World Models',
-        desc: 'We learn a world model from your tool-call traces, then train via RL inside it. Full RL gains without a pre-built environment.',
-        requires: 'Logs of queries, tool inputs & responses.',
-        caption: 'No simulator needed. We turn the data you already have into a training ground for better, cheaper, private agents.',
-        svg: '<svg viewBox="0 0 360 110" class="w-full max-w-[360px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#780000"/></marker></defs><rect x="5" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="45" y="53" text-anchor="middle" fill="#131314" font-size="10">Your</text><text x="45" y="65" text-anchor="middle" fill="#131314" font-size="10">Logs</text><rect x="140" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="180" y="53" text-anchor="middle" fill="#131314" font-size="10">World</text><text x="180" y="65" text-anchor="middle" fill="#131314" font-size="10">Model</text><rect x="275" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="315" y="58" text-anchor="middle" fill="#131314" font-size="11">Agent \u2699</text><line x1="85" y1="55" x2="138" y2="55" stroke="#780000" stroke-width="1.5" marker-end="url(#ah2)"/><text x="112" y="48" text-anchor="middle" fill="#780000" font-size="9">builds</text><line x1="220" y1="48" x2="273" y2="48" stroke="#780000" stroke-width="1.5" marker-end="url(#ah2)"/><line x1="275" y1="62" x2="222" y2="62" stroke="#780000" stroke-width="1.5" marker-end="url(#ah2)"/><text x="248" y="40" text-anchor="middle" fill="#780000" font-size="9">RL loop</text></svg>'
+        solves: ['Performance'],
+        desc: 'We learn a world model from your tool-call traces, then train via RL inside it. Full RL gains—updating both weights and prompts—without a pre-built environment.',
+        requires: 'Logs of queries, tool inputs and responses.',
+        technical: 'We learn a world model from your historical tool-call traces using supervised learning, then run model-based RL inside this learned simulator. This gives you the benefits of RL training (updating both the underlying model and the surrounding harness) without needing a pre-built environment.',
+        svg: '<svg viewBox="0 0 360 110" class="w-full max-w-[360px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#780000"/></marker></defs><rect x="5" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#4A4A4A" stroke-width="1.5"/><text x="45" y="53" text-anchor="middle" fill="#131314" font-size="10">Your</text><text x="45" y="65" text-anchor="middle" fill="#131314" font-size="10">Logs</text><rect x="140" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#4A4A4A" stroke-width="1.5"/><text x="180" y="53" text-anchor="middle" fill="#131314" font-size="10">World</text><text x="180" y="65" text-anchor="middle" fill="#131314" font-size="10">Model</text><rect x="275" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#4A4A4A" stroke-width="1.5"/><text x="315" y="58" text-anchor="middle" fill="#131314" font-size="11">Agent</text><line x1="85" y1="55" x2="138" y2="55" stroke="#780000" stroke-width="1.5" marker-end="url(#ah2)"/><text x="112" y="48" text-anchor="middle" fill="#780000" font-size="9">builds</text><line x1="220" y1="48" x2="273" y2="48" stroke="#780000" stroke-width="1.5" marker-end="url(#ah2)"/><line x1="275" y1="62" x2="222" y2="62" stroke="#780000" stroke-width="1.5" marker-end="url(#ah2)"/><text x="248" y="40" text-anchor="middle" fill="#780000" font-size="9">RL loop</text></svg>'
       },
       'icl': {
-        title: 'Agents that remember and adapt',
+        title: 'Agents That Remember and Adapt',
         tech: 'In-Context Learning from Feedback',
-        desc: 'User interactions and corrections feed directly into the agent\u2019s context and memory. Immediate adaptation with no training latency.',
+        solves: ['Performance'],
+        desc: 'User interactions and corrections feed directly into the agent\u2019s context and memory harness. Immediate adaptation with no training latency.',
         requires: 'User feedback or interaction logs.',
-        caption: 'Instant reliability gains. Every correction makes the agent smarter without waiting for a training cycle.',
-        svg: '<svg viewBox="0 0 360 110" class="w-full max-w-[360px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah3" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#780000"/></marker></defs><rect x="5" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="45" y="58" text-anchor="middle" fill="#131314" font-size="11">User</text><rect x="140" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="180" y="58" text-anchor="middle" fill="#131314" font-size="11">Memory</text><rect x="275" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="315" y="58" text-anchor="middle" fill="#131314" font-size="11">Agent</text><line x1="85" y1="55" x2="138" y2="55" stroke="#780000" stroke-width="1.5" marker-end="url(#ah3)"/><text x="112" y="48" text-anchor="middle" fill="#780000" font-size="9">feedback</text><line x1="220" y1="55" x2="273" y2="55" stroke="#780000" stroke-width="1.5" marker-end="url(#ah3)"/><text x="247" y="48" text-anchor="middle" fill="#780000" font-size="9">enriches</text></svg>'
+        technical: 'User corrections and system feedback are extracted, distilled into structured memories, and injected into the agent\u2019s system prompt and context window as part of its execution harness. No model weight retraining needed \u2014 improvements apply immediately.',
+        svg: '<svg viewBox="0 0 360 110" class="w-full max-w-[360px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah3" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#780000"/></marker></defs><rect x="5" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#4A4A4A" stroke-width="1.5"/><text x="45" y="58" text-anchor="middle" fill="#131314" font-size="11">User</text><rect x="140" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#4A4A4A" stroke-width="1.5"/><text x="180" y="58" text-anchor="middle" fill="#131314" font-size="11">Memory</text><rect x="275" y="30" width="80" height="50" rx="8" fill="#FAF9F0" stroke="#4A4A4A" stroke-width="1.5"/><text x="315" y="58" text-anchor="middle" fill="#131314" font-size="11">Agent</text><line x1="85" y1="55" x2="138" y2="55" stroke="#780000" stroke-width="1.5" marker-end="url(#ah3)"/><text x="112" y="48" text-anchor="middle" fill="#780000" font-size="9">feedback</text><line x1="220" y1="55" x2="273" y2="55" stroke="#780000" stroke-width="1.5" marker-end="url(#ah3)"/><text x="247" y="48" text-anchor="middle" fill="#780000" font-size="9">enriches</text></svg>'
       },
       'routing': {
-        title: 'Use cheaper models where possible',
+        title: 'Use Cheaper Models Where Possible',
         tech: 'Intelligent Model Routing',
+        solves: ['Cost', 'Performance'],
         desc: 'Analyse production logs to learn which requests can be handled by cheaper, smaller models without quality loss.',
         requires: 'Logs of queries and LLM responses.',
-        caption: 'Cuts your AI bill immediately. Simple requests go to small models, hard ones stay on the big one.',
-        svg: '<svg viewBox="0 0 280 110" class="w-full max-w-[280px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah4" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#780000"/></marker></defs><rect x="5" y="35" width="70" height="40" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="40" y="59" text-anchor="middle" fill="#131314" font-size="11">Request</text><rect x="105" y="35" width="70" height="40" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="140" y="59" text-anchor="middle" fill="#131314" font-size="11">Router</text><rect x="205" y="8" width="70" height="36" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="240" y="22" text-anchor="middle" fill="#131314" font-size="9">Large</text><text x="240" y="34" text-anchor="middle" fill="#131314" font-size="9">Model</text><rect x="205" y="66" width="70" height="36" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="240" y="80" text-anchor="middle" fill="#131314" font-size="9">Small</text><text x="240" y="92" text-anchor="middle" fill="#131314" font-size="9">Model</text><line x1="75" y1="55" x2="103" y2="55" stroke="#780000" stroke-width="1.5" marker-end="url(#ah4)"/><line x1="175" y1="48" x2="203" y2="30" stroke="#780000" stroke-width="1.5" marker-end="url(#ah4)"/><line x1="175" y1="62" x2="203" y2="80" stroke="#780000" stroke-width="1.5" marker-end="url(#ah4)"/></svg>'
+        technical: 'We train a lightweight classifier on your query logs to predict which model tier (large/medium/small) is needed for each request. Simple queries get routed to cheaper models automatically while maintaining quality thresholds.',
+        svg: '<svg viewBox="0 0 280 110" class="w-full max-w-[280px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah4" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#780000"/></marker></defs><rect x="5" y="35" width="70" height="40" rx="8" fill="#FAF9F0" stroke="#4A4A4A" stroke-width="1.5"/><text x="40" y="59" text-anchor="middle" fill="#131314" font-size="11">Request</text><rect x="105" y="35" width="70" height="40" rx="8" fill="#FAF9F0" stroke="#4A4A4A" stroke-width="1.5"/><text x="140" y="59" text-anchor="middle" fill="#131314" font-size="11">Router</text><rect x="205" y="8" width="70" height="36" rx="8" fill="#FAF9F0" stroke="#4A4A4A" stroke-width="1.5"/><text x="240" y="22" text-anchor="middle" fill="#131314" font-size="9">Large</text><text x="240" y="34" text-anchor="middle" fill="#131314" font-size="9">Model</text><rect x="205" y="66" width="70" height="36" rx="8" fill="#FAF9F0" stroke="#4A4A4A" stroke-width="1.5"/><text x="240" y="80" text-anchor="middle" fill="#131314" font-size="9">Small</text><text x="240" y="92" text-anchor="middle" fill="#131314" font-size="9">Model</text><line x1="75" y1="55" x2="103" y2="55" stroke="#780000" stroke-width="1.5" marker-end="url(#ah4)"/><line x1="175" y1="48" x2="203" y2="30" stroke="#780000" stroke-width="1.5" marker-end="url(#ah4)"/><line x1="175" y1="62" x2="203" y2="80" stroke="#780000" stroke-width="1.5" marker-end="url(#ah4)"/></svg>'
       },
       'distill': {
-        title: 'Your own compact expert model',
+        title: 'Your Own Compact Expert Model',
         tech: 'Knowledge Distillation',
+        solves: ['Cost', 'Privacy'],
         desc: 'Transfer knowledge from large frontier models into compact, locally deployable models. Lower inference cost with full data sovereignty.',
         requires: 'Logs or question set. Optionally: open-logit LLM.',
-        caption: 'Lower cost and full data sovereignty. A small model that knows what the big one knows, running on your hardware.',
-        svg: '<svg viewBox="0 0 360 110" class="w-full max-w-[360px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah5" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#780000"/></marker></defs><rect x="10" y="25" width="100" height="60" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="60" y="53" text-anchor="middle" fill="#131314" font-size="10">Frontier</text><text x="60" y="67" text-anchor="middle" fill="#131314" font-size="10">Model</text><rect x="250" y="25" width="100" height="60" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="300" y="53" text-anchor="middle" fill="#131314" font-size="10">Your</text><text x="300" y="67" text-anchor="middle" fill="#131314" font-size="10">Model \u2699</text><line x1="110" y1="55" x2="248" y2="55" stroke="#780000" stroke-width="1.5" marker-end="url(#ah5)"/><text x="180" y="48" text-anchor="middle" fill="#780000" font-size="9">knowledge transfer</text></svg>'
+        technical: 'We use knowledge distillation to transfer the capabilities of a large frontier model into a compact model (7B\u201314B parameters) that runs on your infrastructure. Fine-tuning with LoRA on your domain data ensures task-specific expertise.',
+        svg: '<svg viewBox="0 0 360 110" class="w-full max-w-[360px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah5" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#780000"/></marker></defs><rect x="10" y="25" width="100" height="60" rx="8" fill="#FAF9F0" stroke="#4A4A4A" stroke-width="1.5"/><text x="60" y="53" text-anchor="middle" fill="#131314" font-size="10">Frontier</text><text x="60" y="67" text-anchor="middle" fill="#131314" font-size="10">Model</text><rect x="250" y="25" width="100" height="60" rx="8" fill="#FAF9F0" stroke="#4A4A4A" stroke-width="1.5"/><text x="300" y="53" text-anchor="middle" fill="#131314" font-size="10">Your</text><text x="300" y="67" text-anchor="middle" fill="#131314" font-size="10">Model</text><line x1="110" y1="55" x2="248" y2="55" stroke="#780000" stroke-width="1.5" marker-end="url(#ah5)"/><text x="180" y="48" text-anchor="middle" fill="#780000" font-size="9">knowledge transfer</text></svg>'
       },
       'local': {
-        title: 'Everything on your infrastructure',
+        title: 'Everything on Your Infrastructure',
         tech: 'Local Deployment & Agentic Infrastructure',
+        solves: ['Privacy', 'Performance'],
         desc: 'Distilled and RL-trained models run entirely on your infrastructure via MCP tool access.',
         requires: 'MCP access to your tools and workflows.',
-        caption: 'Complete data sovereignty. Nothing leaves your servers. Your models, your tools, your control.',
-        svg: '<svg viewBox="0 0 280 110" class="w-full max-w-[280px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah6" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#780000"/></marker></defs><rect x="10" y="8" width="260" height="94" rx="10" fill="none" stroke="#B1ADA1" stroke-width="1.5" stroke-dasharray="6,3"/><text x="140" y="22" text-anchor="middle" fill="#780000" font-size="9">Your Infrastructure</text><rect x="35" y="40" width="90" height="50" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="80" y="68" text-anchor="middle" fill="#131314" font-size="11">Model \u2699</text><rect x="165" y="40" width="90" height="50" rx="8" fill="#FAF9F0" stroke="#B1ADA1" stroke-width="1.5"/><text x="210" y="60" text-anchor="middle" fill="#131314" font-size="10">Your Tools</text><text x="210" y="74" text-anchor="middle" fill="#131314" font-size="10">/ MCP</text><line x1="125" y1="60" x2="163" y2="60" stroke="#780000" stroke-width="1.5" marker-end="url(#ah6)"/><line x1="165" y1="72" x2="127" y2="72" stroke="#780000" stroke-width="1.5" marker-end="url(#ah6)"/></svg>'
+        technical: 'Trained models deploy on your servers via standard inference frameworks (vLLM, TGI). We configure MCP tool connections so your agent can access your internal systems with zero external data exposure.',
+        svg: '<svg viewBox="0 0 280 110" class="w-full max-w-[280px]" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ah6" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#780000"/></marker></defs><rect x="10" y="8" width="260" height="94" rx="10" fill="none" stroke="#4A4A4A" stroke-width="1.5" stroke-dasharray="6,3"/><text x="140" y="22" text-anchor="middle" fill="#780000" font-size="9">Your Infrastructure</text><rect x="35" y="40" width="90" height="50" rx="8" fill="#FAF9F0" stroke="#4A4A4A" stroke-width="1.5"/><text x="80" y="68" text-anchor="middle" fill="#131314" font-size="11">Model</text><rect x="165" y="40" width="90" height="50" rx="8" fill="#FAF9F0" stroke="#4A4A4A" stroke-width="1.5"/><text x="210" y="60" text-anchor="middle" fill="#131314" font-size="10">Your Tools</text><text x="210" y="74" text-anchor="middle" fill="#131314" font-size="10">/ MCP</text><line x1="125" y1="60" x2="163" y2="60" stroke="#780000" stroke-width="1.5" marker-end="url(#ah6)"/><line x1="165" y1="72" x2="127" y2="72" stroke="#780000" stroke-width="1.5" marker-end="url(#ah6)"/></svg>'
       }
     };
-
-    var activeMethodId = null;
 
     function toggleMethod(id) {
       var panel = document.getElementById('method-detail-panel');
       var card = document.getElementById('method-' + id);
-      var captionEl = document.getElementById('methods-caption');
-
-      // Deselect previous
-      document.querySelectorAll('.method-card.active').forEach(function (c) {
-        c.classList.remove('active');
-      });
-
-      // If clicking same card, close panel
+      document.querySelectorAll('.method-card.active').forEach(function (c) { c.classList.remove('active'); });
       if (activeMethodId === id) {
-        panel.classList.remove('open');
+        panel.classList.add('hidden');
         activeMethodId = null;
-        captionEl.style.display = 'none';
         return;
       }
-
-      // Populate panel
       var d = methodData[id];
       document.getElementById('mdp-title').textContent = d.title;
       document.getElementById('mdp-techname').textContent = d.tech;
       document.getElementById('mdp-svg').innerHTML = d.svg;
       document.getElementById('mdp-desc').textContent = d.desc;
       document.getElementById('mdp-req-text').textContent = d.requires;
+      document.getElementById('mdp-tech-text').textContent = d.technical;
 
-      // Activate
+      // Move panel directly after the clicked card
+      card.after(panel);
+      // Remove specific margin classes that are weird inline
+      panel.classList.remove('md:ml-8', 'ml-4', 'mt-4');
+      panel.classList.add('mt-2', 'mb-4');
+
       card.classList.add('active');
-      panel.classList.add('open');
+      panel.classList.remove('hidden');
       activeMethodId = id;
-      captionEl.textContent = d.caption;
-      captionEl.style.display = 'block';
-
-      // Scroll panel into view
       setTimeout(function () { panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 50);
     }
 
     function closeMethodPanel() {
-      document.getElementById('method-detail-panel').classList.remove('open');
-      document.querySelectorAll('.method-card.active').forEach(function (c) {
-        c.classList.remove('active');
-      });
+      document.getElementById('method-detail-panel').classList.add('hidden');
+      document.querySelectorAll('.method-card.active').forEach(function (c) { c.classList.remove('active'); });
       activeMethodId = null;
-      document.getElementById('methods-caption').style.display = 'none';
     }
 
-    // Contact form submission
-    document.getElementById('contact-form').addEventListener('submit', function (e) {
-      e.preventDefault();
-      var form = this;
-      var errEl = document.getElementById('form-error');
-      var btn = document.getElementById('submit-btn');
+    // ── Form submissions ──
+    function submitForm(formId, prefix) {
+      var form = document.getElementById(formId);
+      var errEl = document.getElementById(prefix + '-form-error');
+      var btn = document.getElementById(prefix + '-submit-btn');
       errEl.classList.add('hidden');
 
-      // Honeypot check
       if (form.querySelector('[name="website"]').value) return;
 
-      var email = form.querySelector('#email').value.trim();
-      var linkedin = form.querySelector('#linkedin').value.trim();
+      var email = form.querySelector('#' + prefix + '-email').value.trim();
+      var linkedin = form.querySelector('#' + prefix + '-linkedin').value.trim();
       if (!email && !linkedin) {
         errEl.textContent = 'Please provide either an email address or a LinkedIn profile.';
         errEl.classList.remove('hidden');
@@ -989,15 +1102,27 @@
       btn.disabled = true;
       btn.textContent = 'Sending...';
 
+      var message = '';
+      if (prefix === 'int') {
+        var product = form.querySelector('#int-product');
+        var productLabel = product.options[product.selectedIndex].text || 'Not specified';
+        message = '[Service interest: ' + productLabel + '] ';
+      }
+      var msgField = form.querySelector('#' + prefix + '-message');
+      message += msgField ? msgField.value.trim() : '';
+
+      var nameField = form.querySelector('#' + prefix + '-name');
+      var roleField = form.querySelector('#' + prefix + '-role');
+
       fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: form.querySelector('#name').value.trim(),
-          role: form.querySelector('#role').value.trim(),
+          name: nameField ? nameField.value.trim() : '',
+          role: roleField ? roleField.value.trim() : '',
           email: email,
           linkedin: linkedin,
-          message: form.querySelector('#message').value.trim()
+          message: message
         })
       })
         .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
@@ -1016,8 +1141,17 @@
         })
         .finally(function () {
           btn.disabled = false;
-          btn.textContent = 'Send Message';
+          btn.textContent = prefix === 'int' ? 'Request Information' : 'Send Message';
         });
+    }
+
+    document.getElementById('contact-form-general').addEventListener('submit', function (e) {
+      e.preventDefault();
+      submitForm('contact-form-general', 'gen');
+    });
+    document.getElementById('contact-form-interest').addEventListener('submit', function (e) {
+      e.preventDefault();
+      submitForm('contact-form-interest', 'int');
     });
   </script>
 </body>
