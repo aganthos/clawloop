@@ -23,6 +23,12 @@ car = [
     "uvicorn>=0.20",
     "httpx>=0.24",
 ]
+otel = [
+    "opentelemetry-api>=1.20",
+    "opentelemetry-sdk>=1.20",
+    "opentelemetry-exporter-otlp-proto-http>=1.20",
+    "openinference-semantic-conventions>=0.1.6",
+]
 # tau2 = ["tau-bench"]  # deferred — not yet on PyPI
 
 [project.scripts]
