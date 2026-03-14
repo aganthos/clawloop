@@ -191,15 +191,12 @@ class OTelExporter(TraceExporter):
         msg_index: int,
         episode: Episode,
     ) -> list[dict[str, Any]]:
-        """Reconstruct the input context seen before the assistant message at *msg_index*.
+        """Return the full conversation history up to (but not including) *msg_index*.
 
-        Includes all messages from the start of the enclosing step up to
-        (but not including) the assistant message itself.
+        Uses the complete history because each LLM call in an agentic loop
+        sees the entire prior trajectory (system prompt, reasoning, tool
+        calls, tool results, prior assistant turns).
         """
-        step_idx = self._resolve_step(msg_index, episode.step_boundaries)
-        step_start = episode.step_boundaries[step_idx] if episode.step_boundaries else 0
-        # Include everything from the VERY beginning through end of step context
-        # (i.e., all prior messages up to but not including this assistant message)
         return [m.to_openai_dict() for m in episode.messages[:msg_index]]
 
     def _export_episode(self, ep: Episode) -> None:
