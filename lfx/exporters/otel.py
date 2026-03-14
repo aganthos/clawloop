@@ -209,6 +209,8 @@ class OTelExporter(TraceExporter):
         # Compute root span timing
         # ----------------------------------------------------------------
         start_ns = _to_ns(ep.created_at) if ep.created_at else _to_ns(time.time())
+        # NB: truthiness check is intentional — 0.0 means "unknown" in lfx
+        # (collector.py sets timing=None when timing_ms is falsy).
         if summary.timing and summary.timing.total_ms:
             end_ns = start_ns + _ms_to_ns(summary.timing.total_ms)
         else:
@@ -302,6 +304,7 @@ class OTelExporter(TraceExporter):
             else:
                 llm_start_ns = llm_cursor_ns
 
+            # truthiness check intentional — 0.0 means "unknown" (see above)
             if step_idx < len(per_step_ms) and per_step_ms[step_idx]:
                 step_dur_ns = _ms_to_ns(per_step_ms[step_idx])
                 llm_end_ns = llm_start_ns + step_dur_ns
