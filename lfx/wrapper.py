@@ -11,7 +11,7 @@ from uuid import uuid4
 from lfx.collector import EpisodeCollector
 from lfx.completion import CompletionResult
 from lfx.core.episode import Message
-from lfx.core.parse import parse_tool_calls, _safe_session_hash
+from lfx.core.parse import parse_tool_calls, resolve_oi_span_kind, _safe_session_hash
 
 log = logging.getLogger(__name__)
 
@@ -26,21 +26,10 @@ class WrappedClient:
         self._collector = collector
         self._tracer = tracer
 
-        # Resolve OpenInference span kind constant (same fallback as OTelExporter)
         self._llm_kind_attr: str | None = None
         self._llm_kind_value: str | None = None
         if tracer:
-            try:
-                from openinference.semconv.trace import (
-                    OpenInferenceSpanKindValues,
-                    SpanAttributes,
-                )
-
-                self._llm_kind_attr = SpanAttributes.OPENINFERENCE_SPAN_KIND
-                self._llm_kind_value = OpenInferenceSpanKindValues.LLM.value
-            except ImportError:
-                self._llm_kind_attr = "openinference.span.kind"
-                self._llm_kind_value = "LLM"
+            self._llm_kind_attr, self._llm_kind_value = resolve_oi_span_kind()
 
     def complete(
         self, messages: list[dict[str, str]], **kwargs: Any
@@ -60,6 +49,7 @@ class WrappedClient:
                     },
                 )
             except Exception:
+                log.warning("Failed to create OTel span", exc_info=True)
                 _span = None
 
         start = time.monotonic()
@@ -72,7 +62,7 @@ class WrappedClient:
 
                     _span.set_status(Status(StatusCode.ERROR, "LLM call failed"))
                 except Exception:
-                    pass
+                    log.warning("Failed to set error status on OTel span", exc_info=True)
                 finally:
                     _span.end()
             raise
@@ -111,7 +101,7 @@ class WrappedClient:
                         result.usage.completion_tokens,
                     )
             except Exception:
-                pass
+                log.warning("Failed to set attributes on OTel span", exc_info=True)
             finally:
                 _span.end()
 

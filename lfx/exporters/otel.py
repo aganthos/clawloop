@@ -365,9 +365,7 @@ class OTelExporter(TraceExporter):
                     )
                     tool_span.set_attribute(_SPAN_KIND_ATTR, _KIND_TOOL)
                     tool_span.set_attribute(_TOOL_NAME, tc.name)
-                    tool_span.set_attribute("tool.name", tc.name)
                     tool_span.set_attribute(_TOOL_PARAMETERS, tc.arguments)
-                    tool_span.set_attribute("tool.parameters", tc.arguments)
 
                     # Tool output: prefer linked tool-result message, else .result
                     tool_output = tool_result_map.get(tc.id)
