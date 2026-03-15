@@ -8,6 +8,7 @@ loop -- see ``gate.py``.
 
 from __future__ import annotations
 
+import copy
 import json
 import logging
 import random
@@ -250,7 +251,7 @@ def learning_loop(
         snapshots: dict[str, dict[str, Any]] = {}
         try:
             for name, layer in layers_to_optim:
-                snapshots[name] = layer.to_dict()
+                snapshots[name] = copy.deepcopy(layer.to_dict())
         except Exception:
             log.exception("Snapshot failed — skipping optim this iteration")
             for name, layer in layers_to_optim:

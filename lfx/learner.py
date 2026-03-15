@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import logging
 import queue
 import threading
@@ -158,7 +159,7 @@ class AsyncLearner:
         snapshots: dict[str, dict[str, Any]] = {}
         try:
             for name, layer in layers_to_optim:
-                snapshots[name] = layer.to_dict()
+                snapshots[name] = copy.deepcopy(layer.to_dict())
         except Exception:
             log.exception("Snapshot failed — aborting optim for batch %s", batch_id)
             for name, layer in layers_to_optim:
