@@ -147,3 +147,41 @@ class TestLoopWithoutReflectorStillWorks:
 
         assert adapter.call_count == 6
         assert sid.combined_hash
+
+
+class TestCrossLayerRollback:
+    """When one layer's optim_step fails, all layers should rollback."""
+
+    def test_optim_failure_rolls_back_all_layers(self) -> None:
+        client = _MockLLMClient()
+        reflector = Reflector(client=client, config=ReflectorConfig())
+        harness = Harness(
+            system_prompts={"test": "You are helpful."},
+            reflector=reflector,
+        )
+        state = AgentState(harness=harness)
+
+        # Capture harness state before learning
+        harness_before = json.dumps(state.harness.to_dict(), sort_keys=True)
+
+        # Make router.optim_step fail after harness succeeds
+        def failing_router_optim():
+            raise RuntimeError("simulated optim failure")
+
+        state.router.optim_step = failing_router_optim
+
+        adapter = _MockAdapter(reward=0.8)
+        state, sid = learning_loop(
+            adapter=adapter,
+            agent_state=state,
+            tasks=["t1"],
+            n_episodes=1,
+            n_iterations=1,
+            active_layers=["harness", "router"],
+        )
+
+        # Harness should be rolled back to pre-optim state
+        harness_after = json.dumps(state.harness.to_dict(), sort_keys=True)
+        assert harness_after == harness_before, (
+            "Harness should be rolled back when router optim fails"
+        )
