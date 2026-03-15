@@ -221,30 +221,78 @@ def learning_loop(
                 continue
             try:
                 fut = layer.forward_backward(datum)
-                fb_results[name] = fut.result()
+                fb_result = fut.result()
+                fb_results[name] = fb_result
+                if fb_result.status in ("error", "skipped"):
+                    try:
+                        layer.clear_pending_state()
+                    except Exception:
+                        log.exception("Failed to clear pending for %s", name)
             except Exception:
                 log.exception("forward_backward failed for %s", name)
                 fb_results[name] = FBResult(status="error")
-                # Clear any partially-accumulated pending state so it doesn't
-                # leak into a future optim_step.
-                layer.clear_pending_state()
+                try:
+                    layer.clear_pending_state()
+                except Exception:
+                    log.exception("Failed to clear pending for %s", name)
 
         for name, result in fb_results.items():
             log.info("  fb %s: %s %s", name, result.status, result.metrics)
 
-        # 4. Phase 2: optim_step (only layers whose fb succeeded)
-        for name, layer in layers:
-            if fb_results.get(name, FBResult(status="error")).status in ("error", "skipped"):
-                log.warning("  skipping optim_step for %s (fb failed or skipped)", name)
-                continue
+        # 4. Phase 2: optim_step with cross-layer rollback
+        layers_to_optim = [
+            (name, layer) for name, layer in layers
+            if fb_results.get(name, FBResult(status="error")).status
+            not in ("error", "skipped")
+        ]
+
+        # Snapshot all layers before optim (for cross-layer rollback)
+        snapshots: dict[str, dict[str, Any]] = {}
+        try:
+            for name, layer in layers_to_optim:
+                snapshots[name] = layer.to_dict()
+        except Exception:
+            log.exception("Snapshot failed — skipping optim this iteration")
+            for name, layer in layers_to_optim:
+                try:
+                    layer.clear_pending_state()
+                except Exception:
+                    log.exception("Failed to clear pending for %s", name)
+            layers_to_optim = []
+
+        optim_failed = False
+        for name, layer in layers_to_optim:
             try:
                 result = layer.optim_step().result()
                 log.info(
                     "  optim %s: %s, %d updates",
                     name, result.status, result.updates_applied,
                 )
+                if result.status == "error":
+                    optim_failed = True
+                    log.error(
+                        "  optim %s returned error — triggering rollback", name,
+                    )
+                    break
             except Exception:
-                log.exception("optim_step failed for %s", name)
+                log.exception(
+                    "optim_step failed for %s — triggering rollback", name,
+                )
+                optim_failed = True
+                break
+
+        if optim_failed:
+            log.warning("  rolling back all layers to pre-optim state")
+            for name, layer in layers_to_optim:
+                if name in snapshots:
+                    try:
+                        lr = layer.load_state(snapshots[name]).result()
+                        if lr.status != "ok":
+                            log.error(
+                                "  rollback returned %s for %s", lr.status, name,
+                            )
+                    except Exception:
+                        log.exception("  rollback failed for %s", name)
 
         # Paradigm breakthrough on stagnation
         if paradigm is not None and intensity is not None and intensity.is_stagnating():
