@@ -53,7 +53,9 @@ class HarborTaskEnvironment:
         if hasattr(agent_state, "harness") and agent_state.harness:
             try:
                 sample_result = agent_state.harness.sample(SampleContext(bench=self._task_dir.name))
-                config["agent"]["kwargs"]["system_prompt_override"] = sample_result.result().output
+                prompt = sample_result.result().output
+                if prompt:  # Only override when harness returns a non-empty prompt
+                    config["agent"]["kwargs"]["system_prompt_override"] = prompt
             except Exception:
                 pass
 
@@ -140,7 +142,7 @@ class HarborAdapter:
     def run_episode(self, task: str, agent_state: Any) -> Episode:
         return run_async(self._envs[task].run_episode(agent_state))
 
-    def run_batch(self, tasks: list[str], agent_state: Any, n_per_task: int = 1) -> list[Episode]:
+    def run_batch(self, agent_state: Any, tasks: list[str], n_per_task: int = 1) -> list[Episode]:
         async def _gather():
             coros = [self._envs[t].run_episode(agent_state) for t in tasks for _ in range(n_per_task)]
             return await asyncio.gather(*coros)
