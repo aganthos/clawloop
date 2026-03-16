@@ -43,7 +43,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"temperature\": 0.2,\n  \"messages\": [\n    {\"role\": \"system\", \"content\": {{ JSON.stringify($('Get lfx State').item.json.system_prompt) }}},\n    {\"role\": \"user\", \"content\": {{ JSON.stringify($('Webhook').item.json.body.message) }}}\n  ]\n}",
+        "jsonBody": "={\n  \"model\": \"claude-haiku-4-5-20251001\",\n  \"temperature\": 0.2,\n  \"messages\": [\n    {\"role\": \"system\", \"content\": {{ JSON.stringify($('Get lfx State').item.json.system_prompt) }}},\n    {\"role\": \"user\", \"content\": {{ JSON.stringify($('Webhook').item.json.body.message) }}}\n  ]\n}",
         "options": {}
       },
       "id": "call-llm",
@@ -57,7 +57,7 @@
         "url": "http://lfx-server:8400/ingest",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messages\": [\n    {\"role\": \"system\", \"content\": {{ JSON.stringify($('Get lfx State').item.json.system_prompt) }}},\n    {\"role\": \"user\", \"content\": {{ JSON.stringify($('Webhook').item.json.body.message) }}},\n    {\"role\": \"assistant\", \"content\": {{ JSON.stringify($json.choices[0].message.content) }}}\n  ],\n  \"metadata\": {\n    \"conversation_id\": {{ JSON.stringify($execution.id) }},\n    \"model\": \"claude-sonnet-4-20250514\"\n  }\n}",
+        "jsonBody": "={\n  \"messages\": [\n    {\"role\": \"system\", \"content\": {{ JSON.stringify($('Get lfx State').item.json.system_prompt) }}},\n    {\"role\": \"user\", \"content\": {{ JSON.stringify($('Webhook').item.json.body.message) }}},\n    {\"role\": \"assistant\", \"content\": {{ JSON.stringify($json.choices[0].message.content) }}}\n  ],\n  \"metadata\": {\n    \"conversation_id\": {{ JSON.stringify($execution.id) }},\n    \"model\": \"claude-haiku-4-5-20251001\"\n  }\n}",
         "options": {}
       },
       "id": "ingest-lfx",
