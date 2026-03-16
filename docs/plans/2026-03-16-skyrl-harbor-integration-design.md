@@ -137,22 +137,30 @@ Only public SkyRL types cross the boundary. The `_to_forward_backward_input()` t
 
 ### Advantage Computation
 
-LfX does NOT compute advantages. The current Weights layer's advantage code is removed. SkyRL's configured advantage estimator (GRPO, GAE, RLOO, REINFORCE++) handles it. LfX passes raw episode rewards; SkyRL normalizes within training groups.
+LfX computes GRPO advantages before calling the SkyRL backend. SkyRL's
+`AbstractBackend.forward_backward` takes `PreparedModelPassBatch` which
+requires pre-computed `all_advantages`. LfX performs group-mean subtraction
+across rollouts sharing the same `task_id` (via `trajectory_ids`):
+`advantage_i = reward_i - mean(rewards in group)`.
+
+This is simple GRPO. For GAE, RLOO, or REINFORCE++, LfX can delegate to
+SkyRL's `compute_advantages_and_returns` utility (future enhancement).
 
 ### forward_backward(data: Datum)
 
 1. Receive `Datum` with list of Episodes
 2. Use `SkyRLExporter` to convert Episodes → `GeneratorOutput`
-3. Translate `GeneratorOutput` → `ForwardBackwardInput`:
-   - Pack token IDs into model input chunks
-   - Set `loss_fn_inputs`: target_tokens, weights (from loss_masks), advantages=None (SkyRL computes), logprobs (from episode if available, else None)
-   - Set `loss_fn` from training_config (e.g. "ppo", "cispo", "cross_entropy", "importance_sampling")
-   - Set `loss_fn_config` from training_config
+3. Translate `GeneratorOutput` → `PreparedModelPassBatch` (real SkyRL Pydantic type):
+   - `all_input_ids`: prompt_token_ids + response_ids (concatenated per sequence)
+   - `all_targets`: response_ids
+   - `all_token_weights`: loss_masks cast to float
+   - `all_sampling_logprobs`: from episode rollout_logprobs (zeros if unavailable)
+   - `all_advantages`: GRPO group-mean advantages broadcast to response token length
+   - `all_model_ids`, `all_loss_fns`, `all_loss_fn_configs`: from training_config
+   - `request_batch_slices`: one slice per sequence
 4. Call `backend.forward_backward(prepared_batch)`
-5. Return `FBResult(status="ok", metrics={loss, kl, per_token_stats})`
+5. Return `FBResult(status="ok", metrics={loss_fn_outputs, metrics})`
 6. On error: return `FBResult(status="error", metrics={"error": BackendError(...)})`
-
-When `sampling_logprobs=None` (episodes lack logprobs), loss functions that need them (IS, PPO, CISPO) use reference model logprobs computed during SkyRL's forward pass internally.
 
 ### optim_step()
 
