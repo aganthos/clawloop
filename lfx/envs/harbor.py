@@ -22,9 +22,11 @@ class HarborTaskEnvironment:
         try:
             from harbor.models.trial.config import TrialConfig
             from harbor.trial import Trial
-        except ImportError:
-            Trial = None
-            TrialConfig = None
+        except ImportError as exc:
+            raise ImportError(
+                "Harbor is required for HarborTaskEnvironment. "
+                "Install it with: pip install lfx[harbor]"
+            ) from exc
         self._Trial = Trial
         self._TrialConfig = TrialConfig
         self._task_dir = Path(task_dir)
@@ -93,8 +95,8 @@ class HarborTaskEnvironment:
         steps = _build_steps(step_boundaries, reward)
         summary = EpisodeSummary(filtered=filtered, score_breakdown=score_breakdown)
         if not filtered:
-            from lfx.core.reward import RewardSignal
-            summary.signals["outcome"] = RewardSignal(name="outcome", value=float(reward), confidence=1.0)
+            # Use total_reward setter which maps [0,1] → [-1,1] internally
+            summary.total_reward = float(reward)
         state_id = ""
         if hasattr(agent_state, "state_id") and callable(agent_state.state_id):
             try:
