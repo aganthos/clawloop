@@ -1,1 +1,1 @@
-"""LfX utility modules."""
+"""LfX utility helpers."""
