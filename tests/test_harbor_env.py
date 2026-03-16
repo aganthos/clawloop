@@ -184,5 +184,5 @@ class TestHarborAdapter:
         mock_trial.run = AsyncMock(return_value=results)
         env._Trial.return_value = mock_trial
         adapter = HarborAdapter([env])
-        eps = adapter.run_batch(["test-task", "test-task"], AgentState())
+        eps = adapter.run_batch(AgentState(), ["test-task", "test-task"])
         assert len(eps) == 2
