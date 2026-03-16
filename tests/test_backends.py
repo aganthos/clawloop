@@ -4,8 +4,27 @@ from __future__ import annotations
 
 import pytest
 
-from lfx.backends import BackendError, LfXBackend, SkyRLBackendInitError
+from lfx.backends import BackendError, LfXBackend, SkyRLBackendInitError, HarnessLearningBackend, HarnessLearningConfig
+from lfx.core.episode import Episode, EpisodeSummary, Message, StepMeta
+from lfx.core.types import Datum, SampleContext
 from lfx.layers.harness import Harness
+
+
+def _make_episode(reward: float = 0.8) -> Episode:
+    return Episode(
+        id=Episode.new_id(),
+        state_id="deadbeef",
+        task_id="t1",
+        bench="test",
+        messages=[
+            Message(role="system", content="You are helpful."),
+            Message(role="user", content="Hello"),
+            Message(role="assistant", content="Hi!"),
+        ],
+        step_boundaries=[0],
+        steps=[StepMeta(t=0, reward=reward, done=True, timing_ms=100.0)],
+        summary=EpisodeSummary(total_reward=reward),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -154,3 +173,65 @@ class TestLfXBackendProtocol:
         # LfXBackend should be a Protocol that's runtime-checkable
         harness = Harness()
         assert isinstance(harness, LfXBackend)
+
+
+# ---------------------------------------------------------------------------
+# HarnessLearningBackend — delegation and config
+# ---------------------------------------------------------------------------
+
+class TestHarnessLearningBackend:
+    def _backend(self) -> HarnessLearningBackend:
+        return HarnessLearningBackend(Harness())
+
+    def test_forward_backward_delegates_and_returns_ok(self) -> None:
+        backend = self._backend()
+        datum = Datum(episodes=[_make_episode(0.8)])
+        result = backend.forward_backward(datum).result()
+        assert result.status == "ok"
+        assert result.metrics["episodes_processed"] == 1
+
+    def test_optim_step_delegates(self) -> None:
+        backend = self._backend()
+        result = backend.optim_step().result()
+        assert result.status == "ok"
+
+    def test_sample_delegates_and_returns_correct_output(self) -> None:
+        harness = Harness(system_prompts={"bench_a": "You are a test agent."})
+        backend = HarnessLearningBackend(harness)
+        result = backend.sample(SampleContext(bench="bench_a")).result()
+        assert result.output == "You are a test agent."
+
+    def test_to_dict_matches_harness_to_dict(self) -> None:
+        harness = Harness(system_prompts={"x": "prompt"})
+        backend = HarnessLearningBackend(harness)
+        assert backend.to_dict() == harness.to_dict()
+
+    def test_clear_pending_state_delegates(self) -> None:
+        harness = Harness()
+        backend = HarnessLearningBackend(harness)
+        # Accumulate a signal via forward_backward then clear before optim_step
+        datum = Datum(episodes=[_make_episode(0.9)])
+        backend.forward_backward(datum).result()
+        backend.clear_pending_state()
+        # After clear, optim_step should see no pending work → 0 updates
+        result = backend.optim_step().result()
+        assert result.updates_applied == 0
+
+    def test_harness_learning_config_defaults(self) -> None:
+        cfg = HarnessLearningConfig()
+        assert cfg.reflector_enabled is True
+        assert cfg.intensity_config == {}
+        assert cfg.paradigm_enabled is True
+
+    def test_default_config_created_when_none(self) -> None:
+        backend = HarnessLearningBackend(Harness())
+        assert isinstance(backend._config, HarnessLearningConfig)
+
+    def test_custom_config_stored(self) -> None:
+        cfg = HarnessLearningConfig(reflector_enabled=False)
+        backend = HarnessLearningBackend(Harness(), config=cfg)
+        assert backend._config.reflector_enabled is False
+
+    def test_satisfies_lfx_backend_protocol(self) -> None:
+        backend = self._backend()
+        assert isinstance(backend, LfXBackend)
