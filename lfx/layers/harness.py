@@ -546,7 +546,8 @@ class Harness:
 
             # Drain pending
             self._pending = _HarnessPending()
-            self.playbook_version += 1
+            if updates > 0:
+                self.playbook_version += 1
             return Future.immediate(OptimResult(status="ok", updates_applied=updates))
 
         except Exception:
