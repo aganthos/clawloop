@@ -61,9 +61,11 @@ class AsyncLearner:
         if self._worker is not None:
             self._worker.join(timeout=timeout)
 
-    def on_batch(self, episodes: list) -> None:
+    def on_batch(self, episodes: list) -> bool:
+        """Submit a batch for learning. Returns True if enqueued, False if dropped."""
         if self.overflow == "block":
             self._queue.put(episodes)
+            return True
         elif self.overflow == "drop_oldest":
             dropped = 0
             while self._queue.full():
@@ -75,13 +77,17 @@ class AsyncLearner:
             self._batches_dropped += dropped
             try:
                 self._queue.put_nowait(episodes)
+                return True
             except queue.Full:
                 self._batches_dropped += 1
+                return False
         else:  # drop_newest
             try:
                 self._queue.put_nowait(episodes)
+                return True
             except queue.Full:
                 self._batches_dropped += 1
+                return False
 
     @property
     def metrics(self) -> dict[str, Any]:

@@ -70,12 +70,13 @@ class LfxServer:
         self._subscribers_lock = threading.Lock()
 
     def _on_batch(self, episodes: list) -> None:
-        self.set_learning_status("learning")
-        self.broadcast_event("learning_started", {
-            "playbook_version": self.harness.playbook_version,
-            "batch_size": len(episodes),
-        })
-        self.learner.on_batch(episodes)
+        enqueued = self.learner.on_batch(episodes)
+        if enqueued:
+            self.set_learning_status("learning")
+            self.broadcast_event("learning_started", {
+                "playbook_version": self.harness.playbook_version,
+                "batch_size": len(episodes),
+            })
 
     def _on_learn_complete(
         self, episodes: list, *, success: bool, error: str | None,
