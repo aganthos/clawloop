@@ -83,6 +83,7 @@ class LfxServer:
         with self._state_lock:
             if success:
                 self._learning_status = "idle"
+                self._last_error = None
                 self._prompt_updated_at = datetime.now(timezone.utc).isoformat()
                 self._recent_insights.clear()
                 for entry in self.harness.playbook.entries:
