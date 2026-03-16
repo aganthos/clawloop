@@ -294,7 +294,7 @@ let connMode      = 'none';  // 'sse' | 'poll' | 'error'
 
 // ── DOM helpers ───────────────────────────────────────────────────────────────
 const $  = id => document.getElementById(id);
-const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 const ts  = iso => iso ? iso.slice(11,19) : '';
 
 // ── connection status ─────────────────────────────────────────────────────────

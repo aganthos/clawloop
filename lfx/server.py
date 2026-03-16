@@ -350,7 +350,7 @@ def create_app(
             reflector = Reflector(client=client, config=ReflectorConfig())
             log.info("Auto-created Reflector with gpt-4o-mini")
         except Exception:
-            log.warning("Could not create Reflector — learning will not generate insights")
+            log.warning("Could not create Reflector — learning will not generate insights", exc_info=True)
 
     server = LfxServer(
         seed_prompt=seed_prompt, bench=bench,
