@@ -436,6 +436,14 @@ class TestLearningLoop:
         # The leaked signal from iteration 1 must have been cleared
         assert "leaked" not in getattr(state.harness._pending, "playbook_signals", {})
 
+    def test_agent_state_inference_url(self) -> None:
+        state = AgentState(inference_url="http://localhost:8000/v1")
+        assert state.inference_url == "http://localhost:8000/v1"
+
+    def test_agent_state_inference_url_default_none(self) -> None:
+        state = AgentState()
+        assert state.inference_url is None
+
 
 class TestCrossLayerIntegration:
     def test_all_layers_implement_protocol(self) -> None:

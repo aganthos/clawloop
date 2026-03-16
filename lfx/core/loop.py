@@ -113,6 +113,7 @@ class AgentState:
     harness: Harness = field(default_factory=Harness)
     router: Router = field(default_factory=Router)
     weights: Weights = field(default_factory=Weights)
+    inference_url: str | None = None  # vLLM endpoint for Harbor agents
 
     def state_id(self) -> StateID:
         return StateID.from_layers(self.harness, self.router, self.weights)
