@@ -5,12 +5,15 @@ import asyncio
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
 from uuid import uuid4
 
 from lfx.core.episode import Episode, EpisodeSummary, Message, StepMeta
 from lfx.core.types import SampleContext
 from lfx.utils.async_bridge import run_async
+
+if TYPE_CHECKING:
+    from lfx.core.loop import AgentState
 
 
 class HarborTaskEnvironment:
@@ -42,7 +45,7 @@ class HarborTaskEnvironment:
     def task_id(self) -> str:
         return self._task_dir.name
 
-    async def run_episode(self, agent_state: Any) -> Episode:
+    async def run_episode(self, agent_state: AgentState) -> Episode:
         config = deepcopy(self._trial_config)
         config["task"]["path"] = str(self._task_dir)
         config["agent"]["kwargs"]["session_id"] = uuid4().hex
@@ -57,7 +60,7 @@ class HarborTaskEnvironment:
                 prompt = sample_result.result().output
                 if not prompt:
                     sample_result = agent_state.harness.sample(SampleContext(bench="harbor"))
-                prompt = sample_result.result().output
+                    prompt = sample_result.result().output
                 if prompt:  # Only override when harness returns a non-empty prompt
                     config["agent"]["kwargs"]["system_prompt_override"] = prompt
             except Exception:
@@ -93,7 +96,7 @@ class HarborTaskEnvironment:
         return self._build_episode(agent_state, chat_history=chat_history, reward=reward,
                                    score_breakdown=score_breakdown, metadata=metadata)
 
-    def _build_episode(self, agent_state: Any, chat_history=None, reward=0.0,
+    def _build_episode(self, agent_state: AgentState, chat_history=None, reward=0.0,
                        filtered=False, score_breakdown=None, metadata=None) -> Episode:
         messages = [Message(role=m.get("role", "user"), content=m.get("content", ""))
                     for m in (chat_history or [])]
@@ -143,10 +146,10 @@ class HarborAdapter:
     def __init__(self, envs: list[HarborTaskEnvironment]):
         self._envs = {env.task_id: env for env in envs}
 
-    def run_episode(self, task: str, agent_state: Any) -> Episode:
+    def run_episode(self, task: str, agent_state: AgentState) -> Episode:
         return run_async(self._envs[task].run_episode(agent_state))
 
-    def run_batch(self, agent_state: Any, tasks: list[str], n_per_task: int = 1) -> list[Episode]:
+    def run_batch(self, agent_state: AgentState, tasks: list[str], n_per_task: int = 1) -> list[Episode]:
         async def _gather():
             coros = [self._envs[t].run_episode(agent_state) for t in tasks for _ in range(n_per_task)]
             return await asyncio.gather(*coros)

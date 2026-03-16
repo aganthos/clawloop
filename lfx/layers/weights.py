@@ -20,7 +20,10 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from lfx.backends.base import LfXBackend
 
 from lfx.core.types import (
     Datum, FBResult, Future, LoadResult, OptimResult,
@@ -66,7 +69,7 @@ class Weights:
     grpo_config: GRPOConfig = field(default_factory=GRPOConfig)
     training_history: list[dict[str, Any]] = field(default_factory=list)
     _pending: _WeightsPending = field(default_factory=_WeightsPending)
-    _backend: Any = None  # LfXBackend | None — optional real backend
+    _backend: LfXBackend | None = None
 
     @property
     def active_adapter(self) -> str | None:
