@@ -16,7 +16,7 @@
     },
     {
       "parameters": {
-        "url": "http://lfx-server:8400/state",
+        "url": "http://host.docker.internal:8400/state",
         "options": {}
       },
       "id": "get-state",
@@ -27,13 +27,14 @@
     },
     {
       "parameters": {
-        "url": "={{ $env.LFX_API_BASE || 'http://host.docker.internal:8317/v1' }}/chat/completions",
+        "method": "POST",
+        "url": "http://host.docker.internal:8317/v1/chat/completions",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Authorization",
-              "value": "=Bearer {{ $env.LFX_API_KEY || 'kuhhandel-bench-key' }}"
+              "value": "Bearer your-api-key-1"
             },
             {
               "name": "Content-Type",
@@ -54,7 +55,8 @@
     },
     {
       "parameters": {
-        "url": "http://lfx-server:8400/ingest",
+        "method": "POST",
+        "url": "http://host.docker.internal:8400/ingest",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"messages\": [\n    {\"role\": \"system\", \"content\": {{ JSON.stringify($('Get lfx State').item.json.system_prompt) }}},\n    {\"role\": \"user\", \"content\": {{ JSON.stringify($('Webhook').item.json.body.message) }}},\n    {\"role\": \"assistant\", \"content\": {{ JSON.stringify($json.choices[0].message.content) }}}\n  ],\n  \"metadata\": {\n    \"conversation_id\": {{ JSON.stringify($execution.id) }},\n    \"model\": \"claude-haiku-4-5-20251001\"\n  }\n}",
