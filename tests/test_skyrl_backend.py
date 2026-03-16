@@ -261,6 +261,30 @@ class TestOptimStep:
         assert result.status == "error"
 
 
+@pytest.mark.skipif(not _skyrl_available(), reason="SkyRL submodule not available")
+class TestOptimStepRealTypes:
+    """Validate optim_step constructs a real OptimStepInput."""
+
+    def test_optim_step_passes_real_type(self) -> None:
+        from skyrl.tinker.types import OptimStepInput, OptimStepOutput
+
+        backend = _make_backend_with_mocks()
+        backend._backend.optim_step.return_value = OptimStepOutput(metrics={"grad_norm": 0.05})
+
+        result = backend.optim_step().result()
+        assert result.status == "ok"
+        assert result.metrics["grad_norm"] == 0.05
+
+        # Verify the call received a real OptimStepInput
+        call_args = backend._backend.optim_step.call_args
+        assert call_args[0][0] == "lfx-test-model"
+        optim_input = call_args[0][1]
+        assert isinstance(optim_input, OptimStepInput)
+        assert optim_input.adam_params.learning_rate == 1e-5
+        assert optim_input.adam_params.beta1 == 0.9
+        assert optim_input.adam_params.beta2 == 0.999
+
+
 # ---------------------------------------------------------------------------
 # Other protocol methods
 # ---------------------------------------------------------------------------
