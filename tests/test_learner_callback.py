@@ -1,6 +1,6 @@
 """Tests for AsyncLearner on_learn_complete callback."""
 
-import time
+import threading
 from unittest.mock import MagicMock, patch
 
 from lfx.core.episode import Episode, EpisodeSummary, Message
@@ -33,16 +33,24 @@ class TestAsyncLearnerCallback:
             PlaybookEntry(id="e1", content="Be helpful"),
         ])
         callback = MagicMock()
+        completion_event = threading.Event()
+
+        def mock_callback(*args, **kwargs):
+            callback(*args, **kwargs)
+            completion_event.set()
+
         learner = AsyncLearner(
             agent_state=state,
             active_layers=["harness"],
-            on_learn_complete=callback,
+            on_learn_complete=mock_callback,
         )
         learner.start()
         learner.on_batch(_make_episodes(2, reward=0.9))
-        time.sleep(1.0)
+
+        assert completion_event.wait(timeout=5.0), "on_learn_complete was not called within timeout"
+
         learner.stop()
-        assert callback.call_count >= 1
+        assert callback.call_count == 1
         call_args = callback.call_args
         assert call_args[1]["success"] is True
         assert call_args[1]["error"] is None
