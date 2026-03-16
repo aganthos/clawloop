@@ -307,6 +307,34 @@ async def feedback(request: Request) -> JSONResponse:
     return JSONResponse({"ok": True})
 
 
+async def episodes_list(request: Request) -> JSONResponse:
+    """Return all episodes with full messages and feedback status."""
+    server: LfxServer = request.app.state.server
+    with server.collector._lock:
+        eps = list(server.collector._episode_index.values())
+
+    result = []
+    for ep in reversed(eps):  # newest first
+        messages = [{"role": m.role, "content": m.content} for m in ep.messages]
+        signals = {
+            k: {"value": s.value, "confidence": s.confidence}
+            for k, s in ep.summary.signals.items()
+        }
+        result.append({
+            "id": ep.id,
+            "created_at": ep.created_at,
+            "model": ep.model,
+            "bench": ep.bench,
+            "messages": messages,
+            "signals": signals,
+            "effective_reward": ep.summary.effective_reward(),
+            "normalized_reward": ep.summary.normalized_reward(),
+            "has_feedback": "user" in ep.summary.signals,
+        })
+
+    return JSONResponse(result)
+
+
 async def state(request: Request) -> JSONResponse:
     server: LfxServer = request.app.state.server
     return JSONResponse(server.get_state_snapshot())
@@ -409,6 +437,7 @@ def create_app(
         Route("/reset", reset_handler, methods=["POST"]),
         Route("/metrics", metrics, methods=["GET"]),
         Route("/events", events, methods=["GET"]),
+        Route("/episodes", episodes_list, methods=["GET"]),
     ]
 
     app = Starlette(routes=routes)

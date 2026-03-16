@@ -224,11 +224,61 @@
   ::-webkit-scrollbar-track { background: var(--bg2); }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
+  /* ── episode detail overlay ── */
+  #ep-detail-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    overflow-y: auto;
+    padding: 40px;
+  }
+  #ep-detail-overlay.open { display: block; }
+  #ep-detail {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  #ep-detail .close-btn {
+    float: right;
+    background: transparent;
+    border: 1px solid var(--dim);
+    color: var(--dim);
+    padding: 2px 8px;
+    cursor: pointer;
+    font-family: var(--font);
+    font-size: 12px;
+    border-radius: 3px;
+  }
+  #ep-detail .close-btn:hover { border-color: var(--red); color: var(--red); }
+  #ep-detail h3 { color: var(--accent); margin-bottom: 12px; font-size: 13px; letter-spacing: 1px; }
+  .msg-row { padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .msg-row:last-child { border-bottom: none; }
+  .msg-role { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
+  .msg-role.system { color: var(--yellow); }
+  .msg-role.user { color: var(--accent); }
+  .msg-role.assistant { color: var(--green); }
+  .msg-content { color: var(--text); font-size: 12px; white-space: pre-wrap; word-break: break-word; max-height: 200px; overflow-y: auto; }
+  .detail-signals { margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--border); }
+  .detail-signals .signal-row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 12px; }
+  .detail-meta { color: var(--dim); font-size: 11px; margin-top: 8px; }
+  .ep-row-clickable { cursor: pointer; }
+  .ep-row-clickable:hover { background: rgba(79,195,247,0.05); }
+
   /* ── empty states ── */
   .empty { color: var(--dim); font-size: 11px; padding: 8px 0; }
 </style>
 </head>
 <body>
+
+<!-- episode detail overlay -->
+<div id="ep-detail-overlay" onclick="if(event.target===this)closeDetail()">
+  <div id="ep-detail"></div>
+</div>
 
 <!-- status bar -->
 <div id="status-bar">
@@ -341,7 +391,7 @@ function renderEpisodes() {
   const el = $('episode-list');
   if (!episodes.length) { el.innerHTML = '<div class="empty">no episodes yet</div>'; return; }
   el.innerHTML = episodes.slice(0, 40).map(ep => `
-    <div class="episode-row">
+    <div class="episode-row ep-row-clickable" onclick="openDetail('${esc(ep.id)}')">
       <span class="ep-ts">${esc(ts(ep.ts))}</span>
       <span class="ep-id" title="${esc(ep.id)}">${esc(ep.id.slice(0,8))}</span>
       <div class="ep-main">
@@ -349,8 +399,8 @@ function renderEpisodes() {
         ${ep.response ? '<div class="ep-response">' + esc(ep.response.slice(0,150)) + '</div>' : ''}
         <div class="ep-signals">${renderSignals(ep.signals)}</div>
       </div>
-      <button class="thumb-btn ${ep._vote === 1 ? 'voted-up' : ''}"   onclick="vote('${esc(ep.id)}',1)"  title="thumbs up">+</button>
-      <button class="thumb-btn ${ep._vote === -1 ? 'voted-down' : ''}" onclick="vote('${esc(ep.id)}',-1)" title="thumbs down">-</button>
+      <button class="thumb-btn ${ep._vote === 1 ? 'voted-up' : ''}"   onclick="event.stopPropagation();vote('${esc(ep.id)}',1)"  title="thumbs up">+</button>
+      <button class="thumb-btn ${ep._vote === -1 ? 'voted-down' : ''}" onclick="event.stopPropagation();vote('${esc(ep.id)}',-1)" title="thumbs down">-</button>
     </div>`).join('');
 }
 
@@ -580,6 +630,70 @@ async function doReset() {
     console.error('reset failed', err);
   }
 }
+
+// ── episode detail ───────────────────────────────────────────────────────
+async function openDetail(id) {
+  const overlay = $('ep-detail-overlay');
+  const detail = $('ep-detail');
+  detail.innerHTML = '<div class="empty">loading...</div>';
+  overlay.classList.add('open');
+
+  try {
+    const r = await fetch('/episodes');
+    if (!r.ok) { detail.innerHTML = '<div class="empty">failed to load</div>'; return; }
+    const all = await r.json();
+    const ep = all.find(e => e.id === id);
+    if (!ep) { detail.innerHTML = '<div class="empty">episode not found</div>'; return; }
+
+    const created = ep.created_at ? new Date(ep.created_at * 1000).toLocaleString() : '—';
+    const reward = ep.normalized_reward != null ? ep.normalized_reward.toFixed(3) : '—';
+    const effReward = ep.effective_reward != null ? ep.effective_reward.toFixed(3) : '—';
+
+    detail.innerHTML = `
+      <button class="close-btn" onclick="closeDetail()">close</button>
+      <h3>Episode ${esc(id.slice(0,12))}...</h3>
+      <div class="detail-meta">
+        ${created} &nbsp;|&nbsp; model: ${esc(ep.model || '—')} &nbsp;|&nbsp;
+        reward: ${reward} (effective: ${effReward}) &nbsp;|&nbsp;
+        feedback: ${ep.has_feedback ? '<span style="color:var(--green)">yes</span>' : '<span style="color:var(--dim)">none</span>'}
+      </div>
+
+      <div class="detail-signals">
+        <strong style="color:var(--accent);font-size:11px;">Signals</strong>
+        ${Object.keys(ep.signals).length === 0 ? '<div class="empty">no signals</div>' :
+          Object.entries(ep.signals).map(([k, v]) => {
+            const val = v.value;
+            const cls = val > 0 ? 'color:var(--green)' : val < 0 ? 'color:var(--red)' : 'color:var(--dim)';
+            return '<div class="signal-row"><span>' + esc(k) + '</span><span style="' + cls + '">' + val.toFixed(3) + ' (conf: ' + v.confidence.toFixed(2) + ')</span></div>';
+          }).join('')
+        }
+      </div>
+
+      <div style="margin-top:16px;">
+        <strong style="color:var(--accent);font-size:11px;">Conversation</strong>
+        ${ep.messages.map(m => `
+          <div class="msg-row">
+            <div class="msg-role ${m.role}">${esc(m.role)}</div>
+            <div class="msg-content">${esc(m.content)}</div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div style="margin-top:16px;display:flex;gap:8px;">
+        <button class="thumb-btn" onclick="vote('${esc(id)}',1);closeDetail()" style="padding:4px 16px;">&#128077; Good response</button>
+        <button class="thumb-btn" onclick="vote('${esc(id)}',-1);closeDetail()" style="padding:4px 16px;">&#128078; Bad response</button>
+      </div>
+    `;
+  } catch (err) {
+    detail.innerHTML = '<div class="empty">error: ' + esc(String(err)) + '</div>';
+  }
+}
+
+function closeDetail() {
+  $('ep-detail-overlay').classList.remove('open');
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
 
 // ── boot ──────────────────────────────────────────────────────────────────────
 (async () => {
