@@ -1,0 +1,22 @@
+services:
+  n8n:
+    image: n8nio/n8n:1.76.1
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_SECURE_COOKIE=false
+      - GENERIC_TIMEZONE=UTC
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+  lfx-server:
+    build: .
+    ports:
+      - "8400:8400"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      - ./config:/app/config:ro
+
+volumes:
+  n8n_data:
