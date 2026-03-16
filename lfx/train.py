@@ -59,9 +59,10 @@ def train(config: TrainConfig):
         raise ValueError("mode='weight' requires 'skyrl' config")
 
     # 1. Always build harness and router
-    harness = Harness(
-        system_prompts={b: config.system_prompt for b in config.benches},
-    )
+    # Register prompt under configured benches AND "harbor" so Harbor envs find it
+    prompts = {b: config.system_prompt for b in config.benches}
+    prompts.setdefault("harbor", config.system_prompt)
+    harness = Harness(system_prompts=prompts)
     router = Router()
 
     # 2. Build backend based on mode

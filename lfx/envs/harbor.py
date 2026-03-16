@@ -52,7 +52,11 @@ class HarborTaskEnvironment:
 
         if hasattr(agent_state, "harness") and agent_state.harness:
             try:
+                # Try task-specific bench first, fall back to "harbor" bench
                 sample_result = agent_state.harness.sample(SampleContext(bench=self._task_dir.name))
+                prompt = sample_result.result().output
+                if not prompt:
+                    sample_result = agent_state.harness.sample(SampleContext(bench="harbor"))
                 prompt = sample_result.result().output
                 if prompt:  # Only override when harness returns a non-empty prompt
                     config["agent"]["kwargs"]["system_prompt_override"] = prompt

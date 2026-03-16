@@ -142,8 +142,8 @@ class SkyRLWeightsBackend:
     def optim_step(self) -> Future[OptimResult]:
         """Build OptimStepInput from training_config and call backend."""
         try:
-            adam_params = self._config.training_config.get("adam_params", {})
-            optim_input = {"adam_params": adam_params}
+            # Pass full training_config so loss_fn, scheduler, etc. take effect
+            optim_input = dict(self._config.training_config)
             result = self._backend.optim_step(self._model_id, optim_input)
             metrics = result if isinstance(result, dict) else {}
             return Future.immediate(
