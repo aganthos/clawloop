@@ -8,7 +8,7 @@ import queue
 import threading
 import uuid
 from statistics import mean
-from typing import Any
+from typing import Any, Callable
 
 from lfx.core.intensity import AdaptiveIntensity
 from lfx.core.types import Datum, FBResult
@@ -30,11 +30,13 @@ class AsyncLearner:
         intensity: AdaptiveIntensity | None = None,
         max_queue_size: int = 4,
         overflow: str = "drop_newest",
+        on_learn_complete: Callable | None = None,
     ) -> None:
         self.agent_state = agent_state
         self.active_layers = active_layers or ["harness"]
         self.intensity = intensity or AdaptiveIntensity()
         self.overflow = overflow
+        self.on_learn_complete = on_learn_complete
 
         self._queue: queue.Queue = queue.Queue(maxsize=max_queue_size)
         self._worker: threading.Thread | None = None
@@ -59,9 +61,11 @@ class AsyncLearner:
         if self._worker is not None:
             self._worker.join(timeout=timeout)
 
-    def on_batch(self, episodes: list) -> None:
+    def on_batch(self, episodes: list) -> bool:
+        """Submit a batch for learning. Returns True if enqueued, False if dropped."""
         if self.overflow == "block":
             self._queue.put(episodes)
+            return True
         elif self.overflow == "drop_oldest":
             dropped = 0
             while self._queue.full():
@@ -73,13 +77,17 @@ class AsyncLearner:
             self._batches_dropped += dropped
             try:
                 self._queue.put_nowait(episodes)
+                return True
             except queue.Full:
                 self._batches_dropped += 1
+                return False
         else:  # drop_newest
             try:
                 self._queue.put_nowait(episodes)
+                return True
             except queue.Full:
                 self._batches_dropped += 1
+                return False
 
     @property
     def metrics(self) -> dict[str, Any]:
@@ -101,110 +109,130 @@ class AsyncLearner:
 
     def _learn(self, episodes: list) -> None:
         batch_id = uuid.uuid4().hex[:8]
+        success = False
+        error_msg: str | None = None
 
-        rewards = [ep.summary.normalized_reward() for ep in episodes]
-        avg_reward = mean(rewards) if rewards else 0.0
-        self.intensity.record_reward(avg_reward)
-
-        log.info(
-            "Batch %s: %d episodes, avg_reward=%.3f",
-            batch_id, len(episodes), avg_reward,
-        )
-
-        datum = Datum(episodes=episodes)
-
-        # Phase 1: forward_backward all layers, collect results
-        fb_results: dict[str, FBResult] = {}
-        layers: list[tuple[str, Any]] = []
-        for name in self.active_layers:
-            layer = getattr(self.agent_state, name, None)
-            if layer is None:
-                continue
-            layers.append((name, layer))
-            should_clear = False
-            try:
-                fb_result = layer.forward_backward(datum).result()
-                fb_results[name] = fb_result
-                if fb_result.status in ("error", "skipped"):
-                    should_clear = True
-            except Exception as exc:
-                log.error(
-                    "forward_backward failed for %s on batch %s: %s",
-                    name, batch_id, exc,
-                )
-                fb_results[name] = FBResult(status="error")
-                should_clear = True
-
-            if should_clear:
-                try:
-                    layer.clear_pending_state()
-                except Exception:
-                    log.exception(
-                        "Failed to clear pending state for %s", name,
-                    )
-
-        # Phase 2: optim_step with cross-layer rollback
-        layers_to_optim = [
-            (name, layer) for name, layer in layers
-            if fb_results.get(name, FBResult(status="error")).status
-            not in ("error", "skipped")
-        ]
-
-        if not layers_to_optim:
-            log.warning("Batch %s: no layers to optim (all FB error/skipped)", batch_id)
-            return
-
-        # Snapshot for rollback
-        snapshots: dict[str, dict[str, Any]] = {}
         try:
-            for name, layer in layers_to_optim:
-                snapshots[name] = copy.deepcopy(layer.to_dict())
-        except Exception:
-            log.exception("Snapshot failed — aborting optim for batch %s", batch_id)
+            rewards = [ep.summary.normalized_reward() for ep in episodes]
+            avg_reward = mean(rewards) if rewards else 0.0
+            self.intensity.record_reward(avg_reward)
+
+            log.info(
+                "Batch %s: %d episodes, avg_reward=%.3f",
+                batch_id, len(episodes), avg_reward,
+            )
+
+            datum = Datum(episodes=episodes)
+
+            # Phase 1: forward_backward all layers, collect results
+            fb_results: dict[str, FBResult] = {}
+            layers: list[tuple[str, Any]] = []
+            for name in self.active_layers:
+                layer = getattr(self.agent_state, name, None)
+                if layer is None:
+                    continue
+                layers.append((name, layer))
+                should_clear = False
+                try:
+                    fb_result = layer.forward_backward(datum).result()
+                    fb_results[name] = fb_result
+                    if fb_result.status in ("error", "skipped"):
+                        should_clear = True
+                except Exception as exc:
+                    log.error(
+                        "forward_backward failed for %s on batch %s: %s",
+                        name, batch_id, exc,
+                    )
+                    fb_results[name] = FBResult(status="error")
+                    should_clear = True
+
+                if should_clear:
+                    try:
+                        layer.clear_pending_state()
+                    except Exception:
+                        log.exception(
+                            "Failed to clear pending state for %s", name,
+                        )
+
+            # Phase 2: optim_step with cross-layer rollback
+            layers_to_optim = [
+                (name, layer) for name, layer in layers
+                if fb_results.get(name, FBResult(status="error")).status
+                not in ("error", "skipped")
+            ]
+
+            if not layers_to_optim:
+                log.warning("Batch %s: no layers to optim (all FB error/skipped)", batch_id)
+                error_msg = "no layers to optimize"
+                return
+
+            # Snapshot for rollback
+            snapshots: dict[str, dict[str, Any]] = {}
+            try:
+                for name, layer in layers_to_optim:
+                    snapshots[name] = copy.deepcopy(layer.to_dict())
+            except Exception:
+                log.exception("Snapshot failed — aborting optim for batch %s", batch_id)
+                for name, layer in layers_to_optim:
+                    try:
+                        layer.clear_pending_state()
+                    except Exception:
+                        log.exception("Failed to clear pending state for %s", name)
+                self._batches_failed += 1
+                error_msg = "snapshot failed"
+                return
+
+            optim_failed = False
             for name, layer in layers_to_optim:
                 try:
-                    layer.clear_pending_state()
-                except Exception:
-                    log.exception("Failed to clear pending state for %s", name)
-            self._batches_failed += 1
-            return
-
-        optim_failed = False
-        for name, layer in layers_to_optim:
-            try:
-                result = layer.optim_step().result()
-                if result.status == "error":
+                    result = layer.optim_step().result()
+                    if result.status == "error":
+                        log.error(
+                            "optim_step returned error for %s on batch %s",
+                            name, batch_id,
+                        )
+                        optim_failed = True
+                        break
+                except Exception as exc:
                     log.error(
-                        "optim_step returned error for %s on batch %s",
-                        name, batch_id,
+                        "optim_step failed for %s on batch %s: %s",
+                        name, batch_id, exc,
                     )
                     optim_failed = True
                     break
-            except Exception as exc:
-                log.error(
-                    "optim_step failed for %s on batch %s: %s",
-                    name, batch_id, exc,
+
+            if optim_failed:
+                log.warning(
+                    "Rolling back all layers to pre-optim state for batch %s",
+                    batch_id,
                 )
-                optim_failed = True
-                break
+                for name, layer in layers_to_optim:
+                    if name in snapshots:
+                        try:
+                            lr = layer.load_state(snapshots[name]).result()
+                            if lr.status != "ok":
+                                log.error(
+                                    "Rollback returned %s for %s", lr.status, name,
+                                )
+                        except Exception:
+                            log.exception("Rollback failed for %s", name)
+                self._batches_failed += 1
+                error_msg = "optim_step failed"
+                return
 
-        if optim_failed:
-            log.warning(
-                "Rolling back all layers to pre-optim state for batch %s",
-                batch_id,
-            )
-            for name, layer in layers_to_optim:
-                if name in snapshots:
-                    try:
-                        lr = layer.load_state(snapshots[name]).result()
-                        if lr.status != "ok":
-                            log.error(
-                                "Rollback returned %s for %s", lr.status, name,
-                            )
-                    except Exception:
-                        log.exception("Rollback failed for %s", name)
-            self._batches_failed += 1
-            return
+            self._batches_trained += 1
+            self._iteration += 1
+            success = True
 
-        self._batches_trained += 1
-        self._iteration += 1
+        except Exception as exc:
+            log.exception("Unexpected error in _learn for batch %s", batch_id)
+            error_msg = str(exc)
+
+        finally:
+            if self.on_learn_complete is not None:
+                try:
+                    self.on_learn_complete(
+                        episodes, success=success, error=error_msg,
+                    )
+                except Exception:
+                    log.exception("on_learn_complete callback failed")

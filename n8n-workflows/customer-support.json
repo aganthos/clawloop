@@ -1,0 +1,112 @@
+{
+  "name": "lfx Customer Support Demo",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "support",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:8400/state",
+        "options": {}
+      },
+      "id": "get-state",
+      "name": "Get lfx State",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8317/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer your-api-key-1"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-haiku-4-5-20251001\",\n  \"temperature\": 0.2,\n  \"messages\": [\n    {\"role\": \"system\", \"content\": {{ JSON.stringify($('Get lfx State').item.json.system_prompt) }}},\n    {\"role\": \"user\", \"content\": {{ JSON.stringify($('Webhook').item.json.body.message) }}}\n  ]\n}",
+        "options": {}
+      },
+      "id": "call-llm",
+      "name": "Call LLM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8400/ingest",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messages\": [\n    {\"role\": \"system\", \"content\": {{ JSON.stringify($('Get lfx State').item.json.system_prompt) }}},\n    {\"role\": \"user\", \"content\": {{ JSON.stringify($('Webhook').item.json.body.message) }}},\n    {\"role\": \"assistant\", \"content\": {{ JSON.stringify($json.choices[0].message.content) }}}\n  ],\n  \"metadata\": {\n    \"conversation_id\": {{ JSON.stringify($execution.id) }},\n    \"model\": \"claude-haiku-4-5-20251001\"\n  }\n}",
+        "options": {}
+      },
+      "id": "ingest-lfx",
+      "name": "Ingest to lfx",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ response: $('Call LLM').item.json.choices[0].message.content, episode_id: $json.episode_id }) }}"
+      },
+      "id": "respond-1",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [{ "node": "Get lfx State", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get lfx State": {
+      "main": [
+        [{ "node": "Call LLM", "type": "main", "index": 0 }]
+      ]
+    },
+    "Call LLM": {
+      "main": [
+        [{ "node": "Ingest to lfx", "type": "main", "index": 0 }]
+      ]
+    },
+    "Ingest to lfx": {
+      "main": [
+        [{ "node": "Respond to Webhook", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

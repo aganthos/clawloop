@@ -90,6 +90,7 @@ class PlaybookEntry:
     helpful: int = 0
     harmful: int = 0
     tags: list[str] = field(default_factory=list)
+    source_episode_ids: list[str] = field(default_factory=list)
 
     @staticmethod
     def new_id(prefix: str = "str") -> str:
@@ -106,6 +107,7 @@ class PlaybookEntry:
             "helpful": self.helpful,
             "harmful": self.harmful,
             "tags": self.tags,
+            "source_episode_ids": self.source_episode_ids,
         }
 
 
@@ -320,6 +322,9 @@ class Harness:
     # Internal: pending signals accumulated by forward_backward, drained by optim_step
     _pending: _HarnessPending = field(default_factory=_HarnessPending)
 
+    # Incremented on each successful optim_step that applies at least one update
+    playbook_version: int = 0
+
     # Optional Reflector for LLM-based trace analysis during forward_backward
     reflector: Any | None = field(default=None, repr=False)
 
@@ -356,6 +361,7 @@ class Harness:
                     id=PlaybookEntry.new_id(),
                     content=insight.content,
                     tags=insight.tags,
+                    source_episode_ids=list(insight.source_episode_ids),
                 )
                 self.playbook.add(entry)
                 applied += 1
@@ -457,6 +463,7 @@ class Harness:
                 k: getattr(v, "name", v.__class__.__name__)
                 for k, v in self.validators.items()
             },
+            "playbook_version": self.playbook_version,
         }
 
     # -- Layer protocol methods --
@@ -539,6 +546,8 @@ class Harness:
 
             # Drain pending
             self._pending = _HarnessPending()
+            if updates > 0:
+                self.playbook_version += 1
             return Future.immediate(OptimResult(status="ok", updates_applied=updates))
 
         except Exception:
@@ -579,6 +588,7 @@ class Harness:
                 helpful=e.get("helpful", 0),
                 harmful=e.get("harmful", 0),
                 tags=e.get("tags", []),
+                source_episode_ids=e.get("source_episode_ids", []),
             )
             for e in pb_data.get("entries", [])
         ]
@@ -615,6 +625,9 @@ class Harness:
 
         # Restore validators
         self.validators = state_dict.get("validators", {})
+
+        # Restore version counter
+        self.playbook_version = state_dict.get("playbook_version", 0)
 
         # Clear pending
         self._pending = _HarnessPending()
