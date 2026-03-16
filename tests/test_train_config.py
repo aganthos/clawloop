@@ -1,5 +1,8 @@
+"""Tests for TrainConfig and the train() entry point."""
+
 import pytest
-from lfx.train import TrainConfig, HarborConfig
+
+from lfx.train import HarborConfig, TrainConfig
 
 
 class TestTrainConfig:
@@ -40,8 +43,8 @@ class TestTrainConfig:
 
 class TestTrainFunction:
     def test_weight_mode_requires_skyrl(self):
-        """train() with mode=weight but no skyrl config should raise."""
         from lfx.train import train
+
         cfg = TrainConfig(
             mode="weight",
             harbor=HarborConfig(task_dirs=["/data/tasks"]),
@@ -51,6 +54,7 @@ class TestTrainFunction:
 
     def test_no_envs_raises(self):
         from lfx.train import train
+
         cfg = TrainConfig(mode="harness_learning")
         with pytest.raises(ValueError, match="environments"):
             train(cfg)
