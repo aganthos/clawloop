@@ -40,7 +40,7 @@ class CARAdapter(EnvAdapter):
     def setup(self, config: dict[str, Any]) -> None:
         self._model = config.get("model", "anthropic/claude-haiku-4-5-20251001")
         self._car_bench_path = Path(
-            config.get("car_bench_path", "benchmarks/car-bench")
+            config.get("car_bench_path", "benchmarks/a2a/car-bench")
         )
         self._output_dir = Path(
             config.get("output", f"./runs/car/{int(time.time())}")

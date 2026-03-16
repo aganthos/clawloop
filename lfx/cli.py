@@ -239,7 +239,7 @@ def cmd_gate(args: argparse.Namespace) -> None:
 # Benchmark setup registry: bench -> (setup_script_path, uv_sync_extras)
 BENCH_SETUP: dict[str, dict[str, Any]] = {
     "car": {
-        "bench_dir": "benchmarks/car-bench",
+        "bench_dir": "benchmarks/a2a/car-bench",
         "data_setup": "scenarios/car-bench/setup.sh",
         "uv_sync_cmd": ["uv", "sync", "--extra", "car-bench-agent", "--extra", "car-bench-evaluator"],
     },
