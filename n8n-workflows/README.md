@@ -8,15 +8,23 @@
 ## Quick Start
 
 ```bash
-# 1. Configure your LLM endpoint
-cp .env.example .env
-# Edit .env if your CLIProxyAPI is on a different port
+cd /Users/robertmueller/Desktop/aganthos
 
-# 2. Start both services
+# 1. Create .env in the project root (next to docker-compose.yml)
+cp .env.example .env
+# Edit .env if your CLIProxyAPI is on a different port than 8317
+
+# 2. Make sure CLIProxyAPI is running
+curl -s http://localhost:8317/v1/models | head -1  # should return JSON
+
+# 3. Start both services
 docker compose up --build
 
-# 3. Open n8n and import the workflow
+# 4. Open n8n and import the workflow
 open http://localhost:5678
+
+# 5. Open the lfx dashboard
+open http://localhost:8400/dashboard/
 ```
 
 ## Import the Workflow
