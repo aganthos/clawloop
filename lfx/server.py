@@ -341,6 +341,8 @@ def create_app(
     batch_size: int = 5,
     reflector: Reflector | None = None,
     model: str = "gpt-4o-mini",
+    api_base: str | None = None,
+    api_key: str | None = None,
 ) -> Starlette:
     import os
 
@@ -350,19 +352,22 @@ def create_app(
         else:
             seed_prompt = "You are a helpful assistant."
 
-    # Auto-create Reflector if any supported API key is available
+    # Auto-create Reflector: explicit api_base/api_key, or env vars
     if reflector is None:
-        has_key = (
+        has_creds = api_base or (
             os.environ.get("OPENAI_API_KEY")
             or os.environ.get("ANTHROPIC_API_KEY")
-            or os.environ.get("LITELLM_API_KEY")
         )
-        if has_key:
+        if has_creds:
             try:
                 from lfx.llm import LiteLLMClient
-                client = LiteLLMClient(model=model)
+                client = LiteLLMClient(
+                    model=model,
+                    api_base=api_base,
+                    api_key=api_key,
+                )
                 reflector = Reflector(client=client, config=ReflectorConfig())
-                log.info("Auto-created Reflector with %s", model)
+                log.info("Auto-created Reflector with %s (api_base=%s)", model, api_base or "default")
             except Exception:
                 log.warning("Could not create Reflector — learning will not generate insights", exc_info=True)
 
@@ -408,11 +413,17 @@ def main() -> None:
     parser.add_argument("--seed-prompt", default="config/seed_prompt.txt")
     parser.add_argument("--bench", default="n8n")
     parser.add_argument("--batch-size", type=int, default=5)
-    parser.add_argument("--model", default="gpt-4o-mini", help="LLM model for Reflector (litellm format, e.g. anthropic/claude-haiku-4-5-20251001)")
+    parser.add_argument("--model", default="gpt-4o-mini", help="LLM model for Reflector (litellm format)")
+    parser.add_argument("--api-base", default=None, help="LLM API base URL (e.g. http://127.0.0.1:8317/v1)")
+    parser.add_argument("--api-key", default=None, help="LLM API key")
     parser.add_argument("--log-level", default="INFO")
     args = parser.parse_args()
     logging.basicConfig(level=getattr(logging, args.log_level.upper()))
-    app = create_app(seed_prompt_path=args.seed_prompt, bench=args.bench, batch_size=args.batch_size, model=args.model)
+    app = create_app(
+        seed_prompt_path=args.seed_prompt, bench=args.bench,
+        batch_size=args.batch_size, model=args.model,
+        api_base=args.api_base, api_key=args.api_key,
+    )
     import uvicorn
     uvicorn.run(app, host=args.host, port=args.port)
 
