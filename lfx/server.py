@@ -63,6 +63,7 @@ class LfxServer:
         self._last_error: str | None = None
         self._prompt_updated_at: str = datetime.now(timezone.utc).isoformat()
         self._reward_trend: list[float] = []
+        self._reward_episode_ids: list[str] = []  # parallel to _reward_trend
         self._recent_insights: list[dict[str, Any]] = []
 
         # SSE: list of (queue, event_loop) tuples
@@ -206,6 +207,7 @@ class LfxServer:
             self._learning_status = "idle"
             self._last_error = None
             self._reward_trend.clear()
+            self._reward_episode_ids.clear()
             self._recent_insights.clear()
             self._prompt_updated_at = datetime.now(timezone.utc).isoformat()
         self.learner.start()
@@ -247,6 +249,7 @@ async def ingest(request: Request) -> JSONResponse:
 
     with server._state_lock:
         server._reward_trend.append(ep.summary.normalized_reward())
+        server._reward_episode_ids.append(ep.id)
 
     # Extract user query and assistant response for dashboard display
     messages = body["messages"]
@@ -287,6 +290,17 @@ async def feedback(request: Request) -> JSONResponse:
     found = server.collector.submit_feedback(episode_id, float(score))
     if not found:
         return JSONResponse({"error": "not_found", "detail": f"episode {episode_id} not found"}, status_code=404)
+
+    # Update reward trend to reflect feedback
+    with server._state_lock:
+        try:
+            idx = server._reward_episode_ids.index(episode_id)
+            # Re-read the episode's reward now that feedback is attached
+            ep = server.collector._episode_index.get(episode_id)
+            if ep:
+                server._reward_trend[idx] = ep.summary.normalized_reward()
+        except (ValueError, IndexError):
+            pass
 
     server.collector.flush_buffer()
     server.broadcast_event("feedback_received", {"episode_id": episode_id, "score": score})
