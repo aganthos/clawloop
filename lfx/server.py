@@ -81,9 +81,13 @@ class LfxServer:
     def _on_learn_complete(
         self, episodes: list, *, success: bool, error: str | None,
     ) -> None:
+        # Only transition to "idle" if no more batches are queued
+        queue_empty = self.learner.metrics["queue_size"] == 0
+
         with self._state_lock:
             if success:
-                self._learning_status = "idle"
+                if queue_empty:
+                    self._learning_status = "idle"
                 self._last_error = None
                 self._prompt_updated_at = datetime.now(timezone.utc).isoformat()
                 self._recent_insights.clear()
@@ -94,7 +98,8 @@ class LfxServer:
                             "source_episodes": entry.source_episode_ids,
                         })
             else:
-                self._learning_status = "idle"
+                if queue_empty:
+                    self._learning_status = "idle"
                 self._last_error = error
 
         if success:
