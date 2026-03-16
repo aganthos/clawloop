@@ -1,0 +1,251 @@
+"""Harbor environment adapter — runs Harbor trials and produces LfX Episodes.
+
+Harbor is an optional dependency. All imports are lazy; if Harbor is not
+installed, construction succeeds but ``run_episode`` will fail.
+"""
+
+from __future__ import annotations
+
+import logging
+from pathlib import Path
+from typing import Any, Callable
+
+from lfx.core.episode import Episode, EpisodeSummary, Message, StepMeta
+from lfx.core.reward import RewardSignal
+
+log = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _compute_step_boundaries(messages: list[Message]) -> list[int]:
+    """Compute step boundaries from user-turn starts."""
+    boundaries: list[int] = []
+    for i, msg in enumerate(messages):
+        if msg.role == "user" and (i == 0 or messages[i - 1].role != "user"):
+            boundaries.append(i)
+    if not boundaries and messages:
+        boundaries = [0]
+    return boundaries
+
+
+def _build_steps(
+    messages: list[Message],
+    step_boundaries: list[int],
+    reward: float,
+) -> list[StepMeta]:
+    """Build StepMeta list. Terminal step carries the reward."""
+    if not step_boundaries:
+        return []
+    steps: list[StepMeta] = []
+    for i, boundary in enumerate(step_boundaries):
+        is_terminal = i == len(step_boundaries) - 1
+        steps.append(
+            StepMeta(
+                t=i,
+                reward=reward if is_terminal else 0.0,
+                done=is_terminal,
+                timing_ms=0.0,
+            )
+        )
+    return steps
+
+
+# ---------------------------------------------------------------------------
+# HarborTaskEnvironment
+# ---------------------------------------------------------------------------
+
+class HarborTaskEnvironment:
+    """Run a single Harbor task and convert results to an LfX Episode."""
+
+    def __init__(
+        self,
+        task_dir: Path,
+        trial_config: dict,
+        reward_transform: Callable[[float], float] | None = None,
+        train_on_truncated: bool = True,
+    ) -> None:
+        # Lazy import of Harbor (optional dependency)
+        try:
+            from harbor.models.trial.config import TrialConfig  # type: ignore[import-untyped]
+            from harbor.trial import Trial  # type: ignore[import-untyped]
+        except ImportError:
+            Trial = None  # type: ignore[assignment]
+            TrialConfig = None  # type: ignore[assignment]
+
+        self._Trial = Trial
+        self._TrialConfig = TrialConfig
+
+        self._task_dir = task_dir
+        self._trial_config = trial_config
+        self._reward_transform = reward_transform
+        self._train_on_truncated = train_on_truncated
+
+        # Validate
+        if "agent" not in trial_config:
+            raise ValueError("trial_config must contain 'agent' key")
+        trial_config.setdefault("task", {})
+        trial_config["agent"].setdefault("kwargs", {})
+
+    @property
+    def task_id(self) -> str:
+        return self._task_dir.name
+
+    # -- Episode collection -------------------------------------------------
+
+    async def run_episode(self, agent_state: Any) -> Episode:
+        """Run a Harbor trial and return the resulting Episode."""
+        from copy import deepcopy
+        from uuid import uuid4
+
+        config = deepcopy(self._trial_config)
+        config["task"]["path"] = str(self._task_dir)
+        config["agent"]["kwargs"]["session_id"] = uuid4().hex
+
+        # Inject inference URL from agent_state
+        if hasattr(agent_state, "inference_url") and agent_state.inference_url:
+            config["agent"]["kwargs"]["api_base"] = agent_state.inference_url
+
+        # Inject system prompt from harness
+        if hasattr(agent_state, "harness") and agent_state.harness:
+            from lfx.core.types import SampleContext
+
+            sample_result = agent_state.harness.sample(
+                SampleContext(bench=self._task_dir.name)
+            )
+            config["agent"]["kwargs"]["system_prompt_override"] = (
+                sample_result.result().output
+            )
+
+        trial = self._Trial(self._TrialConfig(**config))
+
+        try:
+            results = await trial.run()
+        except Exception as e:
+            exc_name = type(e).__name__
+            if exc_name == "ContextLengthExceededError":
+                if self._train_on_truncated:
+                    return self._build_episode(
+                        agent_state, reward=0.0, metadata={"truncated": True}
+                    )
+                else:
+                    return self._build_episode(
+                        agent_state, filtered=True, metadata={"truncated": True}
+                    )
+            elif exc_name == "AgentTimeoutError":
+                return self._build_episode(
+                    agent_state, filtered=True, metadata={"timeout": True}
+                )
+            else:
+                return self._build_episode(
+                    agent_state, filtered=True, metadata={"error": exc_name}
+                )
+
+        raw_reward = results.verifier_result.rewards.get("reward", 0.0)
+        metadata: dict[str, Any] = {"raw_reward": raw_reward}
+        try:
+            reward = (
+                self._reward_transform(raw_reward)
+                if self._reward_transform
+                else raw_reward
+            )
+        except Exception:
+            reward = raw_reward
+            metadata["reward_transform_error"] = True
+        metadata["transformed_reward"] = reward
+
+        chat_history = results.agent_result.metadata.get("all_messages", [])
+        score_breakdown = results.verifier_result.rewards
+
+        return self._build_episode(
+            agent_state,
+            chat_history=chat_history,
+            reward=reward,
+            score_breakdown=score_breakdown,
+            metadata=metadata,
+        )
+
+    # -- Internal -----------------------------------------------------------
+
+    def _build_episode(
+        self,
+        agent_state: Any,
+        chat_history: list[dict[str, Any]] | None = None,
+        reward: float = 0.0,
+        filtered: bool = False,
+        score_breakdown: dict[str, float] | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> Episode:
+        from uuid import uuid4
+
+        messages = [
+            Message(role=m.get("role", "user"), content=m.get("content", ""))
+            for m in (chat_history or [])
+        ]
+        step_boundaries = _compute_step_boundaries(messages)
+        steps = _build_steps(messages, step_boundaries, reward)
+
+        summary = EpisodeSummary(
+            filtered=filtered, score_breakdown=score_breakdown
+        )
+        if not filtered:
+            summary.signals["outcome"] = RewardSignal(
+                name="outcome", value=float(reward), confidence=1.0
+            )
+
+        state_id = ""
+        if hasattr(agent_state, "state_id") and callable(agent_state.state_id):
+            try:
+                state_id = agent_state.state_id().combined_hash
+            except Exception:
+                pass
+
+        return Episode(
+            id=uuid4().hex,
+            state_id=state_id,
+            task_id=self.task_id,
+            bench="harbor",
+            messages=messages,
+            step_boundaries=step_boundaries,
+            steps=steps,
+            summary=summary,
+            metadata=metadata or {},
+        )
+
+
+# ---------------------------------------------------------------------------
+# HarborAdapter
+# ---------------------------------------------------------------------------
+
+class HarborAdapter:
+    """Sync wrapper around HarborTaskEnvironment list. Implements AdapterLike."""
+
+    def __init__(self, envs: list[HarborTaskEnvironment]) -> None:
+        self._envs = {env.task_id: env for env in envs}
+
+    def run_episode(self, task: str, agent_state: Any) -> Episode:
+        from lfx.utils.async_bridge import run_async
+
+        return run_async(self._envs[task].run_episode(agent_state))
+
+    def run_batch(
+        self,
+        tasks: list[str],
+        agent_state: Any,
+        n_per_task: int = 1,
+    ) -> list[Episode]:
+        import asyncio
+
+        from lfx.utils.async_bridge import run_async
+
+        async def _gather() -> list[Episode]:
+            coros = [
+                self._envs[t].run_episode(agent_state)
+                for t in tasks
+                for _ in range(n_per_task)
+            ]
+            return await asyncio.gather(*coros)
+
+        return run_async(_gather())
