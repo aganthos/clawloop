@@ -463,6 +463,7 @@ class Harness:
                 k: getattr(v, "name", v.__class__.__name__)
                 for k, v in self.validators.items()
             },
+            "playbook_version": self.playbook_version,
         }
 
     # -- Layer protocol methods --
@@ -545,6 +546,7 @@ class Harness:
 
             # Drain pending
             self._pending = _HarnessPending()
+            self.playbook_version += 1
             return Future.immediate(OptimResult(status="ok", updates_applied=updates))
 
         except Exception:
@@ -622,6 +624,9 @@ class Harness:
 
         # Restore validators
         self.validators = state_dict.get("validators", {})
+
+        # Restore version counter
+        self.playbook_version = state_dict.get("playbook_version", 0)
 
         # Clear pending
         self._pending = _HarnessPending()
