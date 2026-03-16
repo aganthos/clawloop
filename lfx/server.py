@@ -155,8 +155,14 @@ class LfxServer:
             dead = []
             for q, loop in self._event_subscribers:
                 try:
+                    # Check fullness before scheduling — QueueFull would be
+                    # raised inside the event loop where we can't catch it.
+                    if q.full():
+                        dead.append((q, loop))
+                        continue
                     loop.call_soon_threadsafe(q.put_nowait, event)
-                except (asyncio.QueueFull, RuntimeError):
+                except RuntimeError:
+                    # Event loop closed
                     dead.append((q, loop))
             for item in dead:
                 self._event_subscribers.remove(item)
@@ -334,6 +340,7 @@ def create_app(
     bench: str = "n8n",
     batch_size: int = 5,
     reflector: Reflector | None = None,
+    model: str = "gpt-4o-mini",
 ) -> Starlette:
     import os
 
@@ -343,14 +350,21 @@ def create_app(
         else:
             seed_prompt = "You are a helpful assistant."
 
-    if reflector is None and os.environ.get("OPENAI_API_KEY"):
-        try:
-            from lfx.llm import LiteLLMClient
-            client = LiteLLMClient(model="gpt-4o-mini")
-            reflector = Reflector(client=client, config=ReflectorConfig())
-            log.info("Auto-created Reflector with gpt-4o-mini")
-        except Exception:
-            log.warning("Could not create Reflector — learning will not generate insights", exc_info=True)
+    # Auto-create Reflector if any supported API key is available
+    if reflector is None:
+        has_key = (
+            os.environ.get("OPENAI_API_KEY")
+            or os.environ.get("ANTHROPIC_API_KEY")
+            or os.environ.get("LITELLM_API_KEY")
+        )
+        if has_key:
+            try:
+                from lfx.llm import LiteLLMClient
+                client = LiteLLMClient(model=model)
+                reflector = Reflector(client=client, config=ReflectorConfig())
+                log.info("Auto-created Reflector with %s", model)
+            except Exception:
+                log.warning("Could not create Reflector — learning will not generate insights", exc_info=True)
 
     server = LfxServer(
         seed_prompt=seed_prompt, bench=bench,
@@ -394,10 +408,11 @@ def main() -> None:
     parser.add_argument("--seed-prompt", default="config/seed_prompt.txt")
     parser.add_argument("--bench", default="n8n")
     parser.add_argument("--batch-size", type=int, default=5)
+    parser.add_argument("--model", default="gpt-4o-mini", help="LLM model for Reflector (litellm format, e.g. anthropic/claude-haiku-4-5-20251001)")
     parser.add_argument("--log-level", default="INFO")
     args = parser.parse_args()
     logging.basicConfig(level=getattr(logging, args.log_level.upper()))
-    app = create_app(seed_prompt_path=args.seed_prompt, bench=args.bench, batch_size=args.batch_size)
+    app = create_app(seed_prompt_path=args.seed_prompt, bench=args.bench, batch_size=args.batch_size, model=args.model)
     import uvicorn
     uvicorn.run(app, host=args.host, port=args.port)
 
