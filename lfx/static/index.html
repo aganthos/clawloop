@@ -695,11 +695,38 @@ function closeDetail() {
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
 
+// ── load episodes from server (survives page reload) ─────────────────────────
+async function loadEpisodes() {
+  try {
+    const r = await fetch('/episodes');
+    if (!r.ok) return;
+    const all = await r.json();
+    for (const ep of all) {
+      const id = ep.id;
+      if (episodes.find(e => e.id === id)) continue;
+      // Find user query and assistant response from messages
+      let query = '', response = '';
+      for (const m of (ep.messages || [])) {
+        if (m.role === 'user') query = m.content || '';
+        if (m.role === 'assistant') response = m.content || '';
+      }
+      episodes.push({
+        id,
+        ts: ep.created_at ? new Date(ep.created_at * 1000).toISOString() : '',
+        query,
+        response,
+        signals: ep.signals || {},
+        _vote: ep.has_feedback ? (ep.effective_reward > 0 ? 1 : ep.effective_reward < 0 ? -1 : 0) : undefined,
+      });
+    }
+    renderEpisodes();
+  } catch {}
+}
+
 // ── boot ──────────────────────────────────────────────────────────────────────
 (async () => {
-  await Promise.all([loadState(), loadMetrics()]);
+  await Promise.all([loadState(), loadMetrics(), loadEpisodes()]);
   startSSE();
-  // also draw once resize
   window.addEventListener('resize', drawTrend);
 })();
 </script>
