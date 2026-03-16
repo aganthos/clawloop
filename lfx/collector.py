@@ -222,6 +222,24 @@ class EpisodeCollector:
             self._episode_index.move_to_end(episode_id)
             return True
 
+    def flush_buffer(self) -> int:
+        """Force-flush the episode buffer to the on_batch callback.
+
+        Returns the number of episodes flushed. Returns 0 if buffer is
+        empty or no on_batch callback is set.
+        """
+        batch_to_flush: list[Episode] | None = None
+        with self._lock:
+            if not self._buffer or not self.on_batch:
+                return 0
+            batch_to_flush = list(self._buffer)
+            self._buffer.clear()
+
+        if batch_to_flush:
+            self.on_batch(batch_to_flush)
+            return len(batch_to_flush)
+        return 0
+
     @property
     def metrics(self) -> dict[str, int]:
         with self._lock:
