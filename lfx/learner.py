@@ -121,22 +121,21 @@ class AsyncLearner:
             if layer is None:
                 continue
             layers.append((name, layer))
+            should_clear = False
             try:
                 fb_result = layer.forward_backward(datum).result()
                 fb_results[name] = fb_result
                 if fb_result.status in ("error", "skipped"):
-                    try:
-                        layer.clear_pending_state()
-                    except Exception:
-                        log.exception(
-                            "Failed to clear pending state for %s", name,
-                        )
+                    should_clear = True
             except Exception as exc:
                 log.error(
                     "forward_backward failed for %s on batch %s: %s",
                     name, batch_id, exc,
                 )
                 fb_results[name] = FBResult(status="error")
+                should_clear = True
+
+            if should_clear:
                 try:
                     layer.clear_pending_state()
                 except Exception:

@@ -220,18 +220,19 @@ def learning_loop(
                 log.info("  skipping harness fb (adaptive intensity)")
                 fb_results[name] = FBResult(status="skipped")
                 continue
+            should_clear = False
             try:
                 fut = layer.forward_backward(datum)
                 fb_result = fut.result()
                 fb_results[name] = fb_result
                 if fb_result.status in ("error", "skipped"):
-                    try:
-                        layer.clear_pending_state()
-                    except Exception:
-                        log.exception("Failed to clear pending for %s", name)
+                    should_clear = True
             except Exception:
                 log.exception("forward_backward failed for %s", name)
                 fb_results[name] = FBResult(status="error")
+                should_clear = True
+
+            if should_clear:
                 try:
                     layer.clear_pending_state()
                 except Exception:
