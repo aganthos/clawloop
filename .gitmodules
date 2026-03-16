@@ -4,3 +4,6 @@
 [submodule "benchmarks/car-bench"]
 	path = benchmarks/car-bench
 	url = https://github.com/CAR-bench/car-bench-agentbeats.git
+[submodule "benchmarks/harbor"]
+	path = benchmarks/harbor
+	url = https://github.com/harbor-framework/harbor
