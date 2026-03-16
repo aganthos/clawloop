@@ -407,22 +407,29 @@ def create_app(
 
 def main() -> None:
     import argparse
+    import os
     parser = argparse.ArgumentParser(description="lfx-server for n8n integration")
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=8400)
     parser.add_argument("--seed-prompt", default="config/seed_prompt.txt")
     parser.add_argument("--bench", default="n8n")
     parser.add_argument("--batch-size", type=int, default=5)
-    parser.add_argument("--model", default="gpt-4o-mini", help="LLM model for Reflector (litellm format)")
-    parser.add_argument("--api-base", default=None, help="LLM API base URL (e.g. http://127.0.0.1:8317/v1)")
+    parser.add_argument("--model", default=None, help="LLM model for Reflector (litellm format)")
+    parser.add_argument("--api-base", default=None, help="LLM API base URL")
     parser.add_argument("--api-key", default=None, help="LLM API key")
     parser.add_argument("--log-level", default="INFO")
     args = parser.parse_args()
     logging.basicConfig(level=getattr(logging, args.log_level.upper()))
+
+    # CLI args override env vars
+    api_base = args.api_base or os.environ.get("LFX_API_BASE") or None
+    api_key = args.api_key or os.environ.get("LFX_API_KEY") or None
+    model = args.model or os.environ.get("LFX_MODEL") or "gpt-4o-mini"
+
     app = create_app(
         seed_prompt_path=args.seed_prompt, bench=args.bench,
-        batch_size=args.batch_size, model=args.model,
-        api_base=args.api_base, api_key=args.api_key,
+        batch_size=args.batch_size, model=model,
+        api_base=api_base, api_key=api_key,
     )
     import uvicorn
     uvicorn.run(app, host=args.host, port=args.port)

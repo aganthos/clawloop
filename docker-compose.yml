@@ -6,6 +6,8 @@ services:
     environment:
       - N8N_SECURE_COOKIE=false
       - GENERIC_TIMEZONE=UTC
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - n8n_data:/home/node/.n8n
 
@@ -13,8 +15,9 @@ services:
     build: .
     ports:
       - "8400:8400"
-    environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    env_file: .env
     volumes:
       - ./config:/app/config:ro
 
