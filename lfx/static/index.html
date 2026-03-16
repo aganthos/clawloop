@@ -116,7 +116,7 @@
 
   /* ── episode feed ── */
   #episode-list {
-    max-height: 220px;
+    max-height: 340px;
     overflow-y: auto;
   }
 
@@ -129,9 +129,12 @@
   }
   .episode-row:last-child { border-bottom: none; }
 
-  .ep-id   { color: var(--dim); font-size: 11px; flex-shrink: 0; width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .ep-ts   { color: var(--dim); font-size: 10px; flex-shrink: 0; width: 80px; }
-  .ep-signals { flex: 1; display: flex; flex-wrap: wrap; gap: 4px; }
+  .ep-id   { color: var(--dim); font-size: 11px; flex-shrink: 0; width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ep-ts   { color: var(--dim); font-size: 10px; flex-shrink: 0; width: 60px; }
+  .ep-query { color: var(--text); font-size: 12px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ep-response { color: var(--dim); font-size: 11px; max-height: 40px; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; line-height: 1.3; }
+  .ep-signals { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+  .ep-main { flex: 1; min-width: 0; }
 
   .signal-tag {
     font-size: 10px;
@@ -320,10 +323,16 @@ function updateStatusBar(data) {
 
 // ── episode feed ──────────────────────────────────────────────────────────────
 function addEpisode(ev) {
-  // ev: {episode_id, timestamp, reward_signals}
+  // ev: {episode_id, timestamp, user_query, assistant_response, reward_signals}
   const id = ev.episode_id || ev.id;
   if (!id || episodes.find(e => e.id === id)) return;
-  episodes.unshift({ id, ts: ev.timestamp || new Date().toISOString(), signals: ev.reward_signals || {} });
+  episodes.unshift({
+    id,
+    ts: ev.timestamp || new Date().toISOString(),
+    query: ev.user_query || '',
+    response: ev.assistant_response || '',
+    signals: ev.reward_signals || {},
+  });
   if (episodes.length > 100) episodes.pop();
   renderEpisodes();
 }
@@ -334,8 +343,12 @@ function renderEpisodes() {
   el.innerHTML = episodes.slice(0, 40).map(ep => `
     <div class="episode-row">
       <span class="ep-ts">${esc(ts(ep.ts))}</span>
-      <span class="ep-id" title="${esc(ep.id)}">${esc(ep.id.slice(0,10))}</span>
-      <span class="ep-signals">${renderSignals(ep.signals)}</span>
+      <span class="ep-id" title="${esc(ep.id)}">${esc(ep.id.slice(0,8))}</span>
+      <div class="ep-main">
+        <div class="ep-query" title="${esc(ep.query)}">${ep.query ? '&#9654; ' + esc(ep.query) : '<span style="color:var(--dim)">no query</span>'}</div>
+        ${ep.response ? '<div class="ep-response">' + esc(ep.response.slice(0,150)) + '</div>' : ''}
+        <div class="ep-signals">${renderSignals(ep.signals)}</div>
+      </div>
       <button class="thumb-btn ${ep._vote === 1 ? 'voted-up' : ''}"   onclick="vote('${esc(ep.id)}',1)"  title="thumbs up">+</button>
       <button class="thumb-btn ${ep._vote === -1 ? 'voted-down' : ''}" onclick="vote('${esc(ep.id)}',-1)" title="thumbs down">-</button>
     </div>`).join('');

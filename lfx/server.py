@@ -248,9 +248,21 @@ async def ingest(request: Request) -> JSONResponse:
     with server._state_lock:
         server._reward_trend.append(ep.summary.normalized_reward())
 
+    # Extract user query and assistant response for dashboard display
+    messages = body["messages"]
+    user_query = ""
+    assistant_response = ""
+    for msg in messages:
+        if msg.get("role") == "user":
+            user_query = msg.get("content", "")
+        elif msg.get("role") == "assistant":
+            assistant_response = msg.get("content", "")
+
     server.broadcast_event("episode_ingested", {
         "episode_id": ep.id,
         "timestamp": datetime.now(timezone.utc).isoformat(),
+        "user_query": user_query[:200],
+        "assistant_response": assistant_response[:300],
         "reward_signals": {
             k: {"value": s.value, "confidence": s.confidence}
             for k, s in ep.summary.signals.items()
