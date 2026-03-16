@@ -7,7 +7,7 @@ import pytest
 
 from lfx.core.episode import Episode, EpisodeSummary, Message, StepMeta
 from lfx.core.loop import AgentState, learning_loop
-from lfx.core.types import Datum, SampleContext
+from lfx.core.types import Datum, Future, SampleContext
 from lfx.layers.harness import Harness, PlaybookEntry, PromptCandidate
 from lfx.layers.router import QueryFeatures, Router, Tier
 from lfx.layers.weights import GRPOConfig, Weights
@@ -328,6 +328,63 @@ class TestWeightsProtocol:
         s1 = json.dumps(w.to_dict(), sort_keys=True)
         s2 = json.dumps(w.to_dict(), sort_keys=True)
         assert s1 == s2
+
+    def test_backend_forward_backward_delegates(self) -> None:
+        from unittest.mock import MagicMock
+        from lfx.core.types import FBResult
+        mock_backend = MagicMock()
+        mock_backend.forward_backward.return_value = Future.immediate(
+            FBResult(status="ok", metrics={"loss": 0.5})
+        )
+        w = Weights(model_ref="test", _backend=mock_backend)
+        result = w.forward_backward(_make_datum()).result()
+        assert result.status == "ok"
+        assert result.metrics["loss"] == 0.5
+        mock_backend.forward_backward.assert_called_once()
+
+    def test_backend_optim_step_delegates(self) -> None:
+        from unittest.mock import MagicMock
+        from lfx.core.types import OptimResult
+        mock_backend = MagicMock()
+        mock_backend.optim_step.return_value = Future.immediate(
+            OptimResult(status="ok", updates_applied=1, metrics={"grad_norm": 0.1})
+        )
+        w = Weights(model_ref="test", _backend=mock_backend)
+        result = w.optim_step().result()
+        assert result.status == "ok"
+        assert result.updates_applied == 1
+        mock_backend.optim_step.assert_called_once()
+
+    def test_no_backend_uses_stub(self) -> None:
+        w = Weights(model_ref="test")
+        result = w.forward_backward(_make_datum()).result()
+        assert result.status == "ok"
+        assert "n_advantages" in result.metrics
+
+    def test_backend_clear_pending_delegates(self) -> None:
+        from unittest.mock import MagicMock
+        mock_backend = MagicMock()
+        w = Weights(_backend=mock_backend)
+        w.clear_pending_state()
+        mock_backend.clear_pending_state.assert_called_once()
+
+    def test_backend_to_dict_delegates(self) -> None:
+        from unittest.mock import MagicMock
+        mock_backend = MagicMock()
+        mock_backend.to_dict.return_value = {"model_ref": "delegated"}
+        w = Weights(_backend=mock_backend)
+        assert w.to_dict() == {"model_ref": "delegated"}
+
+    def test_backend_sample_delegates(self) -> None:
+        from unittest.mock import MagicMock
+        from lfx.core.types import SampleResult
+        mock_backend = MagicMock()
+        mock_backend.sample.return_value = Future.immediate(
+            SampleResult(output="delegated-model")
+        )
+        w = Weights(_backend=mock_backend)
+        result = w.sample(SampleContext()).result()
+        assert result.output == "delegated-model"
 
 
 class _MockAdapter:
