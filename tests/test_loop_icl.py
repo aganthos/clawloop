@@ -9,7 +9,7 @@ from lfx.core.intensity import AdaptiveIntensity
 from lfx.core.loop import AgentState, learning_loop
 from lfx.core.paradigm import ParadigmBreakthrough
 from lfx.core.reflector import Reflector, ReflectorConfig
-from lfx.core.types import Datum
+from lfx.core.types import Datum, FBResult, Future, OptimResult
 from lfx.layers.harness import Harness, Insight, PlaybookEntry
 
 
@@ -147,3 +147,115 @@ class TestLoopWithoutReflectorStillWorks:
 
         assert adapter.call_count == 6
         assert sid.combined_hash
+
+
+class TestCrossLayerRollback:
+    """When one layer's optim_step fails, all layers should rollback."""
+
+    def test_optim_failure_rolls_back_all_layers(self) -> None:
+        client = _MockLLMClient()
+        reflector = Reflector(client=client, config=ReflectorConfig())
+        harness = Harness(
+            system_prompts={"test": "You are helpful."},
+            reflector=reflector,
+        )
+        state = AgentState(harness=harness)
+
+        # Capture harness and router state before learning
+        harness_before = json.dumps(state.harness.to_dict(), sort_keys=True)
+        router_before = json.dumps(state.router.to_dict(), sort_keys=True)
+
+        # Make router.optim_step fail after harness succeeds
+        def failing_router_optim():
+            raise RuntimeError("simulated optim failure")
+
+        state.router.optim_step = failing_router_optim
+
+        adapter = _MockAdapter(reward=0.8)
+        state, sid = learning_loop(
+            adapter=adapter,
+            agent_state=state,
+            tasks=["t1"],
+            n_episodes=1,
+            n_iterations=1,
+            active_layers=["harness", "router"],
+        )
+
+        # Harness should be rolled back to pre-optim state
+        harness_after = json.dumps(state.harness.to_dict(), sort_keys=True)
+        assert harness_after == harness_before, (
+            "Harness should be rolled back when router optim fails"
+        )
+
+        # Router should also be rolled back to pre-optim state
+        router_after = json.dumps(state.router.to_dict(), sort_keys=True)
+        assert router_after == router_before, (
+            "Router should be rolled back when its own optim fails"
+        )
+
+    def test_optim_error_status_triggers_rollback(self) -> None:
+        client = _MockLLMClient()
+        reflector = Reflector(client=client, config=ReflectorConfig())
+        harness = Harness(
+            system_prompts={"test": "You are helpful."},
+            reflector=reflector,
+        )
+        state = AgentState(harness=harness)
+
+        # Capture harness state before learning
+        harness_before = json.dumps(state.harness.to_dict(), sort_keys=True)
+
+        # Patch router.optim_step to return an error status (not raise)
+        def error_status_router_optim():
+            return Future.immediate(OptimResult(status="error", updates_applied=0))
+
+        state.router.optim_step = error_status_router_optim
+
+        adapter = _MockAdapter(reward=0.8)
+        state, sid = learning_loop(
+            adapter=adapter,
+            agent_state=state,
+            tasks=["t1"],
+            n_episodes=1,
+            n_iterations=1,
+            active_layers=["harness", "router"],
+        )
+
+        # Harness should be rolled back when router optim returns error status
+        harness_after = json.dumps(state.harness.to_dict(), sort_keys=True)
+        assert harness_after == harness_before, (
+            "Harness should be rolled back when router optim_step returns error status"
+        )
+
+    def test_fb_error_clears_pending_state(self) -> None:
+        state = AgentState()
+
+        # Track whether clear_pending_state was called
+        clear_called: list[bool] = []
+        original_clear = state.router.clear_pending_state
+
+        def tracking_clear():
+            clear_called.append(True)
+            return original_clear()
+
+        state.router.clear_pending_state = tracking_clear
+
+        # Patch router.forward_backward to return an error FBResult
+        def failing_fb(data):
+            return Future.immediate(FBResult(status="error"))
+
+        state.router.forward_backward = failing_fb
+
+        adapter = _MockAdapter(reward=0.8)
+        state, sid = learning_loop(
+            adapter=adapter,
+            agent_state=state,
+            tasks=["t1"],
+            n_episodes=1,
+            n_iterations=1,
+            active_layers=["router"],
+        )
+
+        assert len(clear_called) > 0, (
+            "clear_pending_state should be called when forward_backward returns error"
+        )
