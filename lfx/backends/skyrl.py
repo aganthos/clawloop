@@ -103,13 +103,18 @@ class SkyRLWeightsBackend:
         # 3. Instantiate SkyRL backend
         try:
             if config.backend_type == "jax":
-                from skyrl.backends.jax_backend import JaxBackend
+                from skyrl.backends.jax import JaxBackend, JaxBackendConfig
 
-                self._backend = JaxBackend(**config.backend_config)
+                jax_cfg = JaxBackendConfig(**config.backend_config)
+                self._backend = JaxBackend(config.base_model, jax_cfg)
             elif config.backend_type == "skyrl_train":
-                from skyrl.backends.skyrl_train_backend import SkyRLTrainBackend
+                from skyrl.backends.skyrl_train_backend import (
+                    SkyRLTrainBackend,
+                    SkyRLTrainBackendOverrides,
+                )
 
-                self._backend = SkyRLTrainBackend(**config.backend_config)
+                train_cfg = SkyRLTrainBackendOverrides(**config.backend_config)
+                self._backend = SkyRLTrainBackend(config.base_model, train_cfg)
             else:
                 raise ValueError(f"Unknown backend_type: {config.backend_type!r}")
         except Exception as e:
@@ -118,7 +123,7 @@ class SkyRLWeightsBackend:
             raise SkyRLBackendInitError(BackendError.from_exception(e)) from e
 
         # 4. Create model with LoRA config
-        self._model_id = f"lfx-{config.base_model}"
+        self._model_id = f"lfx-{config.base_model.replace('/', '-')}"
         try:
             from skyrl.tinker.types import LoraConfig
 
@@ -153,6 +158,16 @@ class SkyRLWeightsBackend:
             metrics: dict[str, Any] = {}
             if isinstance(result, dict):
                 for _req_id, output in result.items():
+                    # Check for ErrorResponse
+                    if hasattr(output, "error") and hasattr(output, "status"):
+                        return Future.immediate(FBResult(
+                            status="error",
+                            metrics={"error": BackendError(
+                                code="backend_unreachable",
+                                message=output.error,
+                                recoverable=True,
+                            )},
+                        ))
                     if hasattr(output, "metrics") and output.metrics:
                         metrics.update(output.metrics)
                     if hasattr(output, "loss_fn_outputs"):
@@ -197,7 +212,8 @@ class SkyRLWeightsBackend:
     def save_state(self, name: str) -> Future[SaveResult]:
         """Save a checkpoint and record the adapter reference."""
         try:
-            self._backend.save_checkpoint(self._model_id, name)
+            # AbstractBackend signature: save_checkpoint(output_path, model_id)
+            self._backend.save_checkpoint(name, self._model_id)
             self._adapter_refs.append(name)
             return Future.immediate(SaveResult(name=name, status="ok"))
         except Exception as e:
@@ -216,7 +232,8 @@ class SkyRLWeightsBackend:
 
         if adapter_refs:
             try:
-                self._backend.load_checkpoint(self._model_id, adapter_refs[-1])
+                # AbstractBackend signature: load_checkpoint(checkpoint_path, model_id)
+                self._backend.load_checkpoint(adapter_refs[-1], self._model_id)
             except Exception as e:
                 return Future.immediate(LoadResult(status=f"error: {e}"))
 
@@ -289,8 +306,9 @@ class SkyRLWeightsBackend:
             all_targets.append(resp_ids)
             all_token_weights.append([float(w) for w in mask])
 
-            # Logprobs: use rollout logprobs if available, else zeros
-            lp = logprobs_list[i] if logprobs_list[i] is not None else [0.0] * len(resp_ids)
+            # Logprobs: use rollout logprobs if available, else empty
+            # (zeros would mean P=1.0 which distorts IS ratios)
+            lp = logprobs_list[i] if logprobs_list[i] is not None else []
             all_sampling_logprobs.append(lp)
 
             # Broadcast sequence-level advantage to all response tokens

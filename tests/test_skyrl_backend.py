@@ -336,7 +336,8 @@ class TestSaveLoadState:
         }
         result = backend.load_state(state).result()
         assert result.status == "ok"
-        backend._backend.load_checkpoint.assert_called_once_with(backend._model_id, "b")
+        # AbstractBackend signature: load_checkpoint(checkpoint_path, model_id)
+        backend._backend.load_checkpoint.assert_called_once_with("b", backend._model_id)
 
     def test_load_validates_keys(self) -> None:
         backend = _make_backend_with_mocks()

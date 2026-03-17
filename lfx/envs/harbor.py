@@ -64,7 +64,7 @@ class HarborTaskEnvironment:
                 if prompt:  # Only override when harness returns a non-empty prompt
                     config["agent"]["kwargs"]["system_prompt_override"] = prompt
             except Exception:
-                pass
+                log.debug("Failed to sample system prompt from harness", exc_info=True)
 
         trial = self._Trial(self._TrialConfig(**config))
         try:
@@ -99,7 +99,7 @@ class HarborTaskEnvironment:
     def _build_episode(self, agent_state: AgentState, chat_history=None, reward=0.0,
                        filtered=False, score_breakdown=None, metadata=None) -> Episode:
         messages = [Message(role=m.get("role", "user"), content=m.get("content", ""))
-                    for m in (chat_history or [])]
+                    for m in (chat_history or []) if isinstance(m, dict)]
         step_boundaries = _compute_step_boundaries(messages)
         steps = _build_steps(step_boundaries, reward)
         summary = EpisodeSummary(filtered=filtered, score_breakdown=score_breakdown)
