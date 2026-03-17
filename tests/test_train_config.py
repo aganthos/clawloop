@@ -1,5 +1,8 @@
+"""Tests for TrainConfig and the train() entry point."""
+
 import pytest
-from lfx.train import TrainConfig, HarborConfig
+
+from lfx.train import HarborConfig, TrainConfig
 
 
 class TestTrainConfig:
@@ -40,8 +43,8 @@ class TestTrainConfig:
 
 class TestTrainFunction:
     def test_weight_mode_requires_skyrl(self):
-        """train() with mode=weight but no skyrl config should raise."""
         from lfx.train import train
+
         cfg = TrainConfig(
             mode="weight",
             harbor=HarborConfig(task_dirs=["/data/tasks"]),
@@ -51,6 +54,67 @@ class TestTrainFunction:
 
     def test_no_envs_raises(self):
         from lfx.train import train
+
         cfg = TrainConfig(mode="harness_learning")
         with pytest.raises(ValueError, match="environments"):
             train(cfg)
+
+
+class TestTrainEndToEnd:
+    """End-to-end: train() with harness_learning mode + mocked Harbor trials."""
+
+    def test_harness_learning_with_harbor_fixtures(self):
+        """Full pipeline: TrainConfig → train() → learning_loop → HarborAdapter → Episodes."""
+        import asyncio
+        from pathlib import Path
+        from unittest.mock import AsyncMock, MagicMock
+
+        from lfx.train import train
+
+        fixture_dir = Path(__file__).parent / "fixtures" / "harbor_tasks"
+        if not fixture_dir.exists():
+            pytest.skip("Harbor task fixtures not found")
+
+        cfg = TrainConfig(
+            mode="harness_learning",
+            harbor=HarborConfig(
+                task_dirs=[str(fixture_dir / "bfcl-simple-0")],
+                trial_config={"agent": {"name": "test", "kwargs": {}}},
+            ),
+            episodes_per_iter=1,
+            n_iterations=1,
+        )
+
+        # Monkey-patch HarborTaskEnvironment to use mocked Trial
+        import lfx.envs.harbor as harbor_mod
+
+        _orig_init = harbor_mod.HarborTaskEnvironment.__init__
+
+        def _patched_init(self, task_dir, trial_config, **kwargs):
+            self._task_dir = Path(task_dir)
+            self._trial_config = trial_config
+            self._trial_config.setdefault("task", {})
+            self._trial_config["agent"].setdefault("kwargs", {})
+            self._reward_transform = kwargs.get("reward_transform")
+            self._train_on_truncated = kwargs.get("train_on_truncated", True)
+
+            mock_results = MagicMock()
+            mock_results.verifier_result.rewards = {"reward": 0.8}
+            mock_results.agent_result.metadata = {
+                "all_messages": [
+                    {"role": "user", "content": "Call get_weather"},
+                    {"role": "assistant", "content": '{"name": "get_weather"}'},
+                ],
+            }
+            self._Trial = MagicMock()
+            mock_trial = MagicMock()
+            mock_trial.run = AsyncMock(return_value=mock_results)
+            self._Trial.return_value = mock_trial
+            self._TrialConfig = MagicMock()
+
+        harbor_mod.HarborTaskEnvironment.__init__ = _patched_init
+        try:
+            agent_state, state_id = train(cfg)
+            assert state_id.combined_hash  # Got a valid state ID
+        finally:
+            harbor_mod.HarborTaskEnvironment.__init__ = _orig_init

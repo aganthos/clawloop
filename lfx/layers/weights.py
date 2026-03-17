@@ -20,7 +20,10 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from lfx.backends.base import LfXBackend
 
 from lfx.core.types import (
     Datum, FBResult, Future, LoadResult, OptimResult,
@@ -66,6 +69,7 @@ class Weights:
     grpo_config: GRPOConfig = field(default_factory=GRPOConfig)
     training_history: list[dict[str, Any]] = field(default_factory=list)
     _pending: _WeightsPending = field(default_factory=_WeightsPending)
+    _backend: LfXBackend | None = None
 
     @property
     def active_adapter(self) -> str | None:
@@ -85,6 +89,8 @@ class Weights:
         })
 
     def to_dict(self) -> dict[str, Any]:
+        if self._backend:
+            return self._backend.to_dict()
         return {
             "model_ref": self.model_ref,
             "adapter_refs": self.adapter_refs,
@@ -104,10 +110,18 @@ class Weights:
 
     def clear_pending_state(self) -> None:
         """Reset the internal pending accumulator."""
+        if self._backend:
+            self._backend.clear_pending_state()
         self._pending = _WeightsPending()
 
     def forward_backward(self, data: Datum) -> Future[FBResult]:
         """Compute GRPO advantages without mutating observable state."""
+        if self._backend:
+            return self._backend.forward_backward(data)
+        return self._stub_forward_backward(data)
+
+    def _stub_forward_backward(self, data: Datum) -> Future[FBResult]:
+        """Compute GRPO advantages without mutating observable state (stub)."""
         # Group episodes by task_id
         by_task: dict[str, list[Any]] = defaultdict(list)
         for ep in data.episodes:
@@ -125,6 +139,12 @@ class Weights:
 
     def optim_step(self) -> Future[OptimResult]:
         """Record a deferred training step (actual SkyRL training deferred)."""
+        if self._backend:
+            return self._backend.optim_step()
+        return self._stub_optim_step()
+
+    def _stub_optim_step(self) -> Future[OptimResult]:
+        """Record a deferred training step (stub)."""
         n = len(self._pending.advantages)
         if n == 0:
             return Future.immediate(OptimResult(status="skipped", updates_applied=0))
@@ -151,6 +171,8 @@ class Weights:
 
     def sample(self, ctx: SampleContext) -> Future[SampleResult]:
         """Return the current model reference."""
+        if self._backend:
+            return self._backend.sample(ctx)
         return Future.immediate(SampleResult(
             output=self.model_ref,
             metadata={"active_adapter": self.active_adapter},
@@ -158,10 +180,14 @@ class Weights:
 
     def save_state(self, name: str) -> Future[SaveResult]:
         """Save current state."""
+        if self._backend:
+            return self._backend.save_state(name)
         return Future.immediate(SaveResult(name=name, status="ok"))
 
     def load_state(self, state: dict[str, Any]) -> Future[LoadResult]:
         """Restore state from a dict. Clears training_history and _pending."""
+        if self._backend:
+            return self._backend.load_state(state)
         self.model_ref = state.get("model_ref", "")
         self.adapter_refs = list(state.get("adapter_refs", []))
         grpo_dict = state.get("grpo_config", {})
