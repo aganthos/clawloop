@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
@@ -14,6 +15,8 @@ from lfx.utils.async_bridge import run_async
 
 if TYPE_CHECKING:
     from lfx.core.loop import AgentState
+
+log = logging.getLogger(__name__)
 
 
 class HarborTaskEnvironment:
@@ -111,7 +114,7 @@ class HarborTaskEnvironment:
             try:
                 state_id = agent_state.state_id().combined_hash
             except Exception:
-                pass
+                log.debug("Failed to compute state_id for episode", exc_info=True)
         return Episode(
             id=uuid4().hex, state_id=state_id or "", task_id=self.task_id,
             bench="harbor", messages=messages, step_boundaries=step_boundaries,

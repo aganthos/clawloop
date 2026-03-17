@@ -279,6 +279,13 @@ class SkyRLWeightsBackend:
         # -- Compute GRPO advantages (group-mean subtraction) ----------------
         # Group rewards by instance_id (task_id), compute mean per group,
         # then advantage = reward - group_mean.
+        #
+        # NOTE: For multi-step episodes, the exporter emits one entry per
+        # transition with sparse rewards (only terminal step carries reward).
+        # This means intermediate steps get advantage = -group_mean.  This is
+        # correct for single-step Harbor episodes (one trial = one transition).
+        # For multi-step envs, consider computing advantage at the episode
+        # level before broadcasting to transitions.
         group_rewards: dict[str, list[tuple[int, float]]] = defaultdict(list)
         for i in range(n):
             instance_id = trajectory_ids[i].instance_id if i < len(trajectory_ids) else "default"
