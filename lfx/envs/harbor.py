@@ -147,7 +147,14 @@ class HarborAdapter:
     """Sync wrapper around HarborTaskEnvironment list. Implements AdapterLike."""
 
     def __init__(self, envs: list[HarborTaskEnvironment]):
-        self._envs = {env.task_id: env for env in envs}
+        self._envs: dict[str, HarborTaskEnvironment] = {}
+        for env in envs:
+            if env.task_id in self._envs:
+                raise ValueError(
+                    f"Duplicate task_id {env.task_id!r} — "
+                    f"each HarborTaskEnvironment must have a unique task directory name"
+                )
+            self._envs[env.task_id] = env
 
     def run_episode(self, task: str, agent_state: AgentState) -> Episode:
         return run_async(self._envs[task].run_episode(agent_state))
