@@ -101,14 +101,23 @@ class HarborTaskEnvironment:
 
     def _build_episode(self, agent_state: AgentState, chat_history=None, reward=0.0,
                        filtered=False, score_breakdown=None, metadata=None) -> Episode:
+        from lfx.core.reward import RewardSignal
+
         messages = [Message(role=m.get("role", "user"), content=m.get("content", ""))
                     for m in (chat_history or []) if isinstance(m, dict)]
         step_boundaries = _compute_step_boundaries(messages)
         steps = _build_steps(step_boundaries, reward)
         summary = EpisodeSummary(filtered=filtered, score_breakdown=score_breakdown)
         if not filtered:
-            # Use total_reward setter which maps [0,1] → [-1,1] internally
-            summary.total_reward = float(reward)
+            if self._reward_transform is not None:
+                # Transformed reward is already in the caller's target range.
+                # Set signal directly — RewardSignal clamps to [-1, 1].
+                summary.signals["outcome"] = RewardSignal(
+                    name="outcome", value=float(reward), confidence=1.0,
+                )
+            else:
+                # Raw Harbor reward is [0, 1]. total_reward setter maps to [-1, 1].
+                summary.total_reward = float(reward)
         state_id = ""
         if hasattr(agent_state, "state_id") and callable(agent_state.state_id):
             try:
