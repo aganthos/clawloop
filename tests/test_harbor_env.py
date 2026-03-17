@@ -67,7 +67,8 @@ class TestHarborTaskEnvironment:
         env._Trial.return_value = mock_trial
         asyncio.run(env.run_episode(AgentState()))
         config_call = env._TrialConfig.call_args
-        assert "session_id" in config_call.kwargs.get("agent", config_call[1].get("agent", {})).get("kwargs", {}) or True
+        assert "session_id" in config_call.kwargs["agent"]["kwargs"]
+        assert len(config_call.kwargs["agent"]["kwargs"]["session_id"]) == 32
 
     def test_inference_url_injected(self):
         env = _make_env()
