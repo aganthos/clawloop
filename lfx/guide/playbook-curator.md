@@ -140,6 +140,10 @@ emb = LiteLLMEmbedding(model="text-embedding-3-small", api_key="sk-...")
 
 `GeminiEmbedding` uses the `batchEmbedContents` endpoint (up to 100 texts per call) to minimize API calls under rate limits.
 
+### Hosted / multi-tenant embedding batching
+
+For the hosted version with multiple users, embedding requests should be batched across tenants. The current per-curator batching (`_ensure_embeddings` collects all un-embedded entries into one `embed()` call) works for single-agent deployments. For multi-tenant, a shared embedding queue would collect requests from multiple users and flush in bulk — reducing per-user rate-limit pressure and amortizing API costs. This is a natural fit for the background scheduler planned in PR2 (`BackgroundTask` protocol): a `BatchEmbeddingWorker` that drains the queue every N seconds or when the batch hits a size threshold.
+
 ## Temporal Decay
 
 Every entry has a `decay_rate` (default: 0.01/day). `effective_score()` applies exponential decay from the last activation:
