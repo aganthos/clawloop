@@ -8,7 +8,9 @@ duplicates and cluster related entries.
 from __future__ import annotations
 
 import hashlib
+import json
 import math
+import urllib.request
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
@@ -150,3 +152,63 @@ class LiteLLMEmbedding:
         # litellm returns data sorted by index; sort explicitly to be safe.
         items = sorted(response.data, key=lambda d: d["index"])
         return [item["embedding"] for item in items]
+
+
+# ---------------------------------------------------------------------------
+# GeminiEmbedding — direct Gemini API (no litellm dependency)
+# ---------------------------------------------------------------------------
+
+_GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models/{model}"
+_GEMINI_BATCH_LIMIT = 100  # max texts per batchEmbedContents call
+
+
+class GeminiEmbedding:
+    """Embedding provider using the Gemini API directly.
+
+    Uses ``batchEmbedContents`` to embed multiple texts in a single API call,
+    reducing rate-limit pressure. Falls back to per-text calls for batches
+    larger than the API limit (100).
+
+    No litellm dependency — uses ``urllib`` only.
+    """
+
+    def __init__(
+        self,
+        model: str = "gemini-embedding-001",
+        api_key: str | None = None,
+    ) -> None:
+        self.model = model
+        self._api_key = api_key
+
+    def _get_key(self) -> str:
+        if self._api_key:
+            return self._api_key
+        import os
+        key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY", "")
+        if not key:
+            raise RuntimeError("No Gemini API key: set GOOGLE_API_KEY or pass api_key=")
+        return key
+
+    def embed(self, texts: list[str]) -> list[list[float]]:
+        """Embed texts using batch API. Chunks into groups of 100."""
+        key = self._get_key()
+        results: list[list[float]] = []
+        for i in range(0, len(texts), _GEMINI_BATCH_LIMIT):
+            chunk = texts[i : i + _GEMINI_BATCH_LIMIT]
+            results.extend(self._batch_embed(chunk, key))
+        return results
+
+    def _batch_embed(self, texts: list[str], key: str) -> list[list[float]]:
+        url = _GEMINI_BASE.format(model=self.model) + f":batchEmbedContents?key={key}"
+        body = json.dumps({
+            "requests": [
+                {
+                    "model": f"models/{self.model}",
+                    "content": {"parts": [{"text": t}]},
+                }
+                for t in texts
+            ],
+        }).encode()
+        req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
+        resp = json.loads(urllib.request.urlopen(req).read())
+        return [e["values"] for e in resp["embeddings"]]
