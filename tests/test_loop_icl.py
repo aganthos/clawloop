@@ -73,7 +73,8 @@ class TestLoopCallsReflectorViaHarness:
             system_prompts={"test": "You are helpful."},
             reflector=reflector,
         )
-        adapter = _MockAdapter(reward=0.8)
+        # Use failure reward so episodes go to harness (support-query separation)
+        adapter = _MockAdapter(reward=0.2)
         state = AgentState(harness=harness)
 
         state, sid = learning_loop(
@@ -103,7 +104,8 @@ class TestLoopWithAdaptiveIntensity:
             reflector=reflector,
         )
         intensity = AdaptiveIntensity(reflect_every_n=2)
-        adapter = _MockAdapter(reward=0.8)
+        # Use failure reward so episodes go to harness (support-query separation)
+        adapter = _MockAdapter(reward=0.2)
         state = AgentState(harness=harness)
 
         state, sid = learning_loop(
