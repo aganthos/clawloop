@@ -122,7 +122,15 @@ class AsyncLearner:
                 batch_id, len(episodes), avg_reward,
             )
 
-            datum = Datum(episodes=episodes)
+            # Support-query separation (MetaClaw Algorithm 1)
+            support_episodes = [ep for ep in episodes if ep.summary.effective_reward() < 0]
+            query_episodes = [ep for ep in episodes if ep.summary.effective_reward() >= 0]
+
+            layer_datums: dict[str, Datum] = {
+                "harness": Datum(episodes=support_episodes),
+                "weights": Datum(episodes=query_episodes),
+                "router": Datum(episodes=episodes),
+            }
 
             # Phase 1: forward_backward all layers, collect results
             fb_results: dict[str, FBResult] = {}
@@ -132,6 +140,7 @@ class AsyncLearner:
                 if layer is None:
                     continue
                 layers.append((name, layer))
+                datum = layer_datums.get(name, Datum(episodes=episodes))
                 should_clear = False
                 try:
                     fb_result = layer.forward_backward(datum).result()
@@ -219,6 +228,22 @@ class AsyncLearner:
                 self._batches_failed += 1
                 error_msg = "optim_step failed"
                 return
+
+            # Generation flush: clear stale weights buffer on playbook advance
+            harness = getattr(self.agent_state, "harness", None)
+            weights = getattr(self.agent_state, "weights", None)
+            if harness is not None and hasattr(harness, "playbook_generation"):
+                current_gen = harness.playbook_generation
+                prev_gen = getattr(self, "_prev_playbook_generation", current_gen)
+                if current_gen > prev_gen:
+                    if weights is not None and hasattr(weights, "_pending"):
+                        stale = len(weights._pending.advantages)
+                        weights._pending.advantages.clear()
+                        log.info(
+                            "Generation %d->%d: flushed %d stale episodes from weights buffer",
+                            prev_gen, current_gen, stale,
+                        )
+                self._prev_playbook_generation = current_gen
 
             self._batches_trained += 1
             self._iteration += 1

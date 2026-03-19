@@ -214,8 +214,19 @@ def learning_loop(
         if intensity is not None:
             intensity.record_reward(avg_reward)
 
-        # 2. Build Datum
-        datum = Datum(episodes=episodes)
+        # 2. Support-query separation (MetaClaw Algorithm 1)
+        support_episodes = [ep for ep in episodes if ep.summary.effective_reward() < 0]
+        query_episodes = [ep for ep in episodes if ep.summary.effective_reward() >= 0]
+
+        layer_datums: dict[str, Datum] = {
+            "harness": Datum(episodes=support_episodes),  # learn from failures
+            "weights": Datum(episodes=query_episodes),     # optimize from successes
+            "router": Datum(episodes=episodes),            # needs both signals
+        }
+        log.info(
+            "  support=%d query=%d (of %d episodes)",
+            len(support_episodes), len(query_episodes), len(episodes),
+        )
 
         # 3. Phase 1: forward_backward (all active layers)
         fb_results: dict[str, FBResult] = {}
@@ -225,6 +236,7 @@ def learning_loop(
                 log.info("  skipping harness fb (adaptive intensity)")
                 fb_results[name] = FBResult(status="skipped")
                 continue
+            datum = layer_datums.get(name, Datum(episodes=episodes))
             should_clear = False
             try:
                 fut = layer.forward_backward(datum)
@@ -300,6 +312,21 @@ def learning_loop(
                             )
                     except Exception:
                         log.exception("  rollback failed for %s", name)
+
+        # Generation flush: when playbook_generation advances, clear stale
+        # episodes from weights buffer to prevent RL learning pre-adaptation behavior
+        if isinstance(agent_state.harness, Harness) and not optim_failed:
+            current_gen = agent_state.harness.playbook_generation
+            prev_gen = getattr(agent_state, "_prev_playbook_generation", current_gen)
+            if current_gen > prev_gen:
+                if hasattr(agent_state.weights, "_pending"):
+                    stale = len(agent_state.weights._pending.advantages)
+                    agent_state.weights._pending.advantages.clear()
+                    log.info(
+                        "  Generation %d->%d: flushed %d stale episodes from weights buffer",
+                        prev_gen, current_gen, stale,
+                    )
+            agent_state._prev_playbook_generation = current_gen  # type: ignore[attr-defined]
 
         # Paradigm breakthrough on stagnation
         if paradigm is not None and intensity is not None and intensity.is_stagnating():
