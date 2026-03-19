@@ -9,6 +9,7 @@ pattern analysis).
 from __future__ import annotations
 
 import logging
+import re
 import time
 from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
@@ -17,6 +18,16 @@ from lfx.core.episode import Episode
 from lfx.layers.harness import Insight, Playbook, PlaybookEntry
 
 log = logging.getLogger(__name__)
+
+_JSON_FENCE_RE = re.compile(r"```(?:json)?\s*\n?(.*?)\n?\s*```", re.DOTALL)
+
+
+def _extract_json(text: str) -> str:
+    """Strip markdown code fences if present, return raw JSON string."""
+    m = _JSON_FENCE_RE.search(text)
+    if m:
+        return m.group(1).strip()
+    return text.strip()
 
 
 @dataclass
@@ -146,7 +157,7 @@ class EpisodeDreamer:
 
             response = self.llm.complete(prompt)
             text = response.text if hasattr(response, "text") else str(response)
-            parsed = json.loads(text)
+            parsed = json.loads(_extract_json(text))
             applied = 0
             for item in parsed:
                 tags = item.get("tags", ["meta-pattern"])

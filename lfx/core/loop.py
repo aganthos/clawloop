@@ -321,13 +321,12 @@ def learning_loop(
             current_gen = agent_state.harness.playbook_generation
             prev_gen = getattr(agent_state, "_prev_playbook_generation", current_gen)
             if current_gen > prev_gen:
-                if hasattr(agent_state.weights, "_pending"):
-                    stale = len(agent_state.weights._pending.advantages)
-                    agent_state.weights._pending.advantages.clear()
-                    log.info(
-                        "  Generation %d->%d: flushed %d stale episodes from weights buffer",
-                        prev_gen, current_gen, stale,
-                    )
+                stale = len(getattr(getattr(agent_state.weights, "_pending", None), "advantages", []))
+                agent_state.weights.clear_pending_state()
+                log.info(
+                    "  Generation %d->%d: flushed %d stale episodes from weights buffer",
+                    prev_gen, current_gen, stale,
+                )
             agent_state._prev_playbook_generation = current_gen  # type: ignore[attr-defined]
 
         # GEPA evolution: mutate from failures, crossover from Pareto front
