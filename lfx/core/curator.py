@@ -126,10 +126,25 @@ class PlaybookCurator:
         self._config = config or CuratorConfig()
         self._metrics = CuratorMetrics()
 
+    @classmethod
+    def lightweight(cls, max_entries: int = 50) -> PlaybookCurator:
+        """Create a curator without embeddings or LLM.
+
+        Suitable for narrow agents (e.g. n8n workflows) where playbooks
+        are small enough that all entries fit in context. Provides pruning
+        and capping but no similarity-based dedup or merging.
+        """
+        return cls(config=CuratorConfig(max_playbook_entries=max_entries))
+
     @property
     def metrics(self) -> CuratorMetrics:
         """Read-only access to cumulative metrics."""
         return self._metrics
+
+    @property
+    def max_entries(self) -> int:
+        """Maximum number of active playbook entries."""
+        return self._config.max_playbook_entries
 
     # ------------------------------------------------------------------
     # Public API
@@ -438,6 +453,74 @@ class PlaybookCurator:
 
         return classification
 
+    def _create_merged_entry(
+        self,
+        content: str,
+        source_entries: list[PlaybookEntry],
+        extra_source_ids: list[str] | None = None,
+        extra_tags: list[str] | None = None,
+        helpful: int | None = None,
+        harmful: int = 0,
+        prefix: str = "cur",
+    ) -> PlaybookEntry:
+        """Create a new PlaybookEntry by aggregating metadata from source entries."""
+        new_id = PlaybookEntry.new_id(prefix=prefix)
+
+        source_ids: list[str] = list(extra_source_ids or [])
+        for entry in source_entries:
+            source_ids.extend(entry.source_episode_ids)
+
+        all_tags: list[str] = list(extra_tags or [])
+        for entry in source_entries:
+            all_tags.extend(entry.tags)
+        unique_tags = list(dict.fromkeys(all_tags))
+
+        new_embedding = None
+        if self._embeddings is not None:
+            try:
+                new_embedding = self._embeddings.embed([content])[0]
+            except Exception:
+                pass
+
+        now = time.time()
+        model_id = getattr(self._embeddings, "model", None) if self._embeddings else None
+        if helpful is None:
+            helpful = sum(e.helpful for e in source_entries) + 1
+
+        return PlaybookEntry(
+            id=new_id,
+            content=content,
+            helpful=helpful,
+            harmful=harmful,
+            tags=unique_tags,
+            source_episode_ids=source_ids,
+            created_at=now,
+            last_activated=now,
+            generation=max((e.generation for e in source_entries), default=0) + 1,
+            embedding=new_embedding,
+            embedding_model_id=model_id if new_embedding else None,
+            embedding_updated_at=now if new_embedding else None,
+        )
+
+    def _supersede_and_add(
+        self,
+        new_entry: PlaybookEntry,
+        originals: list[PlaybookEntry],
+        playbook: Playbook,
+        action: str,
+    ) -> CurationResult:
+        """Mark originals as superseded, add new entry, return result."""
+        affected_ids: list[str] = []
+        for entry in originals:
+            entry.superseded_by = new_entry.id
+            affected_ids.append(entry.id)
+        playbook.add(new_entry)
+        return CurationResult(
+            action=action,
+            entries_affected=affected_ids,
+            new_entry=new_entry,
+        )
+
     def _resolve_conflict(
         self,
         insight: Insight,
@@ -446,10 +529,7 @@ class PlaybookCurator:
     ) -> CurationResult:
         """Create new entry that resolves the conflict, mark originals as superseded."""
         conflicting_entries = [entry for entry, _sim in similar[:3]]
-
-        entries_text = "\n".join(
-            f"- [{e.id}] {e.content}" for e in conflicting_entries
-        )
+        entries_text = "\n".join(f"- [{e.id}] {e.content}" for e in conflicting_entries)
 
         messages = [
             {
@@ -474,57 +554,14 @@ class PlaybookCurator:
             },
         ]
 
-        result = self._llm.complete(messages)
-        resolved_text = str(result).strip()
-
-        # Create the new merged entry
-        new_id = PlaybookEntry.new_id(prefix="cur")
-        source_ids: list[str] = list(insight.source_episode_ids)
-        for entry in conflicting_entries:
-            source_ids.extend(entry.source_episode_ids)
-
-        # Collect tags from all sources
-        all_tags: list[str] = list(insight.tags)
-        for entry in conflicting_entries:
-            all_tags.extend(entry.tags)
-        unique_tags = list(dict.fromkeys(all_tags))  # dedupe, preserve order
-
-        # Embed the new entry
-        try:
-            new_embedding = self._embeddings.embed([resolved_text])[0]
-        except Exception:
-            new_embedding = None
-
-        now = time.time()
-        model_id = getattr(self._embeddings, "model", None) if self._embeddings else None
-        new_entry = PlaybookEntry(
-            id=new_id,
-            content=resolved_text,
-            helpful=sum(e.helpful for e in conflicting_entries) + 1,
+        resolved_text = str(self._llm.complete(messages)).strip()
+        new_entry = self._create_merged_entry(
+            resolved_text, conflicting_entries,
+            extra_source_ids=list(insight.source_episode_ids),
+            extra_tags=list(insight.tags),
             harmful=0,
-            tags=unique_tags,
-            source_episode_ids=source_ids,
-            created_at=now,
-            last_activated=now,
-            generation=max(e.generation for e in conflicting_entries) + 1,
-            embedding=new_embedding,
-            embedding_model_id=model_id if new_embedding else None,
-            embedding_updated_at=now if new_embedding else None,
         )
-
-        # Mark originals as superseded
-        affected_ids: list[str] = []
-        for entry in conflicting_entries:
-            entry.superseded_by = new_id
-            affected_ids.append(entry.id)
-
-        playbook.add(new_entry)
-
-        return CurationResult(
-            action="conflict_resolved",
-            entries_affected=affected_ids,
-            new_entry=new_entry,
-        )
+        return self._supersede_and_add(new_entry, conflicting_entries, playbook, "conflict_resolved")
 
     def _merge(
         self,
@@ -534,10 +571,7 @@ class PlaybookCurator:
     ) -> CurationResult:
         """Merge insight with similar entries into one stronger entry."""
         merge_candidates = [entry for entry, _sim in similar[:3]]
-
-        entries_text = "\n".join(
-            f"- [{e.id}] {e.content}" for e in merge_candidates
-        )
+        entries_text = "\n".join(f"- [{e.id}] {e.content}" for e in merge_candidates)
 
         messages = [
             {
@@ -560,55 +594,14 @@ class PlaybookCurator:
             },
         ]
 
-        result = self._llm.complete(messages)
-        merged_text = str(result).strip()
-
-        # Create the merged entry
-        new_id = PlaybookEntry.new_id(prefix="cur")
-        source_ids: list[str] = list(insight.source_episode_ids)
-        for entry in merge_candidates:
-            source_ids.extend(entry.source_episode_ids)
-
-        all_tags: list[str] = list(insight.tags)
-        for entry in merge_candidates:
-            all_tags.extend(entry.tags)
-        unique_tags = list(dict.fromkeys(all_tags))
-
-        try:
-            new_embedding = self._embeddings.embed([merged_text])[0]
-        except Exception:
-            new_embedding = None
-
-        now = time.time()
-        model_id = getattr(self._embeddings, "model", None) if self._embeddings else None
-        new_entry = PlaybookEntry(
-            id=new_id,
-            content=merged_text,
-            helpful=sum(e.helpful for e in merge_candidates) + 1,
+        merged_text = str(self._llm.complete(messages)).strip()
+        new_entry = self._create_merged_entry(
+            merged_text, merge_candidates,
+            extra_source_ids=list(insight.source_episode_ids),
+            extra_tags=list(insight.tags),
             harmful=sum(e.harmful for e in merge_candidates),
-            tags=unique_tags,
-            source_episode_ids=source_ids,
-            created_at=now,
-            last_activated=now,
-            generation=max(e.generation for e in merge_candidates) + 1,
-            embedding=new_embedding,
-            embedding_model_id=model_id if new_embedding else None,
-            embedding_updated_at=now if new_embedding else None,
         )
-
-        # Mark originals as superseded
-        affected_ids: list[str] = []
-        for entry in merge_candidates:
-            entry.superseded_by = new_id
-            affected_ids.append(entry.id)
-
-        playbook.add(new_entry)
-
-        return CurationResult(
-            action="merge",
-            entries_affected=affected_ids,
-            new_entry=new_entry,
-        )
+        return self._supersede_and_add(new_entry, merge_candidates, playbook, "merge")
 
     # ------------------------------------------------------------------
     # Consolidation helpers
@@ -700,38 +693,12 @@ class PlaybookCurator:
             },
         ]
 
-        result = self._llm.complete(messages)
-        merged_text = str(result).strip()
-
-        new_id = PlaybookEntry.new_id(prefix="con")
-
-        source_ids: list[str] = []
-        all_tags: list[str] = []
-        for entry in cluster:
-            source_ids.extend(entry.source_episode_ids)
-            all_tags.extend(entry.tags)
-        unique_tags = list(dict.fromkeys(all_tags))
-
-        try:
-            new_embedding = self._embeddings.embed([merged_text])[0]
-        except Exception:
-            new_embedding = None
-
-        now = time.time()
-        model_id = getattr(self._embeddings, "model", None) if self._embeddings else None
-        return PlaybookEntry(
-            id=new_id,
-            content=merged_text,
+        merged_text = str(self._llm.complete(messages)).strip()
+        return self._create_merged_entry(
+            merged_text, cluster,
             helpful=sum(e.helpful for e in cluster),
             harmful=sum(e.harmful for e in cluster),
-            tags=unique_tags,
-            source_episode_ids=source_ids,
-            created_at=now,
-            last_activated=now,
-            generation=max(e.generation for e in cluster) + 1,
-            embedding=new_embedding,
-            embedding_model_id=model_id if new_embedding else None,
-            embedding_updated_at=now if new_embedding else None,
+            prefix="con",
         )
 
     def _cap_entries(self, playbook: Playbook) -> int:

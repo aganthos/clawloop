@@ -750,7 +750,7 @@ class Harness:
             # Hard cap on active entries (exclude superseded from count)
             max_entries = 100
             if self._curator is not None:
-                max_entries = self._curator._config.max_playbook_entries
+                max_entries = self._curator.max_entries
             active = self.playbook.active_entries()
             if len(active) > max_entries:
                 active.sort(key=lambda e: e.effective_score(), reverse=True)

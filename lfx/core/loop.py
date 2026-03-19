@@ -31,6 +31,9 @@ log = logging.getLogger(__name__)
 
 LAYER_NAMES = ("harness", "router", "weights")
 
+# Decay rate applied to non-paradigm entries when a paradigm breakthrough fires.
+PARADIGM_DEPRECATION_DECAY = 0.05
+
 
 class ExperimentLog:
     """Append-only JSONL experiment logger.
@@ -313,10 +316,10 @@ def learning_loop(
                         for ins in insights:
                             agent_state.tried_paradigms.append(ins.content)
 
-                        # Deprecate old non-paradigm entries by reducing score
+                        # Deprecate old non-paradigm entries by increasing decay
                         for entry in agent_state.harness.playbook.active_entries():
                             if "paradigm" not in entry.tags:
-                                entry.decay_rate = max(entry.decay_rate, 0.05)
+                                entry.decay_rate = max(entry.decay_rate, PARADIGM_DEPRECATION_DECAY)
 
                         agent_state.harness._pending.insights.extend(insights)
                         agent_state.harness.optim_step()
