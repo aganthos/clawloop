@@ -7,6 +7,7 @@ when progress stagnates.
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field
 
 
@@ -23,12 +24,17 @@ class AdaptiveIntensity:
     stagnation_threshold:
         If ``max - min`` of the last *stagnation_window* rewards is below
         this value, the agent is considered stagnating.
+    cooldown_after_request:
+        Seconds to wait after the last user request before allowing
+        reflection. Prevents quality dips during active interaction.
     """
 
     reflect_every_n: int = 3
     stagnation_window: int = 5
     stagnation_threshold: float = 0.02
+    cooldown_after_request: float = 30.0
     _rewards: list[float] = field(default_factory=list)
+    _last_user_request: float = 0.0
 
     # ------------------------------------------------------------------
     # Public API
@@ -38,15 +44,24 @@ class AdaptiveIntensity:
         """Append an observed average reward to the history."""
         self._rewards.append(avg_reward)
 
+    def record_user_activity(self) -> None:
+        """Record that the user just sent a request."""
+        self._last_user_request = time.time()
+
     def should_reflect(self, iteration: int) -> bool:
         """Return whether the reflector should fire at *iteration*.
 
         Rules (evaluated in order):
+        0. Defer if user is active (within cooldown window).
         1. Always reflect on the very first iteration.
         2. Always reflect when there are fewer than 2 recorded rewards.
         3. Always reflect when the agent is stagnating.
         4. Otherwise reflect only on every *reflect_every_n*-th iteration.
         """
+        if self._last_user_request > 0:
+            elapsed = time.time() - self._last_user_request
+            if elapsed < self.cooldown_after_request:
+                return False
         if iteration == 0 or len(self._rewards) < 2:
             return True
         if self.is_stagnating():

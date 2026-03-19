@@ -17,6 +17,7 @@ from lfx.core.episode import (
     Timing,
     TokenUsage,
 )
+from lfx.core.intensity import AdaptiveIntensity
 from lfx.core.parse import parse_logprobs, parse_tool_calls
 from lfx.core.reward import RewardPipeline, RewardSignal
 from lfx.extractors.formatting import FormattingFilter
@@ -39,6 +40,7 @@ class EpisodeCollector:
         formatting_filter: FormattingFilter | None = None,
         max_episode_cache: int = 10_000,
         state_id: str | Callable[[], str] = "live",
+        intensity: AdaptiveIntensity | None = None,
     ) -> None:
         self.pipeline = pipeline
         self.batch_size = batch_size
@@ -46,6 +48,7 @@ class EpisodeCollector:
         self.formatting_filter = formatting_filter or FormattingFilter()
         self._max_cache = max_episode_cache
         self._state_id = state_id
+        self._intensity = intensity
 
         self._buffer: list[Episode] = []
         self._episode_index: OrderedDict[str, Episode] = OrderedDict()
@@ -103,6 +106,10 @@ class EpisodeCollector:
             model=model,
             created_at=time.time(),
         )
+
+        # Record user activity for intensity gating
+        if self._intensity is not None:
+            self._intensity.record_user_activity()
 
         # Enrich with reward signals
         self.pipeline.enrich(episode)
