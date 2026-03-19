@@ -230,6 +230,9 @@ class PlaybookCurator:
         if not active:
             return []
 
+        if self._llm is None:
+            return []
+
         # Build a prompt for the LLM to find conflicts
         entries_text = "\n".join(
             f"- [{e.id}] {e.content}" for e in active

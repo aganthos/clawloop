@@ -45,6 +45,7 @@ def _make_entry(
         harmful=harmful,
         tags=tags or [],
         embedding=embedding,
+        embedding_model_id=_EMB.model,
     )
 
 

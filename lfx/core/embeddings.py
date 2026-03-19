@@ -62,10 +62,13 @@ def find_similar(
 
     Entries whose ``embedding`` is ``None`` are silently skipped.
     """
+    query_dim = len(query_embedding)
     scored: list[tuple[PlaybookEntry, float]] = []
     for entry in entries:
         if entry.embedding is None:
             continue
+        if len(entry.embedding) != query_dim:
+            continue  # skip dimension mismatch (stale model)
         sim = cosine_similarity(query_embedding, entry.embedding)
         if sim >= threshold:
             scored.append((entry, sim))
@@ -87,8 +90,9 @@ class MockEmbedding:
     ensuring reproducible results across runs.
     """
 
-    def __init__(self, dim: int = _MOCK_DIM) -> None:
+    def __init__(self, dim: int = _MOCK_DIM, model: str = "mock-embedding") -> None:
         self.dim = dim
+        self.model = model
 
     def embed(self, texts: list[str]) -> list[list[float]]:
         return [self._embed_one(t) for t in texts]
