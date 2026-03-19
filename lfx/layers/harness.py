@@ -21,6 +21,8 @@ Learning strategy combines three mechanisms:
 from __future__ import annotations
 
 import copy
+import math
+import time
 import uuid
 from dataclasses import dataclass, field
 from typing import Any
@@ -91,6 +93,22 @@ class PlaybookEntry:
     harmful: int = 0
     tags: list[str] = field(default_factory=list)
     source_episode_ids: list[str] = field(default_factory=list)
+    # --- Structured fields (MetaClaw-inspired) ---
+    name: str = ""
+    description: str = ""
+    anti_patterns: str = ""
+    category: str = "general"
+    # --- Temporal / decay ---
+    created_at: float = field(default_factory=time.time)
+    last_activated: float = field(default_factory=time.time)
+    generation: int = 0
+    decay_rate: float = 0.01
+    # --- Embedding cache ---
+    embedding: list[float] | None = None
+    embedding_model_id: str | None = None
+    embedding_updated_at: float | None = None
+    # --- Supersession ---
+    superseded_by: str | None = None
 
     @staticmethod
     def new_id(prefix: str = "str") -> str:
@@ -100,15 +118,44 @@ class PlaybookEntry:
         """Net usefulness signal (helpful - harmful)."""
         return float(self.helpful - self.harmful)
 
+    def effective_score(self) -> float:
+        """Net score with temporal decay applied."""
+        anchor = self.last_activated if self.last_activated != self.created_at else self.created_at
+        age_days = (time.time() - anchor) / 86400
+        raw = float(self.helpful - self.harmful)
+        return raw * math.exp(-self.decay_rate * age_days)
+
+    def needs_reembed(self, current_model_id: str) -> bool:
+        """True if embedding is missing, stale, or from a different model."""
+        if self.embedding is None:
+            return True
+        if self.embedding_model_id != current_model_id:
+            return True
+        return False
+
     def to_dict(self) -> dict[str, Any]:
-        return {
+        d: dict[str, Any] = {
             "id": self.id,
             "content": self.content,
             "helpful": self.helpful,
             "harmful": self.harmful,
             "tags": self.tags,
             "source_episode_ids": self.source_episode_ids,
+            "name": self.name,
+            "description": self.description,
+            "anti_patterns": self.anti_patterns,
+            "category": self.category,
+            "created_at": self.created_at,
+            "last_activated": self.last_activated,
+            "generation": self.generation,
+            "decay_rate": self.decay_rate,
+            "superseded_by": self.superseded_by,
         }
+        if self.embedding is not None:
+            d["embedding"] = self.embedding
+            d["embedding_model_id"] = self.embedding_model_id
+            d["embedding_updated_at"] = self.embedding_updated_at
+        return d
 
 
 @dataclass
@@ -146,16 +193,33 @@ class Playbook:
         self.entries = [e for e in self.entries if e.score() >= min_score]
         return before - len(self.entries)
 
+    def prune_by_effective_score(self, min_score: float = 0.0) -> int:
+        """Remove entries whose effective_score (with decay) is below threshold."""
+        before = len(self.entries)
+        self.entries = [e for e in self.entries if e.effective_score() >= min_score]
+        return before - len(self.entries)
+
+    def active_entries(self) -> list[PlaybookEntry]:
+        """Return entries that are not superseded."""
+        return [e for e in self.entries if not e.superseded_by]
+
     def render(self) -> str:
         """Render the playbook as a text block for inclusion in system prompts."""
         if not self.entries:
             return ""
         lines = ["## PLAYBOOK"]
         for e in self.entries:
-            tag_str = f" [{', '.join(e.tags)}]" if e.tags else ""
-            lines.append(
-                f"[{e.id}] helpful={e.helpful} harmful={e.harmful}{tag_str} :: {e.content}"
-            )
+            if e.superseded_by:
+                continue
+            if e.name and e.description:
+                lines.append(f"### {e.name}")
+                lines.append(f"**When**: {e.description}")
+                lines.append(e.content)
+                if e.anti_patterns:
+                    lines.append(f"**Anti-pattern**: {e.anti_patterns}")
+            else:
+                tag_str = f" [{', '.join(e.tags)}]" if e.tags else ""
+                lines.append(f"[{e.id}]{tag_str} :: {e.content}")
         return "\n".join(lines)
 
     def to_dict(self) -> dict[str, Any]:
@@ -325,8 +389,14 @@ class Harness:
     # Incremented on each successful optim_step that applies at least one update
     playbook_version: int = 0
 
+    # Incremented on structural playbook changes (insights applied, not just score updates)
+    playbook_generation: int = 0
+
     # Optional Reflector for LLM-based trace analysis during forward_backward
     reflector: Any | None = field(default=None, repr=False)
+
+    # Optional PlaybookCurator for retrieve-classify-revise pipeline
+    _curator: Any | None = field(default=None, repr=False)
 
     def system_prompt(self, bench: str) -> str:
         """Resolve the system prompt for a bench, including playbook."""
@@ -464,6 +534,7 @@ class Harness:
                 for k, v in self.validators.items()
             },
             "playbook_version": self.playbook_version,
+            "playbook_generation": self.playbook_generation,
         }
 
     # -- Layer protocol methods --
@@ -589,6 +660,18 @@ class Harness:
                 harmful=e.get("harmful", 0),
                 tags=e.get("tags", []),
                 source_episode_ids=e.get("source_episode_ids", []),
+                name=e.get("name", ""),
+                description=e.get("description", ""),
+                anti_patterns=e.get("anti_patterns", ""),
+                category=e.get("category", "general"),
+                created_at=e.get("created_at", time.time()),
+                last_activated=e.get("last_activated", time.time()),
+                generation=e.get("generation", 0),
+                decay_rate=e.get("decay_rate", 0.01),
+                embedding=e.get("embedding"),
+                embedding_model_id=e.get("embedding_model_id"),
+                embedding_updated_at=e.get("embedding_updated_at"),
+                superseded_by=e.get("superseded_by"),
             )
             for e in pb_data.get("entries", [])
         ]
@@ -626,8 +709,9 @@ class Harness:
         # Restore validators
         self.validators = state_dict.get("validators", {})
 
-        # Restore version counter
+        # Restore version counters
         self.playbook_version = state_dict.get("playbook_version", 0)
+        self.playbook_generation = state_dict.get("playbook_generation", 0)
 
         # Clear pending
         self._pending = _HarnessPending()
