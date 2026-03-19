@@ -755,8 +755,10 @@ class PlaybookCurator:
             return
 
         now = time.time()
+        model_id = getattr(self._embeddings, "model", None)
         for entry, emb in zip(needs_embed, embeddings):
             entry.embedding = emb
+            entry.embedding_model_id = model_id
             entry.embedding_updated_at = now
 
     # ------------------------------------------------------------------

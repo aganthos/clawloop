@@ -440,6 +440,7 @@ class Harness:
                     )
                     if result.action != "skip_redundant":
                         structural_change = True
+                        applied += 1
                 else:
                     entry = PlaybookEntry(
                         id=PlaybookEntry.new_id(),
@@ -449,7 +450,7 @@ class Harness:
                     )
                     self.playbook.add(entry)
                     structural_change = True
-                applied += 1
+                    applied += 1
             elif insight.action == "update" and insight.target_entry_id:
                 existing = self.playbook.lookup(insight.target_entry_id)
                 if existing:
@@ -732,6 +733,8 @@ class Harness:
             pruned = before_prune - len(self.playbook.entries)
             if pruned:
                 log.info("Auto-pruned %d low-scoring playbook entries", pruned)
+                updates += pruned
+                self.playbook_generation += 1
 
             # Hard cap on entries
             max_entries = 100
@@ -747,6 +750,8 @@ class Harness:
                     "Capped playbook at %d entries (removed %d)",
                     max_entries, overflow,
                 )
+                updates += overflow
+                self.playbook_generation += 1
 
             # Drain pending
             self._pending = _HarnessPending()
