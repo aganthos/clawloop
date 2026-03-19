@@ -734,12 +734,16 @@ class PlaybookCurator:
     # ------------------------------------------------------------------
 
     def _ensure_embeddings(self, playbook: Playbook) -> None:
-        """Embed any entries missing their embedding vector.
+        """Embed any entries missing or stale embedding vectors.
 
-        Batches all un-embedded entries into a single embed() call.
+        Batches all entries needing (re-)embedding into a single embed() call.
+        Checks both missing embeddings and model ID mismatches.
         """
+        current_model_id = getattr(self._embeddings, "model", None)
         needs_embed: list[PlaybookEntry] = [
-            e for e in playbook.entries if e.embedding is None
+            e for e in playbook.entries
+            if e.embedding is None
+            or (current_model_id is not None and e.needs_reembed(current_model_id))
         ]
         if not needs_embed:
             return

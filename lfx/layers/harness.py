@@ -736,18 +736,19 @@ class Harness:
                 updates += pruned
                 self.playbook_generation += 1
 
-            # Hard cap on entries
+            # Hard cap on active entries (exclude superseded from count)
             max_entries = 100
             if self._curator is not None:
                 max_entries = self._curator._config.max_playbook_entries
-            if len(self.playbook.entries) > max_entries:
-                self.playbook.entries.sort(
-                    key=lambda e: e.effective_score(), reverse=True,
-                )
-                overflow = len(self.playbook.entries) - max_entries
-                self.playbook.entries = self.playbook.entries[:max_entries]
+            active = self.playbook.active_entries()
+            if len(active) > max_entries:
+                active.sort(key=lambda e: e.effective_score(), reverse=True)
+                to_remove = active[max_entries:]
+                for entry in to_remove:
+                    self.playbook.remove(entry.id)
+                overflow = len(to_remove)
                 log.info(
-                    "Capped playbook at %d entries (removed %d)",
+                    "Capped playbook at %d active entries (removed %d)",
                     max_entries, overflow,
                 )
                 updates += overflow
