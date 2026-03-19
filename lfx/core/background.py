@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
 
 from lfx.core.episode import Episode
-from lfx.layers.harness import Insight, Playbook
+from lfx.layers.harness import Insight, Playbook, PlaybookEntry
 
 log = logging.getLogger(__name__)
 
@@ -98,10 +98,10 @@ class EpisodeDreamer:
             and state.is_user_idle
         )
 
-    def run(self, state: BackgroundState) -> list[Insight]:
-        """Analyze cross-episode patterns and return insights."""
+    def run(self, state: BackgroundState) -> None:
+        """Analyze cross-episode patterns and apply insights to playbook."""
         if self.llm is None:
-            return []
+            return
 
         episode_summaries = []
         for ep in state.recent_episodes[-self.episode_threshold :]:
@@ -113,7 +113,7 @@ class EpisodeDreamer:
             )
 
         if not episode_summaries:
-            return []
+            return
 
         prompt = [
             {
@@ -147,23 +147,23 @@ class EpisodeDreamer:
             response = self.llm.complete(prompt)
             text = response.text if hasattr(response, "text") else str(response)
             parsed = json.loads(text)
-            insights = []
+            applied = 0
             for item in parsed:
                 tags = item.get("tags", ["meta-pattern"])
                 if "meta-pattern" not in tags:
                     tags.append("meta-pattern")
-                insights.append(
-                    Insight(
-                        action=item.get("action", "add"),
-                        content=item.get("content", ""),
+                content = item.get("content", "")
+                if content:
+                    entry = PlaybookEntry(
+                        id=PlaybookEntry.new_id(),
+                        content=content,
                         tags=tags,
                     )
-                )
-            log.info("EpisodeDreamer produced %d insights", len(insights))
-            return insights
+                    state.playbook.add(entry)
+                    applied += 1
+            log.info("EpisodeDreamer applied %d entries to playbook", applied)
         except Exception:
             log.exception("EpisodeDreamer failed")
-            return []
 
 
 class BackgroundScheduler:

@@ -41,7 +41,7 @@ def _make_state(episodes=None, episodes_since=25, time_since=700.0, idle=True):
 
 
 class TestEpisodeDreamer:
-    def test_dreamer_produces_tagged_insights(self) -> None:
+    def test_dreamer_applies_entries_to_playbook(self) -> None:
         mock_response = json.dumps([
             {
                 "action": "add",
@@ -53,20 +53,23 @@ class TestEpisodeDreamer:
         dreamer = EpisodeDreamer(llm=llm, episode_threshold=5)
         state = _make_state()
 
-        insights = dreamer.run(state)
+        initial_count = len(state.playbook.entries)
+        dreamer.run(state)
 
-        assert len(insights) == 1
-        assert insights[0].content == "Pattern: failures cluster around X"
-        assert "meta-pattern" in insights[0].tags
-        assert insights[0].action == "add"
+        # Entry should be added to the playbook directly
+        assert len(state.playbook.entries) == initial_count + 1
+        new_entry = state.playbook.entries[-1]
+        assert new_entry.content == "Pattern: failures cluster around X"
+        assert "meta-pattern" in new_entry.tags
 
-    def test_dreamer_returns_empty_without_llm(self) -> None:
+    def test_dreamer_noop_without_llm(self) -> None:
         dreamer = EpisodeDreamer(llm=None)
         state = _make_state()
 
-        insights = dreamer.run(state)
+        initial_count = len(state.playbook.entries)
+        dreamer.run(state)
 
-        assert insights == []
+        assert len(state.playbook.entries) == initial_count
 
     def test_dreamer_should_run_conditions(self) -> None:
         llm = MockLLMClient(responses=["[]"])
@@ -102,6 +105,8 @@ class TestEpisodeDreamer:
         dreamer = EpisodeDreamer(llm=llm, episode_threshold=5)
         state = _make_state()
 
-        insights = dreamer.run(state)
+        initial_count = len(state.playbook.entries)
+        dreamer.run(state)
 
-        assert insights == []
+        # No entries added on parse failure
+        assert len(state.playbook.entries) == initial_count

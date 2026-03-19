@@ -409,8 +409,8 @@ class TestBackgroundSchedulerReal:
         # Curator should have run (pruning at minimum)
         assert curator._metrics.consolidation_runs >= 1
 
-    def test_dreamer_produces_real_insights(self) -> None:
-        """EpisodeDreamer uses the LLM to analyze episodes and produce insights."""
+    def test_dreamer_applies_entries_to_playbook(self) -> None:
+        """EpisodeDreamer uses the LLM to analyze episodes and add entries to playbook."""
         llm = MockLLMClient(responses=[
             _dreamer_json("Failure pattern: agent struggles with multi-step reasoning"),
         ])
@@ -435,10 +435,10 @@ class TestBackgroundSchedulerReal:
             recent_episodes=episodes,
         )
 
-        insights = dreamer.run(state)
-        assert len(insights) >= 1
-        assert "meta-pattern" in insights[0].tags
-        assert "multi-step" in insights[0].content
+        dreamer.run(state)
+        assert len(playbook.entries) >= 1
+        assert "meta-pattern" in playbook.entries[0].tags
+        assert "multi-step" in playbook.entries[0].content
 
 
 # ---------------------------------------------------------------------------
