@@ -83,7 +83,7 @@ class TestPlaybook:
         text = pb.render()
         assert "PLAYBOOK" in text
         assert "[s-1]" in text
-        assert "helpful=3" in text
+        assert "test" in text
 
     def test_render_empty(self) -> None:
         assert Playbook().render() == ""

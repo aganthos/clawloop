@@ -31,6 +31,9 @@ log = logging.getLogger(__name__)
 
 LAYER_NAMES = ("harness", "router", "weights")
 
+# Decay rate applied to non-paradigm entries when a paradigm breakthrough fires.
+PARADIGM_DEPRECATION_DECAY = 0.05
+
 
 class ExperimentLog:
     """Append-only JSONL experiment logger.
@@ -114,6 +117,7 @@ class AgentState:
     router: Router = field(default_factory=Router)
     weights: Weights = field(default_factory=Weights)
     inference_url: str | None = None  # vLLM endpoint for Harbor agents
+    tried_paradigms: list[str] = field(default_factory=list)  # paradigm contents tried
 
     def state_id(self) -> StateID:
         return StateID.from_layers(self.harness, self.router, self.weights)
@@ -305,9 +309,18 @@ def learning_loop(
                     insights = paradigm.generate(
                         playbook=agent_state.harness.playbook,
                         reward_history=intensity._rewards,
-                        tried_paradigms=[],  # TODO: track tried paradigms
+                        tried_paradigms=agent_state.tried_paradigms,
                     )
                     if insights:
+                        # Track tried paradigm contents
+                        for ins in insights:
+                            agent_state.tried_paradigms.append(ins.content)
+
+                        # Deprecate old non-paradigm entries by increasing decay
+                        for entry in agent_state.harness.playbook.active_entries():
+                            if "paradigm" not in entry.tags:
+                                entry.decay_rate = max(entry.decay_rate, PARADIGM_DEPRECATION_DECAY)
+
                         agent_state.harness._pending.insights.extend(insights)
                         agent_state.harness.optim_step()
                         log.info("  paradigm: applied %d insights", len(insights))

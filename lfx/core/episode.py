@@ -148,6 +148,7 @@ class EpisodeSummary:
         self.token_usage = token_usage
         self.timing = timing
         self.filtered = filtered
+        self.scored_at_generation: int | None = None
         if total_reward is not None:
             self.total_reward = total_reward  # calls the setter
 

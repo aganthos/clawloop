@@ -21,6 +21,8 @@ Learning strategy combines three mechanisms:
 from __future__ import annotations
 
 import copy
+import math
+import time
 import uuid
 from dataclasses import dataclass, field
 from typing import Any
@@ -91,6 +93,22 @@ class PlaybookEntry:
     harmful: int = 0
     tags: list[str] = field(default_factory=list)
     source_episode_ids: list[str] = field(default_factory=list)
+    # --- Structured fields (MetaClaw-inspired) ---
+    name: str = ""
+    description: str = ""
+    anti_patterns: str = ""
+    category: str = "general"
+    # --- Temporal / decay ---
+    created_at: float = field(default_factory=time.time)
+    last_activated: float = field(default_factory=time.time)
+    generation: int = 0
+    decay_rate: float = 0.01
+    # --- Embedding cache ---
+    embedding: list[float] | None = None
+    embedding_model_id: str | None = None
+    embedding_updated_at: float | None = None
+    # --- Supersession ---
+    superseded_by: str | None = None
 
     @staticmethod
     def new_id(prefix: str = "str") -> str:
@@ -100,15 +118,44 @@ class PlaybookEntry:
         """Net usefulness signal (helpful - harmful)."""
         return float(self.helpful - self.harmful)
 
+    def effective_score(self) -> float:
+        """Net score with temporal decay applied."""
+        anchor = self.last_activated if self.last_activated != self.created_at else self.created_at
+        age_days = (time.time() - anchor) / 86400
+        raw = float(self.helpful - self.harmful)
+        return raw * math.exp(-self.decay_rate * age_days)
+
+    def needs_reembed(self, current_model_id: str) -> bool:
+        """True if embedding is missing, stale, or from a different model."""
+        if self.embedding is None:
+            return True
+        if self.embedding_model_id != current_model_id:
+            return True
+        return False
+
     def to_dict(self) -> dict[str, Any]:
-        return {
+        d: dict[str, Any] = {
             "id": self.id,
             "content": self.content,
             "helpful": self.helpful,
             "harmful": self.harmful,
             "tags": self.tags,
             "source_episode_ids": self.source_episode_ids,
+            "name": self.name,
+            "description": self.description,
+            "anti_patterns": self.anti_patterns,
+            "category": self.category,
+            "created_at": self.created_at,
+            "last_activated": self.last_activated,
+            "generation": self.generation,
+            "decay_rate": self.decay_rate,
+            "superseded_by": self.superseded_by,
         }
+        if self.embedding is not None:
+            d["embedding"] = self.embedding
+            d["embedding_model_id"] = self.embedding_model_id
+            d["embedding_updated_at"] = self.embedding_updated_at
+        return d
 
 
 @dataclass
@@ -146,16 +193,33 @@ class Playbook:
         self.entries = [e for e in self.entries if e.score() >= min_score]
         return before - len(self.entries)
 
+    def prune_by_effective_score(self, min_score: float = 0.0) -> int:
+        """Remove entries whose effective_score (with decay) is below threshold."""
+        before = len(self.entries)
+        self.entries = [e for e in self.entries if e.effective_score() >= min_score]
+        return before - len(self.entries)
+
+    def active_entries(self) -> list[PlaybookEntry]:
+        """Return entries that are not superseded."""
+        return [e for e in self.entries if not e.superseded_by]
+
     def render(self) -> str:
         """Render the playbook as a text block for inclusion in system prompts."""
         if not self.entries:
             return ""
         lines = ["## PLAYBOOK"]
         for e in self.entries:
-            tag_str = f" [{', '.join(e.tags)}]" if e.tags else ""
-            lines.append(
-                f"[{e.id}] helpful={e.helpful} harmful={e.harmful}{tag_str} :: {e.content}"
-            )
+            if e.superseded_by:
+                continue
+            if e.name and e.description:
+                lines.append(f"### {e.name}")
+                lines.append(f"**When**: {e.description}")
+                lines.append(e.content)
+                if e.anti_patterns:
+                    lines.append(f"**Anti-pattern**: {e.anti_patterns}")
+            else:
+                tag_str = f" [{', '.join(e.tags)}]" if e.tags else ""
+                lines.append(f"[{e.id}]{tag_str} :: {e.content}")
         return "\n".join(lines)
 
     def to_dict(self) -> dict[str, Any]:
@@ -289,6 +353,7 @@ class _HarnessPending:
     playbook_signals: dict[str, tuple[int, int]] = field(default_factory=dict)
     insights: list[Insight] = field(default_factory=list)
     candidates: dict[str, list[PromptCandidate]] = field(default_factory=dict)
+    activated_entries: set[str] = field(default_factory=set)  # entry IDs to update last_activated
 
 
 # -- Harness layer --
@@ -325,8 +390,14 @@ class Harness:
     # Incremented on each successful optim_step that applies at least one update
     playbook_version: int = 0
 
+    # Incremented on structural playbook changes (insights applied, not just score updates)
+    playbook_generation: int = 0
+
     # Optional Reflector for LLM-based trace analysis during forward_backward
     reflector: Any | None = field(default=None, repr=False)
+
+    # Optional PlaybookCurator for retrieve-classify-revise pipeline
+    _curator: Any | None = field(default=None, repr=False)
 
     def system_prompt(self, bench: str) -> str:
         """Resolve the system prompt for a bench, including playbook."""
@@ -343,6 +414,9 @@ class Harness:
         through :meth:`_validate_insights` before application — this gates
         ALL insight sources including :class:`ParadigmBreakthrough`.
 
+        When a curator is configured, "add" insights are routed through the
+        retrieve-classify-revise pipeline instead of direct append.
+
         .. warning:: Security — indirect prompt injection
 
             Insights originate from LLM-based Reflectors that analyse episode
@@ -355,25 +429,48 @@ class Harness:
         """
         insights = self._validate_insights(insights)
         applied = 0
+        structural_change = False
         for insight in insights:
             if insight.action == "add":
-                entry = PlaybookEntry(
-                    id=PlaybookEntry.new_id(),
-                    content=insight.content,
-                    tags=insight.tags,
-                    source_episode_ids=list(insight.source_episode_ids),
-                )
-                self.playbook.add(entry)
-                applied += 1
+                if self._curator is not None:
+                    result = self._curator.curate_insight(insight, self.playbook)
+                    log.debug(
+                        "Curator: %s (affected=%s)",
+                        result.action, result.entries_affected,
+                    )
+                    if result.action != "skip_redundant":
+                        structural_change = True
+                        applied += 1
+                else:
+                    entry = PlaybookEntry(
+                        id=PlaybookEntry.new_id(),
+                        content=insight.content,
+                        tags=insight.tags,
+                        source_episode_ids=list(insight.source_episode_ids),
+                    )
+                    self.playbook.add(entry)
+                    structural_change = True
+                    applied += 1
             elif insight.action == "update" and insight.target_entry_id:
                 existing = self.playbook.lookup(insight.target_entry_id)
                 if existing:
                     existing.content = insight.content
                     existing.helpful += 1
+                    # Invalidate cached embedding on content change
+                    existing.embedding = None
+                    existing.embedding_model_id = None
+                    existing.embedding_updated_at = None
                     applied += 1
+                    structural_change = True
             elif insight.action == "remove" and insight.target_entry_id:
                 if self.playbook.remove(insight.target_entry_id):
                     applied += 1
+                    structural_change = True
+
+        # Increment playbook_generation on structural changes
+        if structural_change:
+            self.playbook_generation += 1
+
         return applied
 
     @staticmethod
@@ -450,6 +547,18 @@ class Harness:
         best = self.pareto_fronts[bench].best()
         if best:
             self.system_prompts[bench] = best.text
+            # Check coherence with playbook
+            if self._curator is not None and self.playbook.entries:
+                try:
+                    conflicts = self._curator.check_prompt_playbook_coherence(
+                        best.text, self.playbook,
+                    )
+                    if conflicts:
+                        log.warning(
+                            "GEPA-Playbook conflicts detected: %s", conflicts,
+                        )
+                except Exception:
+                    log.debug("Coherence check failed", exc_info=True)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -464,33 +573,111 @@ class Harness:
                 for k, v in self.validators.items()
             },
             "playbook_version": self.playbook_version,
+            "playbook_generation": self.playbook_generation,
         }
 
     # -- Layer protocol methods --
 
+    def _attribute_entries(self, episode: Any) -> list[PlaybookEntry]:
+        """Return playbook entries relevant to this episode.
+
+        Attribution strategy (cheapest first):
+        1. Tag match: if episode has tags/bench, match against entry tags.
+        2. Embedding similarity: cosine sim between entry and episode content.
+
+        Falls back to all entries if no attribution method works.
+        """
+        active = self.playbook.active_entries()
+        if not active:
+            return []
+
+        # Collect episode tags for matching
+        ep_tags: set[str] = set()
+        if hasattr(episode, "bench") and episode.bench:
+            ep_tags.add(episode.bench)
+        if hasattr(episode, "metadata") and isinstance(episode.metadata, dict):
+            for t in episode.metadata.get("tags", []):
+                ep_tags.add(str(t))
+
+        # Strategy 1: Tag match
+        if ep_tags:
+            tag_matched = [
+                e for e in active
+                if e.tags and ep_tags & set(e.tags)
+            ]
+            if tag_matched:
+                return tag_matched
+
+        # Strategy 2: Embedding similarity (if curator has embeddings)
+        if self._curator is not None:
+            try:
+                from lfx.core.embeddings import cosine_similarity
+                # Build a simple text representation of the episode
+                ep_text = " ".join(
+                    m.content for m in episode.messages
+                    if m.role in ("user", "assistant") and m.content
+                )[:500]
+                if ep_text:
+                    ep_embedding = self._curator._embeddings.embed([ep_text])[0]
+                    ep_dim = len(ep_embedding)
+                    current_model = getattr(self._curator._embeddings, "model", None)
+                    relevant = []
+                    for entry in active:
+                        if entry.embedding is None:
+                            continue
+                        # Skip entries with dimension mismatch (stale model)
+                        if len(entry.embedding) != ep_dim:
+                            continue
+                        # Skip entries with stale embedding model
+                        if current_model and entry.needs_reembed(current_model):
+                            continue
+                        sim = cosine_similarity(ep_embedding, entry.embedding)
+                        if sim >= (self._curator._config.attribution_threshold):
+                            relevant.append(entry)
+                    if relevant:
+                        return relevant
+            except Exception:
+                log.debug("Embedding attribution failed — falling back to all entries")
+
+        # Fallback: all active entries
+        return active
+
     def forward_backward(self, data: Datum) -> Future[FBResult]:
         """Analyse episodes and accumulate signals without mutating observable state.
 
-        For each episode, for each playbook entry, tallies helpful/harmful
-        based on ``effective_reward()`` in [-1, 1]: positive = helpful,
-        negative = harmful, zero = neutral (skipped).  Results are written
-        to ``self._pending.playbook_signals`` — a dict of
-        entry_id -> (helpful_delta, harmful_delta).
+        For each episode, attributes rewards only to relevant playbook entries
+        (tag match or embedding similarity). Skips stale episodes whose
+        ``scored_at_generation`` is behind the current ``playbook_generation``.
         """
+        stale_skipped = 0
         for episode in data.episodes:
+            # Skip stale episodes (scored before current playbook generation)
+            gen = getattr(episode.summary, "scored_at_generation", None)
+            if gen is not None and gen < self.playbook_generation:
+                stale_skipped += 1
+                continue
+
             reward = episode.summary.effective_reward()  # [-1, 1]
-            for entry in self.playbook.entries:
+            if reward == 0:
+                continue
+
+            # Only attribute to relevant entries
+            relevant_entries = self._attribute_entries(episode)
+            for entry in relevant_entries:
                 prev_h, prev_harm = self._pending.playbook_signals.get(
                     entry.id, (0, 0)
                 )
                 if reward > 0:
                     self._pending.playbook_signals[entry.id] = (prev_h + 1, prev_harm)
-                elif reward < 0:
+                else:
                     self._pending.playbook_signals[entry.id] = (prev_h, prev_harm + 1)
-                # reward == 0 (neutral) — skip, don't count
-        metrics = {
+                # Defer last_activated update to optim_step
+                self._pending.activated_entries.add(entry.id)
+
+        metrics: dict[str, Any] = {
             "episodes_processed": len(data.episodes),
             "entries_signaled": len(self._pending.playbook_signals),
+            "stale_skipped": stale_skipped,
         }
 
         # Reflector: analyse traces and accumulate insights
@@ -527,11 +714,14 @@ class Harness:
             updates = 0
 
             # Apply playbook signals
+            now = time.time()
             for entry_id, (h_delta, harm_delta) in pending.playbook_signals.items():
                 entry = self.playbook.lookup(entry_id)
                 if entry is not None:
                     entry.helpful += h_delta
                     entry.harmful += harm_delta
+                    if entry_id in pending.activated_entries:
+                        entry.last_activated = now
                     updates += 1
 
             # Apply pending insights (apply_insights validates internally)
@@ -543,6 +733,37 @@ class Harness:
                 for candidate in candidates:
                     self.update_pareto(bench, candidate)
                     updates += 1
+
+            # Auto-prune entries with sustained negative score
+            # Only prune entries that have enough signal (helpful+harmful >= 3)
+            before_prune = len(self.playbook.entries)
+            self.playbook.entries = [
+                e for e in self.playbook.entries
+                if e.score() >= 0.0 or (e.helpful + e.harmful) < 3
+            ]
+            pruned = before_prune - len(self.playbook.entries)
+            if pruned:
+                log.info("Auto-pruned %d low-scoring playbook entries", pruned)
+                updates += pruned
+                self.playbook_generation += 1
+
+            # Hard cap on active entries (exclude superseded from count)
+            max_entries = 100
+            if self._curator is not None:
+                max_entries = self._curator.max_entries
+            active = self.playbook.active_entries()
+            if len(active) > max_entries:
+                active.sort(key=lambda e: e.effective_score(), reverse=True)
+                to_remove = active[max_entries:]
+                for entry in to_remove:
+                    self.playbook.remove(entry.id)
+                overflow = len(to_remove)
+                log.info(
+                    "Capped playbook at %d active entries (removed %d)",
+                    max_entries, overflow,
+                )
+                updates += overflow
+                self.playbook_generation += 1
 
             # Drain pending
             self._pending = _HarnessPending()
@@ -589,6 +810,18 @@ class Harness:
                 harmful=e.get("harmful", 0),
                 tags=e.get("tags", []),
                 source_episode_ids=e.get("source_episode_ids", []),
+                name=e.get("name", ""),
+                description=e.get("description", ""),
+                anti_patterns=e.get("anti_patterns", ""),
+                category=e.get("category", "general"),
+                created_at=e.get("created_at", time.time()),
+                last_activated=e.get("last_activated", time.time()),
+                generation=e.get("generation", 0),
+                decay_rate=e.get("decay_rate", 0.01),
+                embedding=e.get("embedding"),
+                embedding_model_id=e.get("embedding_model_id"),
+                embedding_updated_at=e.get("embedding_updated_at"),
+                superseded_by=e.get("superseded_by"),
             )
             for e in pb_data.get("entries", [])
         ]
@@ -626,8 +859,9 @@ class Harness:
         # Restore validators
         self.validators = state_dict.get("validators", {})
 
-        # Restore version counter
+        # Restore version counters
         self.playbook_version = state_dict.get("playbook_version", 0)
+        self.playbook_generation = state_dict.get("playbook_generation", 0)
 
         # Clear pending
         self._pending = _HarnessPending()
