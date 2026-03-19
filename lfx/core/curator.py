@@ -492,6 +492,8 @@ class PlaybookCurator:
         except Exception:
             new_embedding = None
 
+        now = time.time()
+        model_id = getattr(self._embeddings, "model", None) if self._embeddings else None
         new_entry = PlaybookEntry(
             id=new_id,
             content=resolved_text,
@@ -499,10 +501,12 @@ class PlaybookCurator:
             harmful=0,
             tags=unique_tags,
             source_episode_ids=source_ids,
-            created_at=time.time(),
-            last_activated=time.time(),
+            created_at=now,
+            last_activated=now,
             generation=max(e.generation for e in conflicting_entries) + 1,
             embedding=new_embedding,
+            embedding_model_id=model_id if new_embedding else None,
+            embedding_updated_at=now if new_embedding else None,
         )
 
         # Mark originals as superseded
@@ -572,6 +576,8 @@ class PlaybookCurator:
         except Exception:
             new_embedding = None
 
+        now = time.time()
+        model_id = getattr(self._embeddings, "model", None) if self._embeddings else None
         new_entry = PlaybookEntry(
             id=new_id,
             content=merged_text,
@@ -579,10 +585,12 @@ class PlaybookCurator:
             harmful=sum(e.harmful for e in merge_candidates),
             tags=unique_tags,
             source_episode_ids=source_ids,
-            created_at=time.time(),
-            last_activated=time.time(),
+            created_at=now,
+            last_activated=now,
             generation=max(e.generation for e in merge_candidates) + 1,
             embedding=new_embedding,
+            embedding_model_id=model_id if new_embedding else None,
+            embedding_updated_at=now if new_embedding else None,
         )
 
         # Mark originals as superseded
@@ -706,6 +714,8 @@ class PlaybookCurator:
         except Exception:
             new_embedding = None
 
+        now = time.time()
+        model_id = getattr(self._embeddings, "model", None) if self._embeddings else None
         return PlaybookEntry(
             id=new_id,
             content=merged_text,
@@ -713,10 +723,12 @@ class PlaybookCurator:
             harmful=sum(e.harmful for e in cluster),
             tags=unique_tags,
             source_episode_ids=source_ids,
-            created_at=time.time(),
-            last_activated=time.time(),
+            created_at=now,
+            last_activated=now,
             generation=max(e.generation for e in cluster) + 1,
             embedding=new_embedding,
+            embedding_model_id=model_id if new_embedding else None,
+            embedding_updated_at=now if new_embedding else None,
         )
 
     def _cap_entries(self, playbook: Playbook) -> int:
@@ -789,6 +801,8 @@ class PlaybookCurator:
     ) -> CurationResult:
         """Create and add a fresh PlaybookEntry from an insight."""
         new_id = PlaybookEntry.new_id(prefix="cur")
+        now = time.time()
+        model_id = getattr(self._embeddings, "model", None) if self._embeddings else None
 
         entry = PlaybookEntry(
             id=new_id,
@@ -796,9 +810,11 @@ class PlaybookCurator:
             helpful=1,
             tags=list(insight.tags),
             source_episode_ids=list(insight.source_episode_ids),
-            created_at=time.time(),
-            last_activated=time.time(),
+            created_at=now,
+            last_activated=now,
             embedding=embedding,
+            embedding_model_id=model_id if embedding else None,
+            embedding_updated_at=now if embedding else None,
         )
 
         playbook.add(entry)

@@ -620,12 +620,16 @@ class Harness:
                 if ep_text:
                     ep_embedding = self._curator._embeddings.embed([ep_text])[0]
                     ep_dim = len(ep_embedding)
+                    current_model = getattr(self._curator._embeddings, "model", None)
                     relevant = []
                     for entry in active:
                         if entry.embedding is None:
                             continue
                         # Skip entries with dimension mismatch (stale model)
                         if len(entry.embedding) != ep_dim:
+                            continue
+                        # Skip entries with stale embedding model
+                        if current_model and entry.needs_reembed(current_model):
                             continue
                         sim = cosine_similarity(ep_embedding, entry.embedding)
                         if sim >= (self._curator._config.attribution_threshold):
