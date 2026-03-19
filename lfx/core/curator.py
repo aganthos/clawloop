@@ -117,8 +117,8 @@ class PlaybookCurator:
 
     def __init__(
         self,
-        embeddings: EmbeddingProvider,
-        llm: LLMClient,
+        embeddings: EmbeddingProvider | None = None,
+        llm: LLMClient | None = None,
         config: CuratorConfig | None = None,
     ) -> None:
         self._embeddings = embeddings
@@ -160,18 +160,23 @@ class PlaybookCurator:
         2. Within each cluster of >1 entry: LLM merges into one.
         3. Prune entries with effective_score < 0.
         4. Cap at max_entries by effective_score.
+
+        Without embeddings/LLM, only prune and cap steps run.
         """
         self._metrics.consolidation_runs += 1
         before = len(playbook.entries)
         merged_count = 0
         conflicts_resolved = 0
 
-        # --- Ensure all entries have embeddings ---
-        self._ensure_embeddings(playbook)
+        # --- Clustering + merging requires embeddings + LLM ---
+        if self._embeddings is not None and self._llm is not None:
+            self._ensure_embeddings(playbook)
 
-        # --- 1. Cluster ---
-        active = playbook.active_entries()
-        clusters = self._cluster_entries(active)
+            # --- 1. Cluster ---
+            active = playbook.active_entries()
+            clusters = self._cluster_entries(active)
+        else:
+            clusters = []
 
         # --- 2. Merge multi-entry clusters ---
         for cluster in clusters:
@@ -276,6 +281,10 @@ class PlaybookCurator:
         """Core retrieve-classify-revise logic (may raise)."""
         insight_text = insight.content
 
+        # --- No embeddings: lightweight mode (tag-only, direct add) ---
+        if self._embeddings is None:
+            return self._add_new(insight, playbook, embedding=None)
+
         # --- RETRIEVE ---
         self._ensure_embeddings(playbook)
         embedding = self._embeddings.embed([insight_text])[0]
@@ -299,9 +308,12 @@ class PlaybookCurator:
             insight_text, top_entry, top_sim
         )
 
-        # If heuristic is ambiguous, use LLM
+        # If heuristic is ambiguous, use LLM (if available)
         if classification is None:
-            classification = self._classify_llm(insight_text, similar)
+            if self._llm is not None:
+                classification = self._classify_llm(insight_text, similar)
+            else:
+                classification = "unrelated"
 
         # --- REVISE ---
         if classification == "identical":
