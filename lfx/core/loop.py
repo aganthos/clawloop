@@ -335,10 +335,11 @@ def learning_loop(
                 best = front.best()
                 if best is None:
                     continue
-                # Mutation: use support (failure) episodes
-                if support_episodes:
+                # Mutation: use support (failure) episodes filtered to this bench
+                bench_failures = [ep for ep in support_episodes if ep.bench == bench]
+                if bench_failures:
                     try:
-                        child = evolver.mutate(best, support_episodes)
+                        child = evolver.mutate(best, bench_failures)
                         if child is not None:
                             front.add(child)
                             log.info("  evolution: mutated %s -> %s", best.id, child.id)
