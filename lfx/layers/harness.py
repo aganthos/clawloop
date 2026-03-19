@@ -456,7 +456,10 @@ class Harness:
                 if existing:
                     existing.content = insight.content
                     existing.helpful += 1
-                    existing.embedding = None  # invalidate cached embedding
+                    # Invalidate cached embedding on content change
+                    existing.embedding = None
+                    existing.embedding_model_id = None
+                    existing.embedding_updated_at = None
                     applied += 1
                     structural_change = True
             elif insight.action == "remove" and insight.target_entry_id:
@@ -616,9 +619,13 @@ class Harness:
                 )[:500]
                 if ep_text:
                     ep_embedding = self._curator._embeddings.embed([ep_text])[0]
+                    ep_dim = len(ep_embedding)
                     relevant = []
                     for entry in active:
                         if entry.embedding is None:
+                            continue
+                        # Skip entries with dimension mismatch (stale model)
+                        if len(entry.embedding) != ep_dim:
                             continue
                         sim = cosine_similarity(ep_embedding, entry.embedding)
                         if sim >= (self._curator._config.attribution_threshold):
