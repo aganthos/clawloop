@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from lfx.core.episode import Episode
+from lfx.core.evolution import PromptEvolver
 from lfx.core.intensity import AdaptiveIntensity
 from lfx.core.paradigm import ParadigmBreakthrough
 from lfx.core.state import StateID
@@ -146,6 +147,7 @@ def learning_loop(
     active_layers: list[str] | None = None,
     intensity: AdaptiveIntensity | None = None,
     paradigm: ParadigmBreakthrough | None = None,
+    evolver: PromptEvolver | None = None,
     output_dir: str | Path | None = None,
 ) -> tuple[AgentState, StateID]:
     """Run the unified learning loop.
@@ -327,6 +329,32 @@ def learning_loop(
                         prev_gen, current_gen, stale,
                     )
             agent_state._prev_playbook_generation = current_gen  # type: ignore[attr-defined]
+
+        # GEPA evolution: mutate from failures, crossover from Pareto front
+        if evolver is not None and isinstance(agent_state.harness, Harness) and not optim_failed:
+            for bench, front in agent_state.harness.pareto_fronts.items():
+                best = front.best()
+                if best is None:
+                    continue
+                # Mutation: use support (failure) episodes
+                if support_episodes:
+                    try:
+                        child = evolver.mutate(best, support_episodes)
+                        if child is not None:
+                            front.add(child)
+                            log.info("  evolution: mutated %s -> %s", best.id, child.id)
+                    except Exception:
+                        log.exception("Mutation failed for bench %s", bench)
+                # Crossover: combine two non-dominated candidates
+                if len(front.candidates) >= 2:
+                    try:
+                        a, b = front.candidates[0], front.candidates[1]
+                        child = evolver.crossover(a, b)
+                        if child is not None:
+                            front.add(child)
+                            log.info("  evolution: crossover -> %s", child.id)
+                    except Exception:
+                        log.exception("Crossover failed for bench %s", bench)
 
         # Paradigm breakthrough on stagnation
         if paradigm is not None and intensity is not None and intensity.is_stagnating():
