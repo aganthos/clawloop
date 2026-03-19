@@ -353,6 +353,7 @@ class _HarnessPending:
     playbook_signals: dict[str, tuple[int, int]] = field(default_factory=dict)
     insights: list[Insight] = field(default_factory=list)
     candidates: dict[str, list[PromptCandidate]] = field(default_factory=dict)
+    activated_entries: set[str] = field(default_factory=set)  # entry IDs to update last_activated
 
 
 # -- Harness layer --
@@ -413,6 +414,9 @@ class Harness:
         through :meth:`_validate_insights` before application — this gates
         ALL insight sources including :class:`ParadigmBreakthrough`.
 
+        When a curator is configured, "add" insights are routed through the
+        retrieve-classify-revise pipeline instead of direct append.
+
         .. warning:: Security — indirect prompt injection
 
             Insights originate from LLM-based Reflectors that analyse episode
@@ -425,25 +429,44 @@ class Harness:
         """
         insights = self._validate_insights(insights)
         applied = 0
+        structural_change = False
         for insight in insights:
             if insight.action == "add":
-                entry = PlaybookEntry(
-                    id=PlaybookEntry.new_id(),
-                    content=insight.content,
-                    tags=insight.tags,
-                    source_episode_ids=list(insight.source_episode_ids),
-                )
-                self.playbook.add(entry)
+                if self._curator is not None:
+                    result = self._curator.curate_insight(insight, self.playbook)
+                    log.debug(
+                        "Curator: %s (affected=%s)",
+                        result.action, result.entries_affected,
+                    )
+                    if result.action != "skip_redundant":
+                        structural_change = True
+                else:
+                    entry = PlaybookEntry(
+                        id=PlaybookEntry.new_id(),
+                        content=insight.content,
+                        tags=insight.tags,
+                        source_episode_ids=list(insight.source_episode_ids),
+                    )
+                    self.playbook.add(entry)
+                    structural_change = True
                 applied += 1
             elif insight.action == "update" and insight.target_entry_id:
                 existing = self.playbook.lookup(insight.target_entry_id)
                 if existing:
                     existing.content = insight.content
                     existing.helpful += 1
+                    existing.embedding = None  # invalidate cached embedding
                     applied += 1
+                    structural_change = True
             elif insight.action == "remove" and insight.target_entry_id:
                 if self.playbook.remove(insight.target_entry_id):
                     applied += 1
+                    structural_change = True
+
+        # Increment playbook_generation on structural changes
+        if structural_change:
+            self.playbook_generation += 1
+
         return applied
 
     @staticmethod
@@ -520,6 +543,18 @@ class Harness:
         best = self.pareto_fronts[bench].best()
         if best:
             self.system_prompts[bench] = best.text
+            # Check coherence with playbook
+            if self._curator is not None and self.playbook.entries:
+                try:
+                    conflicts = self._curator.check_prompt_playbook_coherence(
+                        best.text, self.playbook,
+                    )
+                    if conflicts:
+                        log.warning(
+                            "GEPA-Playbook conflicts detected: %s", conflicts,
+                        )
+                except Exception:
+                    log.debug("Coherence check failed", exc_info=True)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -539,29 +574,98 @@ class Harness:
 
     # -- Layer protocol methods --
 
+    def _attribute_entries(self, episode: Any) -> list[PlaybookEntry]:
+        """Return playbook entries relevant to this episode.
+
+        Attribution strategy (cheapest first):
+        1. Tag match: if episode has tags/bench, match against entry tags.
+        2. Embedding similarity: cosine sim between entry and episode content.
+
+        Falls back to all entries if no attribution method works.
+        """
+        active = self.playbook.active_entries()
+        if not active:
+            return []
+
+        # Collect episode tags for matching
+        ep_tags: set[str] = set()
+        if hasattr(episode, "bench") and episode.bench:
+            ep_tags.add(episode.bench)
+        if hasattr(episode, "metadata") and isinstance(episode.metadata, dict):
+            for t in episode.metadata.get("tags", []):
+                ep_tags.add(str(t))
+
+        # Strategy 1: Tag match
+        if ep_tags:
+            tag_matched = [
+                e for e in active
+                if e.tags and ep_tags & set(e.tags)
+            ]
+            if tag_matched:
+                return tag_matched
+
+        # Strategy 2: Embedding similarity (if curator has embeddings)
+        if self._curator is not None:
+            try:
+                from lfx.core.embeddings import cosine_similarity
+                # Build a simple text representation of the episode
+                ep_text = " ".join(
+                    m.content for m in episode.messages
+                    if m.role in ("user", "assistant") and m.content
+                )[:500]
+                if ep_text:
+                    ep_embedding = self._curator._embeddings.embed([ep_text])[0]
+                    relevant = []
+                    for entry in active:
+                        if entry.embedding is None:
+                            continue
+                        sim = cosine_similarity(ep_embedding, entry.embedding)
+                        if sim >= (self._curator._config.attribution_threshold):
+                            relevant.append(entry)
+                    if relevant:
+                        return relevant
+            except Exception:
+                log.debug("Embedding attribution failed — falling back to all entries")
+
+        # Fallback: all active entries
+        return active
+
     def forward_backward(self, data: Datum) -> Future[FBResult]:
         """Analyse episodes and accumulate signals without mutating observable state.
 
-        For each episode, for each playbook entry, tallies helpful/harmful
-        based on ``effective_reward()`` in [-1, 1]: positive = helpful,
-        negative = harmful, zero = neutral (skipped).  Results are written
-        to ``self._pending.playbook_signals`` — a dict of
-        entry_id -> (helpful_delta, harmful_delta).
+        For each episode, attributes rewards only to relevant playbook entries
+        (tag match or embedding similarity). Skips stale episodes whose
+        ``scored_at_generation`` is behind the current ``playbook_generation``.
         """
+        stale_skipped = 0
         for episode in data.episodes:
+            # Skip stale episodes (scored before current playbook generation)
+            gen = getattr(episode.summary, "scored_at_generation", None)
+            if gen is not None and gen < self.playbook_generation:
+                stale_skipped += 1
+                continue
+
             reward = episode.summary.effective_reward()  # [-1, 1]
-            for entry in self.playbook.entries:
+            if reward == 0:
+                continue
+
+            # Only attribute to relevant entries
+            relevant_entries = self._attribute_entries(episode)
+            for entry in relevant_entries:
                 prev_h, prev_harm = self._pending.playbook_signals.get(
                     entry.id, (0, 0)
                 )
                 if reward > 0:
                     self._pending.playbook_signals[entry.id] = (prev_h + 1, prev_harm)
-                elif reward < 0:
+                else:
                     self._pending.playbook_signals[entry.id] = (prev_h, prev_harm + 1)
-                # reward == 0 (neutral) — skip, don't count
-        metrics = {
+                # Defer last_activated update to optim_step
+                self._pending.activated_entries.add(entry.id)
+
+        metrics: dict[str, Any] = {
             "episodes_processed": len(data.episodes),
             "entries_signaled": len(self._pending.playbook_signals),
+            "stale_skipped": stale_skipped,
         }
 
         # Reflector: analyse traces and accumulate insights
@@ -598,11 +702,14 @@ class Harness:
             updates = 0
 
             # Apply playbook signals
+            now = time.time()
             for entry_id, (h_delta, harm_delta) in pending.playbook_signals.items():
                 entry = self.playbook.lookup(entry_id)
                 if entry is not None:
                     entry.helpful += h_delta
                     entry.harmful += harm_delta
+                    if entry_id in pending.activated_entries:
+                        entry.last_activated = now
                     updates += 1
 
             # Apply pending insights (apply_insights validates internally)
@@ -614,6 +721,32 @@ class Harness:
                 for candidate in candidates:
                     self.update_pareto(bench, candidate)
                     updates += 1
+
+            # Auto-prune entries with sustained negative score
+            # Only prune entries that have enough signal (helpful+harmful >= 3)
+            before_prune = len(self.playbook.entries)
+            self.playbook.entries = [
+                e for e in self.playbook.entries
+                if e.score() >= 0.0 or (e.helpful + e.harmful) < 3
+            ]
+            pruned = before_prune - len(self.playbook.entries)
+            if pruned:
+                log.info("Auto-pruned %d low-scoring playbook entries", pruned)
+
+            # Hard cap on entries
+            max_entries = 100
+            if self._curator is not None:
+                max_entries = self._curator._config.max_playbook_entries
+            if len(self.playbook.entries) > max_entries:
+                self.playbook.entries.sort(
+                    key=lambda e: e.effective_score(), reverse=True,
+                )
+                overflow = len(self.playbook.entries) - max_entries
+                self.playbook.entries = self.playbook.entries[:max_entries]
+                log.info(
+                    "Capped playbook at %d entries (removed %d)",
+                    max_entries, overflow,
+                )
 
             # Drain pending
             self._pending = _HarnessPending()
