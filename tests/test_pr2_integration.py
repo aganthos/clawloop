@@ -212,7 +212,7 @@ class TestGenerationFlushReal:
         # Pre-seed the weights buffer with stale advantages
         state.weights._pending.advantages = [("old_ep_1", 0.5), ("old_ep_2", -0.3)]
         # Set generation tracking to 0
-        state._prev_playbook_generation = 0  # type: ignore[attr-defined]
+        state._prev_playbook_generation = 0
 
         # Failure episodes trigger reflector → insight → generation advance
         episodes = [_make_episode("f1", reward=0.1)]
