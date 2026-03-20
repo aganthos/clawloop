@@ -18,6 +18,9 @@ import pytest
 import urllib.request
 import urllib.error
 
+import hashlib
+
+from lfx.core.env import Sample, TaskEnvironment
 from lfx.core.episode import Episode, EpisodeSummary, Message, StepMeta
 from lfx.core.evolution import EvolverConfig, PromptEvolver
 from lfx.core.intensity import AdaptiveIntensity
@@ -306,3 +309,135 @@ class TestFullyRealE2E:
             log.info("Agent learned %d strategies from real math episodes", results["n_entries"])
         else:
             log.info("Agent aced all problems — no reflection needed (valid but rare)")
+
+
+class _RealMathAdapter:
+    """Adapter that calls a real LLM to solve math problems and scores
+    via MathEnvironment. No mocks anywhere."""
+
+    def __init__(self, llm: Any, env: Any, bench: str = "math") -> None:
+        self._llm = llm
+        self._env = env
+        self._bench = bench
+
+    def run_episode(self, task: Sample, agent_state: Any) -> Episode:
+        system_prompt = agent_state.harness.system_prompt(self._bench)
+
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": task.question},
+        ]
+
+        response = self._llm.complete(messages)
+        response_text = response.text if hasattr(response, "text") else str(response)
+        eval_result = self._env.evaluate(task, response_text)
+
+        task_id = hashlib.sha256(
+            f"{self._bench}:{task.question}".encode()
+        ).hexdigest()[:16]
+
+        ep_messages = [
+            Message(role="system", content=system_prompt),
+            Message(role="user", content=task.question),
+            Message(role="assistant", content=response_text),
+        ]
+
+        return Episode(
+            id=Episode.new_id(),
+            state_id="real-e2e",
+            task_id=task_id,
+            bench=self._bench,
+            messages=ep_messages,
+            step_boundaries=[0],
+            steps=[StepMeta(t=0, reward=eval_result.score, done=True, timing_ms=0.0)],
+            summary=EpisodeSummary(total_reward=eval_result.score),
+        )
+
+
+@skip_no_proxy
+class TestFullPipelineRealLLM:
+    """Full learning_loop() with real LLM, real MathEnvironment, real
+    Reflector, real PromptEvolver, support-query separation, and GEPA.
+    Zero mocks. Everything goes through the actual code paths."""
+
+    def test_full_learning_loop_real_everything(self) -> None:
+        from lfx.envs.math import MathEnvironment
+
+        llm = LiteLLMClient(model=_MODEL, api_key=_API_KEY, api_base=_API_BASE)
+        env = MathEnvironment()
+        tasks = env.get_tasks()
+
+        # Real reflector
+        reflector = Reflector(client=llm, config=ReflectorConfig())
+
+        # Real harness with Pareto front for GEPA
+        harness = Harness(
+            system_prompts={"math": "You are a math problem solver. Answer with just the number."},
+            reflector=reflector,
+        )
+        seed = PromptCandidate(
+            id="pc-seed",
+            text="You are a math problem solver. Answer with just the number.",
+            per_task_scores={},
+            generation=0,
+        )
+        harness.pareto_fronts["math"] = ParetoFront(candidates=[seed])
+
+        # Real evolver
+        evolver = PromptEvolver(llm=llm, config=EvolverConfig(
+            max_mutations_per_step=1,
+            max_crossovers_per_step=0,
+        ))
+
+        # Real intensity
+        intensity = AdaptiveIntensity(cooldown_after_request=0.0)  # no cooldown for test
+
+        # Real adapter
+        adapter = _RealMathAdapter(llm=llm, env=env, bench="math")
+
+        state = AgentState(harness=harness)
+
+        initial_entries = len(harness.playbook.entries)
+
+        state, sid = learning_loop(
+            adapter=adapter,
+            agent_state=state,
+            tasks=tasks,
+            n_episodes=4,
+            n_iterations=2,
+            intensity=intensity,
+            evolver=evolver,
+        )
+
+        log.info("State ID: %s", sid.combined_hash[:12])
+        log.info("Playbook entries: %d", len(state.harness.playbook.entries))
+        log.info("Pareto candidates: %d", len(state.harness.pareto_fronts["math"].candidates))
+        log.info("Weights history: %d", len(state.weights.training_history))
+
+        prompt = state.harness.system_prompt("math")
+        log.info("Final prompt:\n%s", prompt[:400])
+
+        # Verify the loop ran successfully
+        assert sid.combined_hash, "Should produce a valid state ID"
+
+        # Verify Pareto front was maintained (seed at minimum)
+        front = state.harness.pareto_fronts["math"]
+        assert len(front.candidates) >= 1
+
+        # Verify the system ran through all components:
+        # - If any episodes had failures, reflector should have produced entries
+        # - If all succeeded, weights should have processed them
+        # Either way, the loop completed without error
+        final_entries = len(state.harness.playbook.entries)
+        weights_history = len(state.weights.training_history)
+
+        log.info(
+            "Results: entries=%d->%d, weights_steps=%d, pareto=%d",
+            initial_entries, final_entries,
+            weights_history, len(front.candidates),
+        )
+
+        # At least one layer must have done something
+        assert final_entries > initial_entries or weights_history > 0, (
+            "Either harness should learn from failures or weights from successes"
+        )
