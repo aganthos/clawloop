@@ -11,6 +11,7 @@ from uuid import uuid4
 from lfx.collector import EpisodeCollector
 from lfx.completion import CompletionResult
 from lfx.core.episode import Message
+from lfx.core.intensity import AdaptiveIntensity
 from lfx.core.parse import parse_tool_calls, resolve_oi_span_kind, _safe_session_hash
 
 log = logging.getLogger(__name__)
@@ -20,11 +21,17 @@ class WrappedClient:
     """Drop-in LLMClient replacement that intercepts calls for learning."""
 
     def __init__(
-        self, client: Any, collector: EpisodeCollector, *, tracer: Any = None
+        self,
+        client: Any,
+        collector: EpisodeCollector,
+        *,
+        tracer: Any = None,
+        intensity: AdaptiveIntensity | None = None,
     ) -> None:
         self._client = client
         self._collector = collector
         self._tracer = tracer
+        self._intensity = intensity
 
         self._llm_kind_attr: str | None = None
         self._llm_kind_value: str | None = None
@@ -34,6 +41,10 @@ class WrappedClient:
     def complete(
         self, messages: list[dict[str, str]], **kwargs: Any
     ) -> CompletionResult:
+        # Record user activity for intensity gating
+        if self._intensity is not None:
+            self._intensity.record_user_activity()
+
         # Extract lfx-specific kwargs before forwarding to the client
         task_id = kwargs.pop("task_id", uuid4().hex)
 
@@ -153,7 +164,11 @@ class WrappedClient:
 
 
 def wrap(
-    client: Any, collector: EpisodeCollector, *, tracer: Any = None
+    client: Any,
+    collector: EpisodeCollector,
+    *,
+    tracer: Any = None,
+    intensity: AdaptiveIntensity | None = None,
 ) -> WrappedClient:
     """Wrap an LLMClient with live-mode episode collection.
 
@@ -165,4 +180,4 @@ def wrap(
         # With OTel tracing:
         wrapped = lfx.wrap(my_client, collector=collector, tracer=my_tracer)
     """
-    return WrappedClient(client, collector, tracer=tracer)
+    return WrappedClient(client, collector, tracer=tracer, intensity=intensity)

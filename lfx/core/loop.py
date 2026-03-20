@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from lfx.core.episode import Episode
+from lfx.core.evolution import PromptEvolver
 from lfx.core.intensity import AdaptiveIntensity
 from lfx.core.paradigm import ParadigmBreakthrough
 from lfx.core.state import StateID
@@ -118,6 +119,7 @@ class AgentState:
     weights: Weights = field(default_factory=Weights)
     inference_url: str | None = None  # vLLM endpoint for Harbor agents
     tried_paradigms: list[str] = field(default_factory=list)  # paradigm contents tried
+    _prev_playbook_generation: int = 0  # tracks generation for flush logic
 
     def state_id(self) -> StateID:
         return StateID.from_layers(self.harness, self.router, self.weights)
@@ -146,6 +148,7 @@ def learning_loop(
     active_layers: list[str] | None = None,
     intensity: AdaptiveIntensity | None = None,
     paradigm: ParadigmBreakthrough | None = None,
+    evolver: PromptEvolver | None = None,
     output_dir: str | Path | None = None,
 ) -> tuple[AgentState, StateID]:
     """Run the unified learning loop.
@@ -214,8 +217,19 @@ def learning_loop(
         if intensity is not None:
             intensity.record_reward(avg_reward)
 
-        # 2. Build Datum
-        datum = Datum(episodes=episodes)
+        # 2. Support-query separation (MetaClaw Algorithm 1)
+        support_episodes = [ep for ep in episodes if ep.summary.effective_reward() < 0]
+        query_episodes = [ep for ep in episodes if ep.summary.effective_reward() >= 0]
+
+        layer_datums: dict[str, Datum] = {
+            "harness": Datum(episodes=support_episodes),  # learn from failures
+            "weights": Datum(episodes=query_episodes),     # optimize from successes
+            "router": Datum(episodes=episodes),            # needs both signals
+        }
+        log.info(
+            "  support=%d query=%d (of %d episodes)",
+            len(support_episodes), len(query_episodes), len(episodes),
+        )
 
         # 3. Phase 1: forward_backward (all active layers)
         fb_results: dict[str, FBResult] = {}
@@ -225,6 +239,11 @@ def learning_loop(
                 log.info("  skipping harness fb (adaptive intensity)")
                 fb_results[name] = FBResult(status="skipped")
                 continue
+            if name in layer_datums:
+                datum = layer_datums[name]
+            else:
+                log.warning("  unknown layer %s — using all episodes as fallback", name)
+                datum = Datum(episodes=episodes)
             should_clear = False
             try:
                 fut = layer.forward_backward(datum)
@@ -300,6 +319,57 @@ def learning_loop(
                             )
                     except Exception:
                         log.exception("  rollback failed for %s", name)
+
+        # Generation flush: when playbook_generation advances, clear stale
+        # episodes from weights buffer to prevent RL learning pre-adaptation behavior
+        if isinstance(agent_state.harness, Harness) and not optim_failed:
+            current_gen = agent_state.harness.playbook_generation
+            prev_gen = agent_state._prev_playbook_generation
+            if current_gen > prev_gen:
+                stale = agent_state.weights.pending_advantage_count()
+                agent_state.weights.clear_pending_state()
+                log.info(
+                    "  Generation %d->%d: flushed %d stale episodes from weights buffer",
+                    prev_gen, current_gen, stale,
+                )
+            agent_state._prev_playbook_generation = current_gen
+
+        # GEPA evolution: mutate from failures, crossover from Pareto front
+        if evolver is not None and isinstance(agent_state.harness, Harness) and not optim_failed:
+            for bench, front in agent_state.harness.pareto_fronts.items():
+                best = front.best()
+                if best is None:
+                    continue
+                # Mutation: use support (failure) episodes filtered to this bench
+                bench_failures = [ep for ep in support_episodes if ep.bench == bench]
+                if bench_failures:
+                    mutations_done = 0
+                    for _ in range(evolver.config.max_mutations_per_step):
+                        try:
+                            child = evolver.mutate(best, bench_failures)
+                            if child is not None:
+                                front.add(child)
+                                mutations_done += 1
+                                log.info("  evolution: mutated %s -> %s", best.id, child.id)
+                        except Exception:
+                            log.exception("Mutation failed for bench %s", bench)
+                            break
+                # Crossover: combine two non-dominated candidates
+                if len(front.candidates) >= 2 and evolver.config.max_crossovers_per_step > 0:
+                    crossovers_done = 0
+                    for _ in range(evolver.config.max_crossovers_per_step):
+                        if len(front.candidates) < 2:
+                            break
+                        try:
+                            a, b = front.candidates[0], front.candidates[1]
+                            child = evolver.crossover(a, b)
+                            if child is not None:
+                                front.add(child)
+                                crossovers_done += 1
+                                log.info("  evolution: crossover -> %s", child.id)
+                        except Exception:
+                            log.exception("Crossover failed for bench %s", bench)
+                            break
 
         # Paradigm breakthrough on stagnation
         if paradigm is not None and intensity is not None and intensity.is_stagnating():

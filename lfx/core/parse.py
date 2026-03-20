@@ -3,11 +3,26 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 from lfx.core.episode import TokenLogProb, ToolCall
 
 _log = logging.getLogger(__name__)
+
+_JSON_FENCE_RE = re.compile(r"```(?:json)?\s*\n?(.*?)\n?\s*```", re.DOTALL)
+
+
+def extract_json(text: str) -> str:
+    """Strip markdown code fences if present, return raw JSON string.
+
+    LLMs frequently wrap JSON in ```json ... ``` fences. This strips
+    them so ``json.loads`` can parse the payload.
+    """
+    m = _JSON_FENCE_RE.search(text)
+    if m:
+        return m.group(1).strip()
+    return text.strip()
 
 
 def parse_tool_calls(raw: list[dict[str, Any]] | None) -> list[ToolCall] | None:
