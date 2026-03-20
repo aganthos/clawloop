@@ -63,8 +63,7 @@ class TestGenerationAdvanceFlushesWeightsBuffer:
             n_iterations=1,
             active_layers=["harness"],
         )
-        assert state._prev_playbook_generation == 0  # type: ignore[attr-defined]
-
+        assert state._prev_playbook_generation == 0
         # Simulate: weights have stale pending advantages from a previous batch
         state.weights._pending.advantages = [
             ("ep-stale-1", 0.5),
@@ -91,8 +90,7 @@ class TestGenerationAdvanceFlushesWeightsBuffer:
             "Stale advantages should be flushed after playbook_generation advances"
         )
         # _prev_playbook_generation should now track the new generation
-        assert state._prev_playbook_generation == 1  # type: ignore[attr-defined]
-
+        assert state._prev_playbook_generation == 1
 
 class TestNoFlushWhenGenerationUnchanged:
     """When playbook_generation stays the same, weights buffer is preserved."""

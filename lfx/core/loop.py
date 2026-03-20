@@ -343,23 +343,33 @@ def learning_loop(
                 # Mutation: use support (failure) episodes filtered to this bench
                 bench_failures = [ep for ep in support_episodes if ep.bench == bench]
                 if bench_failures:
-                    try:
-                        child = evolver.mutate(best, bench_failures)
-                        if child is not None:
-                            front.add(child)
-                            log.info("  evolution: mutated %s -> %s", best.id, child.id)
-                    except Exception:
-                        log.exception("Mutation failed for bench %s", bench)
+                    mutations_done = 0
+                    for _ in range(evolver.config.max_mutations_per_step):
+                        try:
+                            child = evolver.mutate(best, bench_failures)
+                            if child is not None:
+                                front.add(child)
+                                mutations_done += 1
+                                log.info("  evolution: mutated %s -> %s", best.id, child.id)
+                        except Exception:
+                            log.exception("Mutation failed for bench %s", bench)
+                            break
                 # Crossover: combine two non-dominated candidates
-                if len(front.candidates) >= 2:
-                    try:
-                        a, b = front.candidates[0], front.candidates[1]
-                        child = evolver.crossover(a, b)
-                        if child is not None:
-                            front.add(child)
-                            log.info("  evolution: crossover -> %s", child.id)
-                    except Exception:
-                        log.exception("Crossover failed for bench %s", bench)
+                if len(front.candidates) >= 2 and evolver.config.max_crossovers_per_step > 0:
+                    crossovers_done = 0
+                    for _ in range(evolver.config.max_crossovers_per_step):
+                        if len(front.candidates) < 2:
+                            break
+                        try:
+                            a, b = front.candidates[0], front.candidates[1]
+                            child = evolver.crossover(a, b)
+                            if child is not None:
+                                front.add(child)
+                                crossovers_done += 1
+                                log.info("  evolution: crossover -> %s", child.id)
+                        except Exception:
+                            log.exception("Crossover failed for bench %s", bench)
+                            break
 
         # Paradigm breakthrough on stagnation
         if paradigm is not None and intensity is not None and intensity.is_stagnating():

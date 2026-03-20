@@ -139,6 +139,11 @@ class AsyncLearner:
                 layer = getattr(self.agent_state, name, None)
                 if layer is None:
                     continue
+                # Skip harness when intensity says not to reflect
+                if name == "harness" and not self.intensity.should_reflect(self._iteration):
+                    log.info("Batch %s: skipping harness fb (adaptive intensity)", batch_id)
+                    fb_results[name] = FBResult(status="skipped")
+                    continue
                 layers.append((name, layer))
                 datum = layer_datums.get(name, Datum(episodes=episodes))
                 should_clear = False

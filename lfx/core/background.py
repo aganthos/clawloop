@@ -30,6 +30,7 @@ class BackgroundState:
     is_user_idle: bool
     playbook: Playbook
     recent_episodes: list[Episode]
+    harness: Any = None  # optional Harness for validated insight application
 
 
 @runtime_checkable
@@ -147,21 +148,36 @@ class EpisodeDreamer:
             response = self.llm.complete(prompt)
             text = response.text if hasattr(response, "text") else str(response)
             parsed = json.loads(extract_json(text))
-            applied = 0
+            insights = []
             for item in parsed:
                 tags = item.get("tags", ["meta-pattern"])
                 if "meta-pattern" not in tags:
                     tags.append("meta-pattern")
                 content = item.get("content", "")
                 if content:
-                    entry = PlaybookEntry(
-                        id=PlaybookEntry.new_id(),
+                    insights.append(Insight(
+                        action=item.get("action", "add"),
                         content=content,
                         tags=tags,
+                    ))
+
+            if not insights:
+                return
+
+            # Route through harness validation when available
+            if state.harness is not None and hasattr(state.harness, "apply_insights"):
+                state.harness.apply_insights(insights)
+                log.info("EpisodeDreamer applied %d insights via harness", len(insights))
+            else:
+                # Fallback: add directly to playbook (no validation)
+                for ins in insights:
+                    entry = PlaybookEntry(
+                        id=PlaybookEntry.new_id(),
+                        content=ins.content,
+                        tags=ins.tags,
                     )
                     state.playbook.add(entry)
-                    applied += 1
-            log.info("EpisodeDreamer applied %d entries to playbook", applied)
+                log.info("EpisodeDreamer added %d entries to playbook (no harness)", len(insights))
         except (json.JSONDecodeError, KeyError) as exc:
             log.warning("EpisodeDreamer failed to parse LLM response: %s", exc)
         except Exception:
