@@ -1,12 +1,13 @@
 # lfx/adapters/entropic.py
 """Entropic CRMArenaPro adapter — orchestrates the green agent with lfx harness.
 
-Starts the green agent (entropic evaluator) as a subprocess, starts an lfx
-purple agent with harness injection, sends an EvalRequest, and parses the
-7-dimension scores into lfx Episodes.
+Starts the entropic green agent as a long-running A2A server, starts an lfx
+purple agent with harness injection in a background thread, then uses
+``lfx_runner.py`` (inside the benchmark repo) to send the EvalRequest and
+collect results.
 
 Architecture follows the same pattern as the CAR-bench adapter:
-  green agent (evaluator, subprocess) ↔ purple agent (lfx, in-process)
+  green agent (evaluator, subprocess server) ↔ purple agent (lfx, in-process)
 """
 
 from __future__ import annotations
@@ -14,6 +15,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import signal
 import subprocess
 import time
 from pathlib import Path
@@ -29,15 +31,78 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
-# CRMArenaPro task categories
-_ALL_CATEGORIES = (
-    "knowledge_qa", "lead_qualification", "monthly_trend_analysis",
-    "conversion_rate_comprehension", "handle_time",
-    "private_customer_information", "internal_operation_data",
-    "confidential_company_knowledge",
-)
-
 REWARD_METRICS = list(DEFAULT_ENTROPIC_WEIGHTS.keys())
+
+# Runner script generated into each iteration dir.  Runs with the benchmark's
+# venv python (which has a2a-sdk installed) and speaks A2A to the green server.
+_RUNNER_SCRIPT = '''\
+"""Auto-generated LfX runner — sends EvalRequest to the entropic green agent."""
+import asyncio, json, sys, argparse, logging
+from pathlib import Path
+from uuid import uuid4
+
+# Ensure benchmark src/ is importable
+_src = Path(__file__).resolve().parents[0]
+for candidate in [_src / "src", _src.parent / "src"]:
+    if candidate.is_dir() and str(candidate) not in sys.path:
+        sys.path.insert(0, str(candidate))
+
+import httpx
+from a2a.client import A2ACardResolver, ClientConfig, ClientFactory
+from a2a.types import DataPart, Message, Part, Role, TextPart
+
+logger = logging.getLogger(__name__)
+
+def _create_message(text):
+    return Message(kind="message", role=Role.user,
+                   parts=[Part(root=TextPart(kind="text", text=text))],
+                   message_id=uuid4().hex)
+
+async def send_eval_request(green_url, eval_json, timeout=600):
+    async with httpx.AsyncClient(timeout=timeout) as hc:
+        resolver = A2ACardResolver(httpx_client=hc, base_url=green_url)
+        agent_card = await resolver.get_agent_card()
+        client = ClientFactory(ClientConfig(httpx_client=hc, streaming=False)).create(agent_card)
+        msg = _create_message(eval_json)
+        data_parts, text_parts = [], []
+        async for event in client.send_message(msg):
+            match event:
+                case Message() as m:
+                    for p in m.parts:
+                        (data_parts if isinstance(p.root, DataPart) else text_parts).append(
+                            p.root.data if isinstance(p.root, DataPart) else p.root.text)
+                case (t, _):
+                    if t.status and t.status.message:
+                        for p in t.status.message.parts:
+                            if isinstance(p.root, TextPart): text_parts.append(p.root.text)
+                    if t.artifacts:
+                        for a in t.artifacts:
+                            for p in a.parts:
+                                (data_parts if isinstance(p.root, DataPart) else text_parts).append(
+                                    p.root.data if isinstance(p.root, DataPart) else p.root.text)
+    if data_parts: return data_parts[-1]
+    for t in reversed(text_parts):
+        try: return json.loads(t)
+        except Exception: continue
+    return {"error": "no results", "text": "\\n".join(text_parts)}
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--green-url", required=True)
+    ap.add_argument("--eval-config", required=True)
+    ap.add_argument("--output", required=True)
+    ap.add_argument("--timeout", type=int, default=600)
+    args = ap.parse_args()
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    with open(args.eval_config) as f: eval_config = json.load(f)
+    logger.info("Sending EvalRequest to %s", args.green_url)
+    results = asyncio.run(send_eval_request(args.green_url, json.dumps(eval_config), args.timeout))
+    Path(args.output).write_text(json.dumps(results, indent=2))
+    s = results.get("summary", results.get("entropic", {}).get("summary", {}))
+    if s: logger.info("Done: %d tasks, pass_rate=%.1f%%", s.get("total_tasks", 0), s.get("pass_rate", 0)*100)
+
+if __name__ == "__main__": main()
+'''
 
 
 class EntropicAdapter(EnvAdapter):
@@ -67,7 +132,15 @@ class EntropicAdapter(EnvAdapter):
     def run_batch(
         self, agent_state: "AgentState", task_ids: list[Any]
     ) -> list[Episode]:
-        """Run a batch of tasks via the entropic green agent."""
+        """Run a batch of tasks via the entropic green agent.
+
+        1. Start the purple agent in a background thread (harness-injected).
+        2. Start the green agent as a subprocess server.
+        3. Wait for the green agent to be healthy.
+        4. Run lfx_runner.py to send EvalRequest and save results.
+        5. Parse results into Episodes.
+        6. Terminate the green agent.
+        """
         str_ids = [str(tid) for tid in task_ids]
         self._current_state_id = agent_state.state_id().combined_hash
 
@@ -87,57 +160,94 @@ class EntropicAdapter(EnvAdapter):
         # Pick free ports
         green_port, purple_port = self._find_free_ports()
 
-        # Build eval config for the green agent
+        # Build eval config (EvalRequest JSON for the green agent)
         eval_config = self._build_eval_config(str_ids, purple_port)
         eval_config_path = iter_dir / "eval_config.json"
         eval_config_path.write_text(json.dumps(eval_config, indent=2))
         results_path = iter_dir / "results.json"
 
-        # Build env with API credentials
+        # Build env with API credentials for both green + purple agents
         env = dict(os.environ)
         if self._api_base:
             env["OPENAI_API_BASE"] = self._api_base
+            env["OPENAI_BASE_URL"] = self._api_base
         if self._api_key:
             env["OPENAI_API_KEY"] = self._api_key
         env.pop("GOOGLE_API_KEY", None)
 
-        # Resolve green agent start command
         bench_dir = self._bench_path.resolve()
-        green_python = self._resolve_python(bench_dir)
-        green_server = bench_dir / "src" / "server.py"
+        green_python = str(self._resolve_python(bench_dir))
 
-        # Start green agent as subprocess
+        green_proc = None
         try:
-            result = subprocess.run(
+            # --- Step 1: Start green agent server ---
+            green_proc = subprocess.Popen(
                 [
-                    str(green_python), str(green_server),
+                    green_python, str(bench_dir / "src" / "server.py"),
                     "--host", "127.0.0.1",
                     "--port", str(green_port),
-                    "--eval-config", str(eval_config_path),
-                    "--purple-url", f"http://127.0.0.1:{purple_port}",
-                    "--harness-file", str(harness_file),
-                    "--model", self._model,
-                    "--output", str(results_path),
                 ],
                 cwd=str(bench_dir),
-                capture_output=True, text=True,
-                timeout=self._green_timeout,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 env=env,
             )
-            (iter_dir / "green_agent.log").write_text(
-                f"STDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
-            )
-            if result.returncode != 0:
-                log.error(
-                    "Entropic green agent exited with code %d. See green_agent.log.",
-                    result.returncode,
+            log.info("Green agent started (pid=%d, port=%d)", green_proc.pid, green_port)
+
+            # --- Step 2: Wait for green agent health ---
+            green_url = f"http://127.0.0.1:{green_port}"
+            if not self._wait_for_health(green_url, timeout=30):
+                stdout = green_proc.stdout.read().decode() if green_proc.stdout else ""
+                stderr = green_proc.stderr.read().decode() if green_proc.stderr else ""
+                (iter_dir / "green_agent.log").write_text(
+                    f"STDOUT:\n{stdout}\nSTDERR:\n{stderr}"
                 )
+                log.error("Green agent failed to start. See green_agent.log.")
                 self._iteration_count += 1
-                return [self._make_failed_episode(tid, "green_error") for tid in str_ids]
-        except subprocess.TimeoutExpired:
-            log.error("Entropic green agent timed out")
-            self._iteration_count += 1
-            return [self._make_failed_episode(tid, "timeout") for tid in str_ids]
+                return [self._make_failed_episode(tid, "green_start_failed") for tid in str_ids]
+
+            # --- Step 3: Run lfx_runner.py to send EvalRequest ---
+            runner = iter_dir / "lfx_runner.py"
+            runner.write_text(_RUNNER_SCRIPT)
+            try:
+                result = subprocess.run(
+                    [
+                        green_python, str(runner),
+                        "--green-url", green_url,
+                        "--eval-config", str(eval_config_path),
+                        "--output", str(results_path),
+                        "--timeout", str(self._green_timeout),
+                    ],
+                    cwd=str(bench_dir),
+                    capture_output=True, text=True,
+                    timeout=self._green_timeout + 30,
+                    env=env,
+                )
+                (iter_dir / "runner.log").write_text(
+                    f"STDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
+                )
+                if result.returncode != 0:
+                    log.error("lfx_runner.py exited with code %d", result.returncode)
+                    self._iteration_count += 1
+                    return [self._make_failed_episode(tid, "runner_error") for tid in str_ids]
+            except subprocess.TimeoutExpired:
+                log.error("lfx_runner.py timed out")
+                self._iteration_count += 1
+                return [self._make_failed_episode(tid, "timeout") for tid in str_ids]
+
+        finally:
+            # --- Cleanup: kill green agent ---
+            if green_proc is not None:
+                try:
+                    green_proc.terminate()
+                    green_proc.wait(timeout=5)
+                except Exception:
+                    green_proc.kill()
+                # Save logs
+                stdout = green_proc.stdout.read().decode() if green_proc.stdout else ""
+                stderr = green_proc.stderr.read().decode() if green_proc.stderr else ""
+                log_path = iter_dir / "green_agent.log"
+                existing = log_path.read_text() if log_path.exists() else ""
+                log_path.write_text(existing + f"\nSTDOUT:\n{stdout}\nSTDERR:\n{stderr}")
 
         # Parse results
         episodes = self._parse_results(results_path, str_ids)
@@ -152,28 +262,31 @@ class EntropicAdapter(EnvAdapter):
     def _build_eval_config(
         self, task_ids: list[str], purple_port: int
     ) -> dict[str, Any]:
-        """Build the eval config dict sent to the green agent."""
+        """Build the EvalRequest dict for the green agent."""
         config: dict[str, Any] = {
             "participants": {
                 "agent": f"http://127.0.0.1:{purple_port}",
             },
-            "task_ids": task_ids,
-            "org_type": "b2b",
-            "drift_level": "medium",
-            "rot_level": "medium",
-            "max_steps": 10,
-            "timeout": 300,
+            "config": {
+                "task_ids": task_ids,
+                "skip_original": True,
+            },
         }
         if self._task_categories:
-            config["task_categories"] = self._task_categories
+            config["config"]["task_categories"] = self._task_categories
         if self._task_limit:
-            config["task_limit"] = self._task_limit
+            config["config"]["task_limit"] = self._task_limit
         return config
 
     def _parse_results(
         self, results_path: Path, expected_task_ids: list[str]
     ) -> list[Episode]:
-        """Parse results JSON into Episodes."""
+        """Parse results JSON into Episodes.
+
+        The green agent returns aggregated results with per-task entries in
+        ``results`` containing ``task_idx``, ``crm_reward``, ``total_score``,
+        and ``dimension_scores``.
+        """
         try:
             raw = json.loads(results_path.read_text())
         except (FileNotFoundError, json.JSONDecodeError) as e:
@@ -183,15 +296,10 @@ class EntropicAdapter(EnvAdapter):
                 for tid in expected_task_ids
             ]
 
-        # Handle multiple result formats:
-        # 1. {"tasks": [{task_id, scores, ...}]}
-        # 2. {"results": [{"tasks": [...]}]}
-        task_results = []
-        if "tasks" in raw:
-            task_results = raw["tasks"]
-        elif "results" in raw and raw["results"]:
-            first = raw["results"][0] if isinstance(raw["results"], list) else raw["results"]
-            task_results = first.get("tasks", [])
+        # The artifact data contains {"results": [{task_idx, ...}, ...]}
+        task_results = raw.get("results", [])
+        if not isinstance(task_results, list):
+            task_results = []
 
         episodes = []
         for task_result in task_results:
@@ -228,35 +336,49 @@ class EntropicAdapter(EnvAdapter):
             return venv_python
         return Path("python")
 
+    @staticmethod
+    def _wait_for_health(url: str, timeout: int = 30) -> bool:
+        """Poll the agent card endpoint until healthy or timeout."""
+        import httpx
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            try:
+                r = httpx.get(f"{url}/.well-known/agent.json", timeout=2)
+                if r.status_code == 200:
+                    return True
+            except (httpx.ConnectError, httpx.ReadTimeout):
+                pass
+            time.sleep(0.5)
+        return False
+
     def _map_to_episode(self, task_result: dict) -> Episode:
         """Map an entropic task result to an lfx Episode."""
-        raw_task_id = task_result.get("task_id", "unknown")
+        raw_task_id = str(task_result.get("task_idx", "unknown"))
         task_id = f"entropic:{raw_task_id}"
 
-        scores = task_result.get("scores", {})
-        functional_score = scores.get("functional", 0.0)
-        # Functional is 0-100; convert to 0/1 binary for task_reward
-        task_reward = 1.0 if functional_score >= 50.0 else 0.0
+        # dimension_scores is {dim_name: score_value} on 0-100 scale
+        dim_scores = task_result.get("dimension_scores", {})
+        # Normalise keys to lowercase for reward mapping
+        scores = {k.lower(): v for k, v in dim_scores.items() if isinstance(v, (int, float))}
 
-        signals, breakdown = map_entropic_scores(
-            scores, task_reward=task_reward,
-        )
+        crm_reward = task_result.get("crm_reward", 0)
+        task_reward = 1.0 if crm_reward > 0 else 0.0
 
-        # Convert trajectory to lfx Messages
-        messages = []
-        for msg in task_result.get("trajectory", []):
-            messages.append(
-                Message(
-                    role=msg.get("role", "user"),
-                    content=msg.get("content", ""),
-                )
-            )
+        signals, breakdown = map_entropic_scores(scores, task_reward=task_reward)
 
         total_score = task_result.get("total_score", 0.0)
-        summary = EpisodeSummary(
-            signals=signals,
-            score_breakdown=breakdown,
-        )
+        summary = EpisodeSummary(signals=signals, score_breakdown=breakdown)
+
+        # Build a single message from the task query + agent answer
+        messages = []
+        query = task_result.get("task_query", "")
+        answer = task_result.get("agent_answer", "")
+        if query:
+            messages.append(Message(role="user", content=query))
+        if answer:
+            messages.append(Message(role="assistant", content=answer))
+
+        timing = task_result.get("timing", {})
 
         return Episode(
             id=uuid4().hex,
@@ -266,15 +388,17 @@ class EntropicAdapter(EnvAdapter):
             model=self._model,
             messages=messages,
             step_boundaries=[0] if messages else [],
-            steps=[StepMeta(t=0, reward=total_score / 100.0,
-                            done=True, timing_ms=task_result.get("latency_ms", 0.0))],
+            steps=[StepMeta(
+                t=0, reward=total_score / 100.0, done=True,
+                timing_ms=timing.get("total_seconds", 0.0) * 1000,
+            )],
             summary=summary,
             created_at=time.time(),
             metadata={
                 "entropic_total_score": total_score,
-                "entropic_category": task_result.get("category"),
-                "entropic_drift_level": task_result.get("drift_level"),
-                "entropic_rot_level": task_result.get("rot_level"),
+                "entropic_category": task_result.get("task_category"),
+                "entropic_crm_reward": crm_reward,
+                "entropic_success": task_result.get("success"),
             },
         )
 
