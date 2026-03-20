@@ -252,3 +252,57 @@ class TestRealLLMEndToEnd:
         assert len(prompt) > len("You are a math problem solver.")
 
         log.info("Final system prompt:\n%s", prompt[:300])
+
+
+@skip_no_proxy
+class TestFullyRealE2E:
+    """Zero mocks. Real LLM solves math problems, real LLM reflects on
+    failures, real MathEnvironment scores answers. Nothing is canned."""
+
+    def test_agent_learn_real_llm_real_env(self) -> None:
+        """LfXAgent.learn() with real LiteLLMClient for both task and
+        reflector, real MathEnvironment for scoring. Verifies the agent
+        produces playbook entries and the system prompt grows."""
+        from lfx.agent import LfXAgent
+        from lfx.envs.math import MathEnvironment
+
+        task_llm = LiteLLMClient(model=_MODEL, api_key=_API_KEY, api_base=_API_BASE)
+        reflector_llm = LiteLLMClient(model=_MODEL, api_key=_API_KEY, api_base=_API_BASE)
+
+        agent = LfXAgent(
+            task_client=task_llm,
+            reflector_client=reflector_llm,
+            bench="math",
+            base_system_prompt="You are a math problem solver. Answer with just the number.",
+        )
+
+        env = MathEnvironment()
+
+        prompt_before = agent.get_system_prompt()
+        results = agent.learn(env, iterations=2, episodes_per_iter=3)
+
+        log.info("Iteration rewards: %s", results["rewards"])
+        log.info("Playbook entries: %d", results["n_entries"])
+
+        # Should have run 2 iterations with real episodes
+        assert len(results["rewards"]) == 2
+        for r in results["rewards"]:
+            assert isinstance(r, float)
+            assert 0.0 <= r <= 1.0
+
+        # Reflector should produce at least one insight from any mistakes
+        # (Haiku won't get 100% on all math problems)
+        prompt_after = agent.get_system_prompt()
+        log.info("Prompt before:\n%s", prompt_before[:200])
+        log.info("Prompt after:\n%s", prompt_after[:300])
+
+        # The agent should have learned something (playbook entries or improved prompt)
+        # Note: it's possible (though unlikely) that Haiku aces all 6 problems
+        # and the reflector never fires. We assert softly.
+        if results["n_entries"] > 0:
+            assert len(prompt_after) > len(prompt_before), (
+                "System prompt should grow when playbook entries are added"
+            )
+            log.info("Agent learned %d strategies from real math episodes", results["n_entries"])
+        else:
+            log.info("Agent aced all problems — no reflection needed (valid but rare)")
