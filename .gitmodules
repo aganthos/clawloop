@@ -7,3 +7,6 @@
 [submodule "benchmarks/a2a/car-bench"]
 	path = benchmarks/a2a/car-bench
 	url = https://github.com/CAR-bench/car-bench-agentbeats.git
+[submodule "benchmarks/a2a/entropic-crmarenapro"]
+	path = benchmarks/a2a/entropic-crmarenapro
+	url = https://github.com/rkstu/entropic-crmarenapro.git
