@@ -108,6 +108,10 @@ class Weights:
 
     # -- Layer protocol methods --
 
+    def pending_advantage_count(self) -> int:
+        """Return the number of pending advantages (for logging/flush)."""
+        return len(self._pending.advantages)
+
     def clear_pending_state(self) -> None:
         """Reset the internal pending accumulator."""
         if self._backend:

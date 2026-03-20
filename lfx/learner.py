@@ -236,8 +236,8 @@ class AsyncLearner:
                 current_gen = harness.playbook_generation
                 prev_gen = getattr(self, "_prev_playbook_generation", current_gen)
                 if current_gen > prev_gen:
-                    if weights is not None:
-                        stale = len(getattr(getattr(weights, "_pending", None), "advantages", []))
+                    if weights is not None and hasattr(weights, "pending_advantage_count"):
+                        stale = weights.pending_advantage_count()
                         weights.clear_pending_state()
                         log.info(
                             "Generation %d->%d: flushed %d stale episodes from weights buffer",

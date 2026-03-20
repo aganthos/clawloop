@@ -119,6 +119,7 @@ class AgentState:
     weights: Weights = field(default_factory=Weights)
     inference_url: str | None = None  # vLLM endpoint for Harbor agents
     tried_paradigms: list[str] = field(default_factory=list)  # paradigm contents tried
+    _prev_playbook_generation: int = 0  # tracks generation for flush logic
 
     def state_id(self) -> StateID:
         return StateID.from_layers(self.harness, self.router, self.weights)
@@ -238,7 +239,11 @@ def learning_loop(
                 log.info("  skipping harness fb (adaptive intensity)")
                 fb_results[name] = FBResult(status="skipped")
                 continue
-            datum = layer_datums.get(name, Datum(episodes=episodes))
+            if name in layer_datums:
+                datum = layer_datums[name]
+            else:
+                log.warning("  unknown layer %s — using all episodes as fallback", name)
+                datum = Datum(episodes=episodes)
             should_clear = False
             try:
                 fut = layer.forward_backward(datum)
@@ -319,15 +324,15 @@ def learning_loop(
         # episodes from weights buffer to prevent RL learning pre-adaptation behavior
         if isinstance(agent_state.harness, Harness) and not optim_failed:
             current_gen = agent_state.harness.playbook_generation
-            prev_gen = getattr(agent_state, "_prev_playbook_generation", current_gen)
+            prev_gen = agent_state._prev_playbook_generation
             if current_gen > prev_gen:
-                stale = len(getattr(getattr(agent_state.weights, "_pending", None), "advantages", []))
+                stale = agent_state.weights.pending_advantage_count()
                 agent_state.weights.clear_pending_state()
                 log.info(
                     "  Generation %d->%d: flushed %d stale episodes from weights buffer",
                     prev_gen, current_gen, stale,
                 )
-            agent_state._prev_playbook_generation = current_gen  # type: ignore[attr-defined]
+            agent_state._prev_playbook_generation = current_gen
 
         # GEPA evolution: mutate from failures, crossover from Pareto front
         if evolver is not None and isinstance(agent_state.harness, Harness) and not optim_failed:

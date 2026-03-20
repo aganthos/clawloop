@@ -9,24 +9,14 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 from dataclasses import dataclass, field
 from typing import Any
 
 from lfx.core.episode import Episode
+from lfx.core.parse import extract_json
 from lfx.layers.harness import PromptCandidate
 
 log = logging.getLogger(__name__)
-
-_JSON_FENCE_RE = re.compile(r"```(?:json)?\s*\n?(.*?)\n?\s*```", re.DOTALL)
-
-
-def _extract_json(text: str) -> str:
-    """Strip markdown code fences if present, return raw JSON string."""
-    m = _JSON_FENCE_RE.search(text)
-    if m:
-        return m.group(1).strip()
-    return text.strip()
 
 
 @dataclass
@@ -88,7 +78,7 @@ class PromptEvolver:
         try:
             response = self.llm.complete(prompt)
             text = response.text if hasattr(response, "text") else str(response)
-            parsed = json.loads(_extract_json(text))
+            parsed = json.loads(extract_json(text))
             revised = parsed.get("revised_prompt", "")
             if not revised or not isinstance(revised, str):
                 log.warning("Mutation response missing revised_prompt")
@@ -141,7 +131,7 @@ class PromptEvolver:
         try:
             response = self.llm.complete(prompt)
             text = response.text if hasattr(response, "text") else str(response)
-            parsed = json.loads(_extract_json(text))
+            parsed = json.loads(extract_json(text))
             revised = parsed.get("revised_prompt", "")
             if not revised or not isinstance(revised, str):
                 log.warning("Crossover response missing revised_prompt")

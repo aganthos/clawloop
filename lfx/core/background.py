@@ -8,26 +8,17 @@ pattern analysis).
 
 from __future__ import annotations
 
+import json
 import logging
-import re
 import time
 from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
 
 from lfx.core.episode import Episode
+from lfx.core.parse import extract_json
 from lfx.layers.harness import Insight, Playbook, PlaybookEntry
 
 log = logging.getLogger(__name__)
-
-_JSON_FENCE_RE = re.compile(r"```(?:json)?\s*\n?(.*?)\n?\s*```", re.DOTALL)
-
-
-def _extract_json(text: str) -> str:
-    """Strip markdown code fences if present, return raw JSON string."""
-    m = _JSON_FENCE_RE.search(text)
-    if m:
-        return m.group(1).strip()
-    return text.strip()
 
 
 @dataclass
@@ -153,11 +144,9 @@ class EpisodeDreamer:
         ]
 
         try:
-            import json
-
             response = self.llm.complete(prompt)
             text = response.text if hasattr(response, "text") else str(response)
-            parsed = json.loads(_extract_json(text))
+            parsed = json.loads(extract_json(text))
             applied = 0
             for item in parsed:
                 tags = item.get("tags", ["meta-pattern"])
@@ -173,6 +162,8 @@ class EpisodeDreamer:
                     state.playbook.add(entry)
                     applied += 1
             log.info("EpisodeDreamer applied %d entries to playbook", applied)
+        except (json.JSONDecodeError, KeyError) as exc:
+            log.warning("EpisodeDreamer failed to parse LLM response: %s", exc)
         except Exception:
             log.exception("EpisodeDreamer failed")
 
