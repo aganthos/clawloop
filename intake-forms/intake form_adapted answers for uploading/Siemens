@@ -1,0 +1,72 @@
+https://www.siemens.com/en-us/company/innovation/startups/collaborate/
+
+# Intake Form Answers: Siemens Startup Collaboration
+
+---
+
+**Your pitch**
+
+Aganthos provides the learning layer for AI agents — enabling them to continuously improve through Reinforcement Learning rather than remaining static after deployment.
+
+The problem: enterprise AI agents hit a reliability wall. Off-the-shelf frontier models achieve 50–60% accuracy on complex domain-specific tasks; production requires 90%+. And because agents don't learn, they degrade over time as tools, APIs, and workflows evolve. The result: brittle automation requiring constant manual maintenance. There is no or little return on those high AI investments.
+
+Our solution: a "Learning as a Service" platform that wraps any existing agent with an RL improvement loop. We analyse the workflow, configure the agent, deploy in production, and continuously collect logs and traces to retrain the underlying model on the organisation's specific tasks and constraints. The agent compounds in performance over time.
+
+In our first paid pilot with a large German Enterprise, this approach delivered a 30% highe accuracy over o4-mini (state-of-the-art frontier model) on domain-specific benchmarks with 60% cost reduction via routing to our custom 7B parameter model (vs. frontier API pricing). At the same time, we enabled full data sovereignty with processing on-premise. Currently, we are in discussions with companies in the health care, fintech, insurance technology and cyber security space.
+
+For Siemens, we see immediate application in high-volume, tool-calling agent workflows with various departments and sectors that could benefit from it. This could be for instance anywhere where agents interact with proprietary systems, documentation, and production data, and where consistent reliability, improvement and adaptability is non-negotiable.
+
+---
+
+**Differentiation**
+
+Aganthos is a novel  platform that operationalises Reinforcement Learning post-training for enterprise agents. Three categories of competitors exist — and none solves the core problem:
+
+1. Static Agent Platforms (N8N, Zapier, Sema4.ai, Lindy AI): These automate workflows but agents are frozen after deployment. They repeat the same errors indefinitely and cannot adapt to new enterprise-specific systems or evolving requirements.
+
+2. Legacy BPO + LLM integrators (Accenture, Deloitte, UiPath): They implement AI but scale with human headcount, not intelligence. The learning loop requires expensive engineering retainers.
+
+3. Bespoke Intelligence** (Palantir, InstaDeep): They build custom solutions but not scalable platforms. High implementation cost, slow iteration cycles, cannot be deployed across multiple enterprise business units (e.g. within Siemens) cost-effectively.
+
+Aganthos' unique position: we aspire to combine the intelligence of a bespoke RL system with the scalability of a SaaS platform.
+
+
+OPTIONAL: Our mechanism mirrors how OpenAI builds its o-series reasoning models, RL from feedback, but applied to enterprise specific domain, running on enterprise infrastructure. This creates a performance advantage that compounds over time and is structurally impossible for static platforms to close.
+
+
+
+---
+
+
+
+---
+
+**Business model**
+
+Aganthos monetises through a three-tier model:
+
+1. Setup / onboarding fee (one-time): workflow analysis, agent configuration, initial RL training run. Depends on scope. 
+2. Continuous improvement (monthly/quarterly): ongoing RL retraining cycles as new production data accumulates, model updates, harness optimisation. This is the recurring revenue engine. 
+3. Usage-based inference tiers: as the trained model handles more requests, tiered pricing based on inference volume.
+
+The model is designed to decouple revenue from headcount: RL training scales with GPU compute, not human engineers. For Siemens, a venture client engagement would likely begin with a defined pilot (fixed fee), transition to deployment and continuous improvement as value is demonstrated, and scale across additional workflows and business units.
+
+---
+
+**Reference customers**
+
+Large German Enterprise (currently we cannot publish the customer yet): first paid partnership (Q4 2025 / Q1 2026).
+
+2–3 additional design partnership discussions in progress (Q2 2026, undisclosed)
+
+---
+
+**Which Siemens function will profit from your solution?**
+
+ALL
+---
+
+**What type of partnership are you seeking?**
+
+COLLABORATE (Prio 1) + ECOSYSTEM PARTNER
+
