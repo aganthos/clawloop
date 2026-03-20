@@ -1,0 +1,44 @@
+AGANTHOS — INTAKE FORM WORKFLOW
+================================
+
+FIND a relevant corporate partnership / intake form online
+    |
+    v
+SAVE the form questions into:
+    intake forms_instructions/<OrgName>
+    (paste URL on line 1, then all questions below)
+    |
+    v
+GENERATE a draft by running:
+    python main.py answer --form "<OrgName>"
+    |
+    v
+DRAFT is saved automatically to:
+    intake forms_claude suggestion/answers_<orgname>.md
+    (Claude-generated — do not submit directly)
+    |
+    v
+REVIEW & ADAPT the draft — copy to:
+    intake form_adapted answers for uploading/<OrgName>
+    edit for tone, accuracy, and personal context
+    |
+    v
+SUBMIT — paste adapted answers into the live form
+    and upload pitch deck PDF
+
+
+---
+
+FOR ROBERT — accessing the Siemens answers
+-------------------------------------------
+
+1. Go to: https://github.com/aganthos/aganthos/tree/main/intake-forms
+
+2. The Claude-generated draft is at:
+   intake forms_claude suggestion/answers_siemens.md
+
+3. The human-adapted version ready for submission is at:
+   intake form_adapted answers for uploading/Siemens
+
+The adapted version is what Tobias reviewed and edited.
+That is the one to reference or build on.
