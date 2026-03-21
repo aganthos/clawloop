@@ -161,6 +161,53 @@ class TestPerSampleReflection:
             assert "knowledge_qa" in insight.tags, f"Missing category tag: {insight.tags}"
 
 
+class TestSelectivePlaybookRetrieval:
+    """Playbook.render(tags=...) filters entries by tag (ACE/DC-RS style)."""
+
+    def test_render_filters_by_tag(self):
+        from lfx.layers.harness import Playbook, PlaybookEntry
+        pb = Playbook(entries=[
+            PlaybookEntry(id="e1", content="Refuse confidential info", tags=["confidential_company_knowledge"]),
+            PlaybookEntry(id="e2", content="Check data access", tags=["handle_time"]),
+            PlaybookEntry(id="e3", content="General strategy", tags=["general"]),
+        ])
+        rendered = pb.render(tags={"handle_time"})
+        assert "Check data access" in rendered
+        assert "Refuse confidential" not in rendered
+        assert "General strategy" not in rendered
+
+    def test_render_no_match_falls_back_to_all(self):
+        from lfx.layers.harness import Playbook, PlaybookEntry
+        pb = Playbook(entries=[
+            PlaybookEntry(id="e1", content="Entry one", tags=["alpha"]),
+            PlaybookEntry(id="e2", content="Entry two", tags=["beta"]),
+        ])
+        rendered = pb.render(tags={"nonexistent"})
+        assert "Entry one" in rendered
+        assert "Entry two" in rendered
+
+    def test_render_no_tags_returns_all(self):
+        from lfx.layers.harness import Playbook, PlaybookEntry
+        pb = Playbook(entries=[
+            PlaybookEntry(id="e1", content="Entry one", tags=["alpha"]),
+            PlaybookEntry(id="e2", content="Entry two", tags=["beta"]),
+        ])
+        rendered = pb.render(tags=None)
+        assert "Entry one" in rendered
+        assert "Entry two" in rendered
+
+    def test_system_prompt_passes_tags(self):
+        from lfx.layers.harness import Playbook, PlaybookEntry
+        harness = Harness(system_prompts={"test": "Base prompt."})
+        harness.playbook = Playbook(entries=[
+            PlaybookEntry(id="e1", content="Privacy rule", tags=["confidential_company_knowledge"]),
+            PlaybookEntry(id="e2", content="Handle time rule", tags=["handle_time"]),
+        ])
+        prompt = harness.system_prompt("test", task_tags={"handle_time"})
+        assert "Handle time rule" in prompt
+        assert "Privacy rule" not in prompt
+
+
 class TestLoopWithAdaptiveIntensity:
     """Set up with intensity(reflect_every_n=2), run 4 iterations.
     Verify reflector was called fewer than 4 times.
