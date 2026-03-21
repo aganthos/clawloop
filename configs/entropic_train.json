@@ -1,0 +1,10 @@
+{
+  "model": "openai/claude-haiku-4-5-20251001",
+  "reflector_model": "openai/claude-sonnet-4-20250514",
+  "api_base": "http://127.0.0.1:8317/v1",
+  "api_key": "kuhhandel-bench-key",
+  "entropic_bench_path": "benchmarks/a2a/entropic-crmarenapro",
+  "task_categories": null,
+  "task_limit": null,
+  "output": "./runs/entropic/train_001"
+}

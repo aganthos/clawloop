@@ -243,6 +243,11 @@ BENCH_SETUP: dict[str, dict[str, Any]] = {
         "data_setup": "scenarios/car-bench/setup.sh",
         "uv_sync_cmd": ["uv", "sync", "--extra", "car-bench-agent", "--extra", "car-bench-evaluator"],
     },
+    "entropic": {
+        "bench_dir": "benchmarks/a2a/entropic-crmarenapro",
+        "data_setup": None,
+        "uv_sync_cmd": ["uv", "sync"],
+    },
     # "tau2": {
     #     "bench_dir": "benchmarks/tau-bench",
     #     "data_setup": None,
