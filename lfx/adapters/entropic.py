@@ -224,11 +224,18 @@ class EntropicAdapter(EnvAdapter):
             # --- Step 2: Wait for green agent health ---
             green_url = f"http://127.0.0.1:{green_port}"
             if not self._wait_for_health(green_url, timeout=30):
+                # Terminate first to unblock pipe reads
+                green_proc.terminate()
+                try:
+                    green_proc.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    green_proc.kill()
                 stdout = green_proc.stdout.read().decode() if green_proc.stdout else ""
                 stderr = green_proc.stderr.read().decode() if green_proc.stderr else ""
                 (iter_dir / "green_agent.log").write_text(
                     f"STDOUT:\n{stdout}\nSTDERR:\n{stderr}"
                 )
+                green_proc = None  # Already cleaned up
                 log.error("Green agent failed to start. See green_agent.log.")
                 self._iteration_count += 1
                 return [self._make_failed_episode(tid, "green_start_failed") for tid in str_ids]
@@ -342,10 +349,17 @@ class EntropicAdapter(EnvAdapter):
                 for tid in expected_task_ids
             ]
 
-        # The artifact data contains {"results": [{task_idx, ...}, ...]}
+        # The artifact data may be:
+        #   {"results": [{task_idx, ...}, ...]}
+        #   {"entropic": {"results": [...]}, "results": [...]}
+        # Prefer the top-level "results" if it's a list, else unwrap "entropic".
         task_results = raw.get("results", [])
         if not isinstance(task_results, list):
             task_results = []
+        if not task_results and "entropic" in raw:
+            nested = raw["entropic"]
+            if isinstance(nested, dict):
+                task_results = nested.get("results", [])
 
         episodes = []
         for task_result in task_results:
