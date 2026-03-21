@@ -15,7 +15,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-import signal
 import subprocess
 import time
 from pathlib import Path
@@ -142,7 +141,12 @@ class EntropicAdapter(EnvAdapter):
         5. Parse results into Episodes.
         6. Terminate the green agent.
         """
-        str_ids = [str(tid) for tid in task_ids]
+        # Prefer explicit task_ids from config over CLI-generated ones
+        # (CLI generates "base_0" etc. which are meaningless for CRMArenaPro).
+        if self._task_ids:
+            str_ids = [str(tid) for tid in self._task_ids]
+        else:
+            str_ids = [str(tid) for tid in task_ids]
         self._current_state_id = agent_state.state_id().combined_hash
 
         iter_dir = (self._output_dir / f"iter_{self._iteration_count}").resolve()

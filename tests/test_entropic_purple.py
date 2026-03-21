@@ -52,7 +52,7 @@ class TestFormatA2AResponse:
         msg.tool_calls = None
 
         result = agent._format_a2a_response(msg)
-        parts = result["message"]["parts"]
+        parts = result["parts"]
         assert parts[0]["kind"] == "text"
         assert parts[0]["text"] == "42 leads found"
         assert len(parts) == 1
@@ -68,7 +68,7 @@ class TestFormatA2AResponse:
         msg.tool_calls = [tc]
 
         result = agent._format_a2a_response(msg)
-        parts = result["message"]["parts"]
+        parts = result["parts"]
         assert len(parts) == 2
         assert parts[1]["kind"] == "data"
         assert parts[1]["data"]["tool_calls"][0]["tool_name"] == "query_leads"
@@ -84,7 +84,7 @@ class TestFormatA2AResponse:
         msg.tool_calls = [tc]
 
         result = agent._format_a2a_response(msg)
-        tool_call = result["message"]["parts"][1]["data"]["tool_calls"][0]
+        tool_call = result["parts"][1]["data"]["tool_calls"][0]
         assert tool_call["arguments"] == {"raw": "not valid json {"}
 
     def test_none_arguments(self):
@@ -98,7 +98,7 @@ class TestFormatA2AResponse:
         msg.tool_calls = [tc]
 
         result = agent._format_a2a_response(msg)
-        tool_call = result["message"]["parts"][1]["data"]["tool_calls"][0]
+        tool_call = result["parts"][1]["data"]["tool_calls"][0]
         assert tool_call["arguments"] == {}
 
 
