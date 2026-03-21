@@ -91,6 +91,76 @@ class TestLoopCallsReflectorViaHarness:
         assert len(state.harness.playbook.entries) > 0, "No playbook entries after reflector"
 
 
+class TestPerSampleReflection:
+    """Per-sample reflection (batch_size=1) calls reflector once per episode."""
+
+    def test_per_sample_calls_reflector_per_episode(self) -> None:
+        client = _MockLLMClient()
+        reflector = Reflector(client=client, config=ReflectorConfig(reflection_batch_size=1))
+        harness = Harness(
+            system_prompts={"test": "You are helpful."},
+            reflector=reflector,
+        )
+        # Use failure reward so episodes go to harness (support)
+        adapter = _MockAdapter(reward=0.2)
+        state = AgentState(harness=harness)
+
+        state, sid = learning_loop(
+            adapter=adapter,
+            agent_state=state,
+            tasks=["t1", "t2", "t3"],
+            n_episodes=3,
+            n_iterations=1,
+        )
+
+        # With batch_size=1, reflector should be called once per support episode
+        assert len(client.call_log) == 3, (
+            f"Expected 3 reflector calls (one per episode), got {len(client.call_log)}"
+        )
+
+    def test_batch_reflection_calls_reflector_once(self) -> None:
+        client = _MockLLMClient()
+        reflector = Reflector(client=client, config=ReflectorConfig(reflection_batch_size=5))
+        harness = Harness(
+            system_prompts={"test": "You are helpful."},
+            reflector=reflector,
+        )
+        adapter = _MockAdapter(reward=0.2)
+        state = AgentState(harness=harness)
+
+        state, sid = learning_loop(
+            adapter=adapter,
+            agent_state=state,
+            tasks=["t1", "t2", "t3"],
+            n_episodes=3,
+            n_iterations=1,
+        )
+
+        # With batch_size=5, all 3 episodes fit in one batch
+        assert len(client.call_log) == 1, (
+            f"Expected 1 reflector call (one batch), got {len(client.call_log)}"
+        )
+
+    def test_per_sample_auto_tags_insights(self) -> None:
+        client = _MockLLMClient()
+        reflector = Reflector(client=client, config=ReflectorConfig(reflection_batch_size=1))
+        harness = Harness(
+            system_prompts={"test": "You are helpful."},
+            reflector=reflector,
+        )
+
+        ep = _make_episode(bench="entropic", task_id="t1", reward=-0.5)
+        ep.metadata = {"entropic_category": "knowledge_qa"}
+
+        from lfx.core.types import Datum
+        harness.forward_backward(Datum(episodes=[ep]))
+
+        # Insights should be auto-tagged with bench + category
+        for insight in harness._pending.insights:
+            assert "entropic" in insight.tags, f"Missing bench tag: {insight.tags}"
+            assert "knowledge_qa" in insight.tags, f"Missing category tag: {insight.tags}"
+
+
 class TestLoopWithAdaptiveIntensity:
     """Set up with intensity(reflect_every_n=2), run 4 iterations.
     Verify reflector was called fewer than 4 times.
@@ -98,7 +168,8 @@ class TestLoopWithAdaptiveIntensity:
 
     def test_loop_with_adaptive_intensity(self) -> None:
         client = _MockLLMClient()
-        reflector = Reflector(client=client, config=ReflectorConfig())
+        # Use batch reflection so call count reflects iteration gating, not per-episode splits
+        reflector = Reflector(client=client, config=ReflectorConfig(reflection_batch_size=5))
         harness = Harness(
             system_prompts={"test": "You are helpful."},
             reflector=reflector,
