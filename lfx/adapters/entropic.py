@@ -119,6 +119,7 @@ class EntropicAdapter(EnvAdapter):
         self._output_dir.mkdir(parents=True, exist_ok=True)
         self._task_categories = config.get("task_categories")
         self._task_limit = config.get("task_limit")
+        self._task_ids = config.get("task_ids")
         self._api_base = config.get("api_base")
         self._api_key = config.get("api_key")
         self._green_timeout = config.get("green_timeout", 600)
@@ -296,12 +297,16 @@ class EntropicAdapter(EnvAdapter):
             "skip_original": True,
         }
 
-        # Check if task_ids are real CRMArenaPro indices (integers)
-        real_ids = [tid for tid in task_ids if tid.isdigit()]
-        if real_ids and len(real_ids) == len(task_ids):
-            cfg["task_ids"] = real_ids
+        # Prefer explicit task_ids from config, then check if CLI-generated
+        # IDs are real CRMArenaPro indices (integers).
+        if self._task_ids:
+            cfg["task_ids"] = [str(tid) for tid in self._task_ids]
         else:
-            cfg["task_limit"] = len(task_ids)
+            real_ids = [tid for tid in task_ids if tid.isdigit()]
+            if real_ids and len(real_ids) == len(task_ids):
+                cfg["task_ids"] = real_ids
+            else:
+                cfg["task_limit"] = len(task_ids)
 
         if self._task_categories:
             cfg["task_categories"] = self._task_categories

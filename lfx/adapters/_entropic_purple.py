@@ -128,6 +128,51 @@ class EntropicPurpleAgent:
             "parts": parts,
         }
 
+    # -- CRM task formatting --
+
+    @staticmethod
+    def _format_crm_task(raw_text: str) -> str:
+        """Parse CRM task JSON and format as a readable prompt.
+
+        The green agent sends ``json.dumps(task_context)`` as an A2A TextPart.
+        We extract the structured fields and present them clearly to the LLM.
+        If the text isn't valid JSON, return it unchanged.
+        """
+        import json as _json
+        try:
+            ctx = _json.loads(raw_text)
+        except (ValueError, TypeError):
+            return raw_text
+
+        if not isinstance(ctx, dict) or "prompt" not in ctx:
+            return raw_text
+
+        parts: list[str] = []
+
+        persona = ctx.get("persona", "")
+        if persona:
+            parts.append(f"Persona: {persona}")
+
+        parts.append(f"\nTask: {ctx['prompt']}")
+
+        required = ctx.get("required_context", "")
+        if required and required.strip():
+            parts.append(f"\nContext:\n{required}")
+
+        entropy = ctx.get("entropy")
+        if entropy:
+            parts.append(
+                f"\nNote: Column names may have been modified (drift_level={entropy.get('drift_level','?')}). "
+                "Adapt to any schema changes in the context."
+            )
+
+        parts.append(
+            "\nProvide a direct, concise answer. "
+            "If the task asks for IDs or specific values, return only those values."
+        )
+
+        return "\n".join(parts)
+
     # -- Core message handling --
 
     def handle_message_sync(self, jsonrpc_request: dict) -> dict:
@@ -152,6 +197,7 @@ class EntropicPurpleAgent:
             messages.append({"role": "system", "content": system_content})
 
             user_text = "\n".join(text_parts)
+            user_text = self._format_crm_task(user_text)
             if user_text.strip():
                 messages.append({"role": "user", "content": user_text})
 
