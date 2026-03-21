@@ -365,9 +365,14 @@ class EntropicAdapter(EnvAdapter):
         for task_result in task_results:
             episodes.append(self._map_to_episode(task_result))
 
-        # Fill in missing tasks
+        # Fill in missing tasks — but only when expected IDs are real
+        # CRMArenaPro indices (digits).  Synthetic CLI IDs (``base_0``, etc.)
+        # would always appear missing because the green agent returns numeric
+        # task_idx values.
         found_ids = {ep.task_id for ep in episodes}
         for tid in expected_task_ids:
+            if not tid.isdigit():
+                continue  # skip synthetic IDs
             if f"entropic:{tid}" not in found_ids:
                 episodes.append(self._make_failed_episode(tid, "missing_result"))
 
