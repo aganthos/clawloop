@@ -578,6 +578,20 @@ class Harness:
 
     # -- Layer protocol methods --
 
+    @staticmethod
+    def _extract_episode_tags(episodes: list[Any]) -> set[str]:
+        """Extract category/bench tags from episodes for insight tagging."""
+        tags: set[str] = set()
+        for ep in episodes:
+            if getattr(ep, "bench", None):
+                tags.add(ep.bench)
+            meta = getattr(ep, "metadata", None) or {}
+            for key in ("entropic_category", "car_category", "task_category"):
+                val = meta.get(key)
+                if val:
+                    tags.add(val)
+        return tags
+
     def _attribute_entries(self, episode: Any) -> list[PlaybookEntry]:
         """Return playbook entries relevant to this episode.
 
@@ -680,12 +694,28 @@ class Harness:
             "stale_skipped": stale_skipped,
         }
 
-        # Reflector: analyse traces and accumulate insights
+        # Reflector: analyse traces and accumulate insights.
+        # Batch size controls the noise/signal tradeoff (TextGrad analogy):
+        #   batch=1  → per-sample reflection (Reflexion-style, clean gradients)
+        #   batch=N  → mini-batch reflection (TextGrad-style, lower variance)
         if self.reflector is not None:
             try:
-                insights = self.reflector.reflect(data.episodes, self.playbook)
-                self._pending.insights.extend(insights)
-                metrics["insights_generated"] = len(insights)
+                batch_sz = self.reflector.config.reflection_batch_size
+                episodes = data.episodes
+                total_insights: list[Any] = []
+                for i in range(0, len(episodes), batch_sz):
+                    batch = episodes[i : i + batch_sz]
+                    batch_insights = self.reflector.reflect(batch, self.playbook)
+                    # Auto-tag insights with source episode metadata for
+                    # cleaner attribution when using per-sample reflection.
+                    if batch_sz <= 2 and batch_insights:
+                        ep_tags = self._extract_episode_tags(batch)
+                        for insight in batch_insights:
+                            existing = set(insight.tags) if insight.tags else set()
+                            insight.tags = list(existing | ep_tags)
+                    total_insights.extend(batch_insights)
+                self._pending.insights.extend(total_insights)
+                metrics["insights_generated"] = len(total_insights)
             except Exception:
                 log.exception("Reflector failed during forward_backward")
 

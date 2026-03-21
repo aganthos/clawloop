@@ -131,7 +131,8 @@ def _build_reflector(config: dict[str, Any]) -> Any | None:
         api_key=config.get("api_key"),
     )
     log.info("Reflector enabled: model=%s via %s", model, api_base)
-    return Reflector(client=client, config=ReflectorConfig())
+    rbs = config.get("reflection_batch_size", 1)
+    return Reflector(client=client, config=ReflectorConfig(reflection_batch_size=rbs))
 
 
 def _ensure_output_dir(config: dict[str, Any], bench: str) -> None:

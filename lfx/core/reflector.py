@@ -74,6 +74,8 @@ class ReflectorConfig:
     temperature: float = 0.7
     max_episodes_per_prompt: int = 5
     max_tokens: int = 2000
+    # 1 = per-sample (Reflexion-style), >1 = mini-batch (TextGrad-style)
+    reflection_batch_size: int = 1
 
 
 @dataclass
