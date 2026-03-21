@@ -124,6 +124,10 @@ class EntropicAdapter(EnvAdapter):
         self._green_timeout = config.get("green_timeout", 600)
         self._iteration_count = 0
         self._config = config
+        # Purple agent is started once and reused across iterations.
+        # Its harness is updated at the start of each run_batch call.
+        self._purple_agent = None
+        self._purple_port: int | None = None
 
     def run_episode(self, task: Any, agent_state: "AgentState") -> Episode:
         episodes = self.run_batch(agent_state, [task])
@@ -185,28 +189,34 @@ class EntropicAdapter(EnvAdapter):
 
         green_proc = None
         try:
-            # --- Step 0: Start purple agent (harness-injected) ---
+            # --- Step 0: Start or reuse purple agent (harness-injected) ---
             from lfx.adapters._entropic_purple import (
                 EntropicPurpleAgent,
                 start_purple_server,
             )
 
-            purple_agent = EntropicPurpleAgent(
-                model=self._model,
-                harness=agent_state.harness,
-                bench="entropic",
-                api_base=self._api_base,
-                api_key=self._api_key,
-            )
-            _purple_thread, actual_purple_port = start_purple_server(
-                purple_agent, host="127.0.0.1", port=purple_port,
-            )
-            # Update eval config with actual purple port (may differ if port was taken)
-            if actual_purple_port != purple_port:
-                purple_port = actual_purple_port
-                eval_config = self._build_eval_config(str_ids, purple_port)
-                eval_config_path.write_text(json.dumps(eval_config, indent=2))
-            log.info("Purple agent started (port=%d)", purple_port)
+            if self._purple_agent is None:
+                self._purple_agent = EntropicPurpleAgent(
+                    model=self._model,
+                    harness=agent_state.harness,
+                    bench="entropic",
+                    api_base=self._api_base,
+                    api_key=self._api_key,
+                )
+                _thread, self._purple_port = start_purple_server(
+                    self._purple_agent, host="127.0.0.1", port=purple_port,
+                )
+                log.info("Purple agent started (port=%d)", self._purple_port)
+            else:
+                # Reuse existing server — update harness and clear sessions
+                self._purple_agent.update_harness(agent_state.harness)
+                self._purple_agent.clear_all_sessions()
+                log.info("Purple agent reused (port=%d)", self._purple_port)
+
+            purple_port = self._purple_port
+            # Rebuild eval config with actual purple port
+            eval_config = self._build_eval_config(str_ids, purple_port)
+            eval_config_path.write_text(json.dumps(eval_config, indent=2))
 
             # --- Step 1: Start green agent server ---
             green_proc = subprocess.Popen(
