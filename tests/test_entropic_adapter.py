@@ -107,16 +107,27 @@ class TestEvalConfigGeneration:
         adapter = EntropicAdapter()
         adapter._task_categories = None
         adapter._task_limit = None
+        adapter._task_ids = None
 
         config = adapter._build_eval_config(["0", "1"], purple_port=9999)
         assert config["participants"]["agent"] == "http://127.0.0.1:9999"
         assert config["config"]["task_ids"] == ["0", "1"]
         assert config["config"]["skip_original"] is True
 
+    def test_explicit_task_ids_override(self):
+        adapter = EntropicAdapter()
+        adapter._task_categories = None
+        adapter._task_limit = None
+        adapter._task_ids = ["500", "501"]
+
+        config = adapter._build_eval_config(["base_0", "base_1"], purple_port=9999)
+        assert config["config"]["task_ids"] == ["500", "501"]
+
     def test_includes_category_filter(self):
         adapter = EntropicAdapter()
         adapter._task_categories = ["knowledge_qa", "lead_qualification"]
         adapter._task_limit = 5
+        adapter._task_ids = None
 
         config = adapter._build_eval_config(["0"], purple_port=8080)
         assert config["config"]["task_categories"] == ["knowledge_qa", "lead_qualification"]
