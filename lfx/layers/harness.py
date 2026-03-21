@@ -203,14 +203,22 @@ class Playbook:
         """Return entries that are not superseded."""
         return [e for e in self.entries if not e.superseded_by]
 
-    def render(self) -> str:
-        """Render the playbook as a text block for inclusion in system prompts."""
-        if not self.entries:
+    def render(self, tags: set[str] | None = None) -> str:
+        """Render the playbook as a text block for inclusion in system prompts.
+
+        When *tags* is provided, only entries whose tags overlap with the
+        given set are included (DC-RS / ACE-style selective retrieval).
+        Falls back to all active entries if no tags match.
+        """
+        entries = self.active_entries()
+        if tags:
+            matched = [e for e in entries if e.tags and set(e.tags) & tags]
+            if matched:
+                entries = matched
+        if not entries:
             return ""
         lines = ["## PLAYBOOK"]
-        for e in self.entries:
-            if e.superseded_by:
-                continue
+        for e in entries:
             if e.name and e.description:
                 lines.append(f"### {e.name}")
                 lines.append(f"**When**: {e.description}")
@@ -399,10 +407,14 @@ class Harness:
     # Optional PlaybookCurator for retrieve-classify-revise pipeline
     _curator: Any | None = field(default=None, repr=False)
 
-    def system_prompt(self, bench: str) -> str:
-        """Resolve the system prompt for a bench, including playbook."""
+    def system_prompt(self, bench: str, task_tags: set[str] | None = None) -> str:
+        """Resolve the system prompt for a bench, including playbook.
+
+        When *task_tags* is provided, only playbook entries matching those
+        tags are included (selective retrieval, ACE/DC-RS style).
+        """
         base = self.system_prompts.get(bench, "")
-        pb = self.playbook.render()
+        pb = self.playbook.render(tags=task_tags)
         if pb:
             return f"{base}\n\n{pb}" if base else pb
         return base

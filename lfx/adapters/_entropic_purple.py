@@ -173,6 +173,22 @@ class EntropicPurpleAgent:
 
         return "\n".join(parts)
 
+    @staticmethod
+    def _extract_task_tags(raw_text: str) -> set[str] | None:
+        """Extract task category from CRM task JSON for selective playbook retrieval."""
+        import json as _json
+        try:
+            ctx = _json.loads(raw_text)
+        except (ValueError, TypeError):
+            return None
+        if not isinstance(ctx, dict):
+            return None
+        tags: set[str] = set()
+        cat = ctx.get("task_category")
+        if cat:
+            tags.add(cat)
+        return tags or None
+
     # -- Core message handling --
 
     def handle_message_sync(self, jsonrpc_request: dict) -> dict:
@@ -191,12 +207,15 @@ class EntropicPurpleAgent:
         messages = self._sessions[context_id]
 
         if not messages:
-            # First message — inject harness as system prompt
-            harness_prompt = self.harness.system_prompt(self.bench)
+            # First message — inject harness as system prompt.
+            # Extract task tags for selective playbook retrieval (ACE/DC-RS).
+            raw_text = "\n".join(text_parts)
+            task_tags = self._extract_task_tags(raw_text)
+            harness_prompt = self.harness.system_prompt(self.bench, task_tags=task_tags)
             system_content = harness_prompt or "You are a helpful CRM assistant."
             messages.append({"role": "system", "content": system_content})
 
-            user_text = "\n".join(text_parts)
+            user_text = raw_text
             user_text = self._format_crm_task(user_text)
             if user_text.strip():
                 messages.append({"role": "user", "content": user_text})
