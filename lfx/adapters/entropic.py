@@ -180,6 +180,29 @@ class EntropicAdapter(EnvAdapter):
 
         green_proc = None
         try:
+            # --- Step 0: Start purple agent (harness-injected) ---
+            from lfx.adapters._entropic_purple import (
+                EntropicPurpleAgent,
+                start_purple_server,
+            )
+
+            purple_agent = EntropicPurpleAgent(
+                model=self._model,
+                harness=agent_state.harness,
+                bench="entropic",
+                api_base=self._api_base,
+                api_key=self._api_key,
+            )
+            _purple_thread, actual_purple_port = start_purple_server(
+                purple_agent, host="127.0.0.1", port=purple_port,
+            )
+            # Update eval config with actual purple port (may differ if port was taken)
+            if actual_purple_port != purple_port:
+                purple_port = actual_purple_port
+                eval_config = self._build_eval_config(str_ids, purple_port)
+                eval_config_path.write_text(json.dumps(eval_config, indent=2))
+            log.info("Purple agent started (port=%d)", purple_port)
+
             # --- Step 1: Start green agent server ---
             green_proc = subprocess.Popen(
                 [
@@ -262,21 +285,35 @@ class EntropicAdapter(EnvAdapter):
     def _build_eval_config(
         self, task_ids: list[str], purple_port: int
     ) -> dict[str, Any]:
-        """Build the EvalRequest dict for the green agent."""
-        config: dict[str, Any] = {
+        """Build the EvalRequest dict for the green agent.
+
+        The CLI generates synthetic task IDs (``base_0``, ``base_1``, …) that
+        don't correspond to CRMArenaPro indices.  We use ``task_limit`` to tell
+        the green agent how many tasks to sample, unless explicit integer task
+        IDs are provided.
+        """
+        cfg: dict[str, Any] = {
+            "skip_original": True,
+        }
+
+        # Check if task_ids are real CRMArenaPro indices (integers)
+        real_ids = [tid for tid in task_ids if tid.isdigit()]
+        if real_ids and len(real_ids) == len(task_ids):
+            cfg["task_ids"] = real_ids
+        else:
+            cfg["task_limit"] = len(task_ids)
+
+        if self._task_categories:
+            cfg["task_categories"] = self._task_categories
+        if self._task_limit:
+            cfg["task_limit"] = self._task_limit
+
+        return {
             "participants": {
                 "agent": f"http://127.0.0.1:{purple_port}",
             },
-            "config": {
-                "task_ids": task_ids,
-                "skip_original": True,
-            },
+            "config": cfg,
         }
-        if self._task_categories:
-            config["config"]["task_categories"] = self._task_categories
-        if self._task_limit:
-            config["config"]["task_limit"] = self._task_limit
-        return config
 
     def _parse_results(
         self, results_path: Path, expected_task_ids: list[str]

@@ -120,12 +120,12 @@ class EntropicPurpleAgent:
                 )
             parts.append({"kind": "data", "data": {"tool_calls": tool_calls}})
 
+        # Return Message directly (not wrapped) — a2a-sdk expects result=Message
         return {
-            "message": {
-                "messageId": uuid4().hex,
-                "role": "agent",
-                "parts": parts,
-            }
+            "kind": "message",
+            "messageId": uuid4().hex,
+            "role": "agent",
+            "parts": parts,
         }
 
     # -- Core message handling --
