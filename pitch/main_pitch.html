@@ -1401,19 +1401,22 @@
     </section>
 
     <!-- ═══════════════════════════════════════════════════
-     SLIDE — LFX: THE PRODUCT
+     SLIDE — CLAWLOOP: THE PRODUCT
      ═══════════════════════════════════════════════════ -->
-    <section class="slide bg-deep" data-slide="lfx" data-deck="vc">
+    <section class="slide bg-deep" data-slide="clawloop" data-deck="vc">
         <span class="slide-num">8</span>
         <svg class="logo-corner" viewBox="0 0 900 1400" fill="none">
             <path d="M700 450C700 588.071 588.071 700 450 700C311.929 700 200 588.071 200 450H700ZM450 0C509.095 0 567.611 11.6393 622.208 34.2539C676.804 56.8685 726.412 90.0155 768.198 131.802C809.985 173.588 843.131 223.196 865.746 277.792C888.361 332.389 900 390.905 900 450H700C700 311.929 588.071 200 450 200C311.929 200 200 311.929 200 450H0C0 390.905 11.6394 332.389 34.2539 277.793C56.8685 223.196 90.0154 173.588 131.802 131.802C173.588 90.0155 223.196 56.8685 277.792 34.2539C332.389 11.6393 390.905 0 450 0Z" fill="#E8E8E8" />
             <path d="M200 950C200 811.929 311.929 700 450 700C588.071 700 700 811.929 700 950H200ZM450 1400C390.905 1400 332.389 1388.36 277.792 1365.75C223.196 1343.13 173.588 1309.98 131.802 1268.2C90.0155 1226.41 56.8685 1176.8 34.2539 1122.21C11.6393 1067.61 0 1009.09 0 950H200C200 1088.07 311.929 1200 450 1200C588.071 1200 700 1088.07 700 950H900C900 1009.09 888.361 1067.61 865.746 1122.21C843.131 1176.8 809.985 1226.41 768.198 1268.2C726.412 1309.98 676.804 1343.13 622.208 1365.75C567.611 1388.36 509.095 1400 450 1400Z" fill="#E8E8E8" />
         </svg>
         <div class="slide-content" style="gap: clamp(6px,1vh,14px);">
-            <h2 class="reveal" style="font-family:'JetBrains Mono','Fira Code',monospace;letter-spacing:0.08em;font-size:var(--h2-size);">lfx</h2>
+            <div class="reveal" style="display:flex;align-items:center;gap:clamp(12px,2vw,24px);justify-content:center;">
+                <img src="clawloop.png" alt="ClawLoop" style="height:clamp(48px,8vh,90px);width:auto;">
+                <h2 style="font-family:var(--font-display);font-size:var(--h2-size);"><span style="color:var(--accent-red);">Claw</span>Loop</h2>
+            </div>
             <p class="reveal" style="font-size:var(--small-size);color:var(--text-secondary);font-style:italic;">
-                Open-core Python library &mdash; non-commercial license &mdash; <span style="font-family:monospace;color:var(--accent-green);">pip install lfx</span></p>
-            <!-- Architecture diagram: top = agents, center = lfx core, bottom = data sources -->
+                Open-core Python library &mdash; non-commercial license &mdash; <span style="font-family:monospace;color:var(--accent-green);">pip install clawloop</span></p>
+            <!-- Architecture diagram: top = agents, center = ClawLoop core, bottom = data sources -->
             <div class="reveal-scale" style="display:flex;flex-direction:column;gap:clamp(6px,0.8vh,12px);width:100%;max-width:min(95vw,1020px);">
                 <!-- TOP ROW: Agent frameworks that integrate -->
                 <div style="display:flex;gap:clamp(4px,0.5vw,8px);justify-content:center;">
@@ -1438,9 +1441,9 @@
                 </div>
                 <!-- DOWN ARROW -->
                 <div style="text-align:center;color:var(--text-muted);font-size:var(--label-size);">&#x25BC;</div>
-                <!-- CENTER: lfx Core -->
+                <!-- CENTER: ClawLoop Core -->
                 <div style="background:rgba(196,62,62,0.1);border:2px solid rgba(196,62,62,0.35);border-radius:10px;padding:clamp(10px,1.2vh,18px) clamp(14px,1.8vw,24px);text-align:center;">
-                    <div style="font-family:monospace;font-weight:800;font-size:var(--h3-size);color:var(--text-primary);letter-spacing:0.1em;margin-bottom:clamp(4px,0.6vh,10px);">lfx.wrap(client)</div>
+                    <div style="font-family:monospace;font-weight:800;font-size:var(--h3-size);color:var(--text-primary);letter-spacing:0.1em;margin-bottom:clamp(4px,0.6vh,10px);">clawloop.wrap(client)</div>
                     <div style="display:flex;gap:clamp(4px,0.6vw,10px);">
                         <div style="flex:1;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:5px;padding:clamp(6px,0.8vh,12px) clamp(4px,0.5vw,8px);">
                             <div style="font-weight:700;color:var(--text-primary);font-size:var(--label-size);">Harness</div>
@@ -1581,8 +1584,8 @@
                 <!-- Distribution: how we get in -->
                 <div style="display:flex;align-items:center;gap:clamp(4px,0.6vw,10px);font-size:var(--label-size);">
                     <div style="flex:1;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:8px;padding:clamp(8px,1vh,14px) clamp(10px,1.2vw,16px);text-align:center;">
-                        <div style="font-weight:700;color:var(--text-primary);font-size:var(--small-size);">lfx library</div>
-                        <div style="color:var(--text-primary);margin-top:clamp(2px,0.3vh,4px);">pip install lfx</div>
+                        <div style="font-weight:700;color:var(--text-primary);font-size:var(--small-size);">ClawLoop library</div>
+                        <div style="color:var(--text-primary);margin-top:clamp(2px,0.3vh,4px);">pip install clawloop</div>
                         <div style="color:var(--text-muted);">Non-commercial license, free for research</div>
                     </div>
                     <span style="color:var(--text-muted);">&#x2192;</span>
@@ -1659,7 +1662,7 @@
             <div class="reveal" style="background:rgba(196,62,62,0.1);border:2px solid rgba(196,62,62,0.35);border-radius:10px;padding:clamp(10px,1.2vh,16px) clamp(16px,2vw,28px);max-width:min(90vw,880px);text-align:center;">
                 <h3 style="font-size:var(--small-size);margin-bottom:clamp(2px,0.3vh,4px);">Aganthos</h3>
                 <p style="font-size:var(--label-size);color:var(--text-secondary);">
-                    Developer infrastructure. Open-core library. Three learning layers (harness + routing + weights). Regression gate before every rollout. The only closed loop from trace to deploy.
+                    ClawLoop: open-core developer library. Three learning layers (harness + routing + weights). Regression gate before every rollout. The only closed loop from trace to deploy.
                 </p>
             </div>
         </div>
