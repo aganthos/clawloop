@@ -15,8 +15,10 @@ if [ ! -f "$DATA_DIR/train.parquet" ]; then
     exit 1
 fi
 
-uv run --isolated --extra fsdp \
-    -m skyrl.train.entrypoints.main_base \
+# Run from SkyRL submodule so module paths resolve
+cd lfx/skyrl
+
+python -m skyrl.train.entrypoints.main_base \
     data.train_data="['$DATA_DIR/train.parquet']" \
     data.val_data="['$DATA_DIR/validation.parquet']" \
     trainer.algorithm.advantage_estimator="grpo" \

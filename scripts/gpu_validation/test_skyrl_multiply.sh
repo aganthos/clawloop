@@ -16,8 +16,7 @@ fi
 # Run from the SkyRL submodule directory so the custom entry point resolves
 cd lfx/skyrl
 
-uv run --isolated --extra fsdp \
-    -m examples.train.multiply.main_multiply \
+python -m examples.train.multiply.main_multiply \
     data.train_data="['$DATA_DIR/train.parquet']" \
     data.val_data="['$DATA_DIR/validation.parquet']" \
     trainer.algorithm.advantage_estimator="grpo" \
