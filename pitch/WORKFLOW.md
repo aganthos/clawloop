@@ -6,11 +6,11 @@
 # 1. Pull latest
 git pull
 
-# 2. Start local server (required for images and PDF export)
-cd "/Users/tobiasschuster/PycharmProjects/aganthos website/aganthos"
+# 2. Start local server from the repo root (required for images and PDF export)
 python3 -m http.server 8765
 
 # 3. Open a variant in the browser
+# (replace skydeck2 with whichever variant you need)
 open http://localhost:8765/pitch/deckv3.html?deck=vc&variant=skydeck2
 
 # 4. Export to PDF
@@ -147,10 +147,9 @@ For a **timeline/roadmap slide** (like Siemens slide 2), use `bg-warm` and repla
 
 ## Viewing a variant in the browser
 
-Requires a local server (images use `../ressources/` paths):
+Run from the **repo root**. Requires a local server (images use `../ressources/` paths):
 
 ```bash
-cd "/Users/tobiasschuster/PycharmProjects/aganthos website/aganthos"
 python3 -m http.server 8765
 # then open: http://localhost:8765/pitch/deckv3.html?deck=vc&variant=siemens
 ```
@@ -158,7 +157,6 @@ python3 -m http.server 8765
 For standalone (no server needed) — rebuild after changes:
 
 ```bash
-cd "/Users/tobiasschuster/PycharmProjects/aganthos website/aganthos"
 python3 pitch/build_standalone.py   # see script below
 open pitch/deckv3_standalone.html
 ```
@@ -196,7 +194,6 @@ gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/prepress \
 Run this Python script from the repo root whenever `deckv3.html` changes:
 
 ```bash
-cd "/Users/tobiasschuster/PycharmProjects/aganthos website/aganthos"
 python3 - <<'EOF'
 import base64, re, os, subprocess, tempfile
 from html import unescape
