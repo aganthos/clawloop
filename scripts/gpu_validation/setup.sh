@@ -55,7 +55,7 @@ python lfx/skyrl/examples/train/gsm8k/gsm8k_dataset.py \
 # --- Prepare multiply data ---
 python lfx/skyrl/examples/train/multiply/multiply_dataset.py \
     --output_dir ~/data/multiply \
-    --n_train 200
+    --train_size 200 --test_size 50
 
 echo ""
 echo "=== Setup complete ==="
