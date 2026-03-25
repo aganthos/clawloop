@@ -27,7 +27,7 @@ class HarborTaskEnvironment:
                  train_on_truncated: bool = True):
         try:
             from harbor.models.trial.config import TrialConfig
-            from harbor.trial import Trial
+            from harbor.trial.trial import Trial
         except ImportError as exc:
             raise ImportError(
                 "Harbor is required for HarborTaskEnvironment. "
