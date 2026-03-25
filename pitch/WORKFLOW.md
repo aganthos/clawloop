@@ -1,5 +1,65 @@
 # Pitch Deck Workflow
 
+## Quick start (for Robert)
+
+```bash
+# 1. Pull latest
+git pull
+
+# 2. Start local server (required for images and PDF export)
+cd "/Users/tobiasschuster/PycharmProjects/aganthos website/aganthos"
+python3 -m http.server 8765
+
+# 3. Open a variant in the browser
+open http://localhost:8765/pitch/deckv3.html?deck=vc&variant=skydeck2
+
+# 4. Export to PDF
+npx decktape generic --key=ArrowDown --max-slides=30 -s 1920x1080 \
+  "http://localhost:8765/pitch/deckv3.html?deck=vc&variant=skydeck2" \
+  pitch/deckv3_skydeck2.pdf
+
+# 5. Compress PDF (~4 MB)
+gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/prepress \
+  -dNOPAUSE -dQUIET -dBATCH \
+  -sOutputFile=pitch/deckv3_skydeck2_small.pdf \
+  pitch/deckv3_skydeck2.pdf
+
+# 6. Rebuild standalone HTML (no server needed, shareable file)
+python3 - <<'EOF'
+import base64, re, os, subprocess, tempfile
+from html import unescape
+src, dst = "pitch/deckv3.html", "pitch/deckv3_standalone.html"
+with open(src, "r", encoding="utf-8") as f: html = f.read()
+def to_data_uri(path, ref_dir):
+    path = unescape(path)
+    abs_path = os.path.normpath(os.path.join(ref_dir, path))
+    if not os.path.exists(abs_path): return None
+    ext = os.path.splitext(abs_path)[1].lower()
+    mime = {".png":"image/png",".jpg":"image/jpeg",".jpeg":"image/jpeg",
+            ".gif":"image/gif",".svg":"image/svg+xml"}.get(ext,"application/octet-stream")
+    if abs_path.endswith("monkey.png"):
+        tmp = tempfile.mktemp(suffix=".jpg")
+        subprocess.run(["sips","-s","format","jpeg","-s","formatOptions","80",abs_path,"--out",tmp],capture_output=True)
+        with open(tmp,"rb") as f2: data=f2.read()
+        os.unlink(tmp); mime="image/jpeg"
+    else:
+        with open(abs_path,"rb") as f2: data=f2.read()
+    return f"data:{mime};base64,{base64.b64encode(data).decode()}"
+def replace_src(m):
+    path = m.group(1)
+    if path.startswith("data:") or path.startswith("http"): return m.group(0)
+    uri = to_data_uri(path, "pitch")
+    return f'src="{uri}"' if uri else m.group(0)
+html_out = re.sub(r'src="([^"]+)"', replace_src, html)
+with open(dst,"w",encoding="utf-8") as f: f.write(html_out)
+print(f"Done: {os.path.getsize(dst)/1024/1024:.1f} MB")
+EOF
+```
+
+**Available variants:** `?deck=vc` · `?deck=vc&variant=skydeck` · `?deck=vc&variant=skydeck2` · `?deck=vc&variant=tenity` · `?deck=vc&variant=siemens`
+
+---
+
 ## File structure
 
 - `pitch/deckv3.html` — **single source of truth** for all slide versions
