@@ -302,10 +302,20 @@ class MathAdapter:
         except Exception:
             prompt = "Solve step by step."
 
-        response = str(self._client.complete([
-            {"role": "system", "content": prompt},
-            {"role": "user", "content": sample.question},
-        ]))
+        # Call LLM — on failure return a filtered episode so training continues
+        try:
+            response = str(self._client.complete([
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": sample.question},
+            ]))
+        except Exception as e:
+            log.warning("MathAdapter LLM call failed for %s: %s", sample.question[:40], e)
+            return Episode(
+                id=uuid4().hex, state_id="", task_id=sample.question[:60],
+                bench="math", messages=[], step_boundaries=[], steps=[],
+                summary=EpisodeSummary(filtered=True),
+                metadata={"error": type(e).__name__},
+            )
 
         eval_result = self._env.evaluate(sample, response)
         reward = eval_result.score
