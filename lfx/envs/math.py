@@ -6,6 +6,7 @@ exact-match scoring.  No external dependencies required.
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import re
 from typing import TYPE_CHECKING, Any
@@ -336,7 +337,7 @@ class MathAdapter:
         return Episode(
             id=uuid4().hex,
             state_id=state_id,
-            task_id=sample.question[:60],
+            task_id=hashlib.md5(sample.question.encode()).hexdigest()[:12],
             bench="math",
             messages=[
                 Message(role="system", content=prompt),
