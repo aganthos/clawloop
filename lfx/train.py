@@ -98,10 +98,11 @@ def _make_llm_client(cfg: LLMClientConfig):
     """Build a LiteLLMClient from config."""
     from lfx.llm import LiteLLMClient
 
+    key = cfg.api_key.get_secret_value() or None
     return LiteLLMClient(
         model=cfg.model,
-        api_key=cfg.api_key.get_secret_value(),
-        api_base=cfg.api_base,
+        api_key=key,
+        api_base=cfg.api_base or None,
         temperature=cfg.temperature,
         max_tokens=cfg.max_tokens,
     )
