@@ -84,6 +84,13 @@ class HarborTaskEnvironment:
             else:
                 return self._build_episode(agent_state, filtered=True, metadata={"error": exc_name})
 
+        if results.verifier_result is None or results.verifier_result.rewards is None:
+            chat_history = []
+            if results.agent_result and results.agent_result.metadata:
+                chat_history = results.agent_result.metadata.get("all_messages", [])
+            return self._build_episode(agent_state, chat_history=chat_history,
+                                       reward=0.0, metadata={"verifier_none": True})
+
         raw_reward = results.verifier_result.rewards.get("reward", 0.0)
         metadata: dict[str, Any] = {"raw_reward": raw_reward}
         try:
