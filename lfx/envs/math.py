@@ -296,17 +296,16 @@ class MathAdapter:
         sample = self._samples[task]
 
         # Get current system prompt from harness (includes playbook entries)
-        prompt = self._env.evaluate.__doc__  # fallback never used
         try:
             result = agent_state.harness.sample(SampleContext(bench="math"))
             prompt = result.result().output or "Solve step by step."
         except Exception:
             prompt = "Solve step by step."
 
-        response = self._client.complete([
+        response = str(self._client.complete([
             {"role": "system", "content": prompt},
             {"role": "user", "content": sample.question},
-        ])
+        ]))
 
         eval_result = self._env.evaluate(sample, response)
         reward = eval_result.score
