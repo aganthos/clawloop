@@ -14,6 +14,7 @@ from uuid import uuid4
 from lfx.core.env import EvalResult, Sample
 
 if TYPE_CHECKING:
+    from lfx.core.episode import Episode
     from lfx.core.loop import AgentState
 
 log = logging.getLogger(__name__)

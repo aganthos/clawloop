@@ -170,6 +170,9 @@ def train(config: TrainConfig):
         adapter = MathAdapter(env=math_env, client=task_client)
         tasks = [s.question for s in math_env.get_tasks()]
 
+    else:
+        raise ValueError(f"Unsupported env_type: {config.env_type!r}")
+
     # 4. Agent state
     agent_state = AgentState(
         harness=harness,
