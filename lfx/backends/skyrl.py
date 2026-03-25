@@ -109,11 +109,19 @@ class SkyRLWeightsBackend:
                 self._backend = JaxBackend(config.base_model, jax_cfg)
             elif config.backend_type == "skyrl_train":
                 from skyrl.backends.skyrl_train_backend import (
+                    FSDPBackendOverrides,
+                    MegatronBackendOverrides,
                     SkyRLTrainBackend,
-                    SkyRLTrainBackendOverrides,
                 )
 
-                train_cfg = SkyRLTrainBackendOverrides(**config.backend_config)
+                strategy = config.backend_config.get("strategy", "fsdp2")
+                cfg_kwargs = {k: v for k, v in config.backend_config.items() if k != "strategy"}
+                if strategy in ("fsdp", "fsdp2"):
+                    train_cfg = FSDPBackendOverrides(strategy=strategy, **cfg_kwargs)
+                elif strategy == "megatron":
+                    train_cfg = MegatronBackendOverrides(**cfg_kwargs)
+                else:
+                    raise ValueError(f"Unknown strategy: {strategy!r}")
                 self._backend = SkyRLTrainBackend(config.base_model, train_cfg)
             else:
                 raise ValueError(f"Unknown backend_type: {config.backend_type!r}")
