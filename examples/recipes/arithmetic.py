@@ -163,7 +163,7 @@ def run_weight_training(args):
         "trainer.logger": "console",
         "trainer.project_name": "lfx_arithmetic",
         "trainer.run_name": f"arithmetic_{args.model.split('/')[-1]}",
-        "trainer.resume_mode": None,
+        "trainer.resume_mode": "disabled",
         "trainer.ckpt_interval": 999,
         "trainer.ckpt_path": os.path.expanduser("~/ckpts/arithmetic"),
     }
