@@ -199,7 +199,7 @@ class TestMathAdapter:
         ep = adapter.run_episode(task, agent_state)
         assert isinstance(ep, Episode)
         assert ep.bench == "math"
-        assert ep.summary.total_reward == 1.0  # 25 is correct for 100/4
+        assert ep.summary.total_reward == 1.0  # correct answer returned by mock
         assert len(ep.messages) == 3  # system, user, assistant
 
     def test_wrong_answer_gives_zero_reward(self):
@@ -224,3 +224,85 @@ class TestMathAdapter:
         # Most likely wrong unless the first problem's answer happens to be 99
         assert ep.summary.total_reward in (0.0, 1.0)
         assert ep.metadata["ground_truth"] is not None
+
+    def test_llm_failure_returns_filtered_episode(self):
+        from unittest.mock import MagicMock
+
+        from lfx.envs.math import MathAdapter, MathEnvironment
+
+        env = MathEnvironment()
+        mock_client = MagicMock()
+        mock_client.complete.side_effect = ConnectionError("LLM down")
+
+        adapter = MathAdapter(env=env, client=mock_client)
+        tasks = [s.question for s in env.get_tasks()]
+
+        agent_state = MagicMock()
+        sample_result = MagicMock()
+        sample_result.result.return_value.output = "Solve."
+        agent_state.harness.sample.return_value = sample_result
+
+        ep = adapter.run_episode(tasks[0], agent_state)
+        assert ep.summary.filtered is True
+        assert ep.metadata["error"] == "ConnectionError"
+
+
+# ---------------------------------------------------------------------------
+# _make_llm_client
+# ---------------------------------------------------------------------------
+
+class TestMakeLLMClient:
+    def test_empty_key_becomes_none(self):
+        from lfx.train import LLMClientConfig, _make_llm_client
+
+        cfg = LLMClientConfig(model="test-model")
+        client = _make_llm_client(cfg)
+        assert client.api_key is None
+        assert client.api_base is None
+
+    def test_explicit_key_preserved(self):
+        from lfx.train import LLMClientConfig, _make_llm_client
+
+        cfg = LLMClientConfig(model="test-model", api_key=SecretStr("sk-123"), api_base="http://proxy")
+        client = _make_llm_client(cfg)
+        assert client.api_key == "sk-123"
+        assert client.api_base == "http://proxy"
+
+
+# ---------------------------------------------------------------------------
+# train() end-to-end (mocked backends)
+# ---------------------------------------------------------------------------
+
+class TestTrainEndToEnd:
+    def test_harness_learning_math(self):
+        """Full pipeline: train() with harness_learning + math env (mocked LLMs)."""
+        from unittest.mock import MagicMock, patch
+
+        from lfx.train import LLMClientConfig, TrainConfig, train
+
+        mock_reflector = MagicMock()
+        mock_reflector.complete.return_value = "[]"
+        mock_task = MagicMock()
+        mock_task.complete.return_value = "The answer is \\boxed{45}."
+
+        cfg = TrainConfig(
+            mode="harness_learning",
+            env_type="math",
+            llm_clients={
+                "reflector": LLMClientConfig(model="mock-reflector"),
+                "task": LLMClientConfig(model="mock-task"),
+            },
+            episodes_per_iter=2,
+            n_iterations=1,
+        )
+
+        with patch("lfx.train._make_llm_client") as mock_make:
+            def _pick_client(llm_cfg):
+                if "reflector" in llm_cfg.model:
+                    return mock_reflector
+                return mock_task
+            mock_make.side_effect = _pick_client
+
+            agent_state, state_id = train(cfg)
+            assert state_id.combined_hash
+            assert mock_task.complete.called
