@@ -51,10 +51,11 @@ class TrainConfig(BaseModel):
     """Unified training configuration."""
 
     mode: Literal["weight", "harness_learning", "full"]
-    env_type: Literal["harbor", "math"] = "harbor"
+    env_type: Literal["harbor", "math", "entropic"] = "harbor"
 
     llm_clients: dict[str, LLMClientConfig] = {}
     skyrl: dict[str, Any] | None = None
+    entropic: dict[str, Any] | None = None
     harbor: HarborConfig | None = None
 
     system_prompt: str = "You are a helpful assistant."
@@ -94,6 +95,10 @@ def validate_config(config: TrainConfig) -> list[str]:
     if config.env_type == "math":
         if "task" not in config.llm_clients:
             raise ValueError("math env requires 'task' in llm_clients")
+
+    if config.env_type == "entropic":
+        if not config.entropic:
+            raise ValueError("entropic env requires 'entropic' config")
 
     return layers
 
@@ -177,6 +182,25 @@ def train(config: TrainConfig):
         math_env = MathEnvironment()
         adapter = MathAdapter(env=math_env, client=task_client)
         tasks = [s.question for s in math_env.get_tasks()]
+
+    elif config.env_type == "entropic":
+        from lfx.adapters.entropic import EntropicAdapter
+
+        entropic_cfg = dict(config.entropic or {})
+        # Wire LLM client config into adapter if not already set
+        if "task" in config.llm_clients:
+            tc = config.llm_clients["task"]
+            entropic_cfg.setdefault("model", tc.model)
+            key = tc.api_key.get_secret_value() if tc.api_key else None
+            if key:
+                entropic_cfg.setdefault("api_key", key)
+            if tc.api_base:
+                entropic_cfg.setdefault("api_base", tc.api_base)
+
+        adapter = EntropicAdapter()
+        adapter.setup(entropic_cfg)
+        n_tasks = entropic_cfg.get("task_limit", len(entropic_cfg.get("task_ids", [0, 1, 2])))
+        tasks = [f"base_{i}" for i in range(n_tasks)]
 
     else:
         raise ValueError(f"Unsupported env_type: {config.env_type!r}")
