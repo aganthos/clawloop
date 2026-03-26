@@ -1,4 +1,4 @@
-"""LfxCallback — litellm custom logger for Mode B trajectory capture.
+"""ClawLoopCallback — litellm custom logger for Mode B trajectory capture.
 
 Registers as a litellm callback to automatically capture all LLM calls
 and feed them into the lfx learning pipeline.
@@ -6,10 +6,10 @@ and feed them into the lfx learning pipeline.
 Usage::
 
     import litellm
-    from clawloop.callbacks.litellm_cb import LfxCallback
+    from clawloop.callbacks.litellm_cb import ClawLoopCallback
 
     collector = EpisodeCollector(pipeline=RewardPipeline.with_defaults(), ...)
-    litellm.callbacks = [LfxCallback(collector=collector)]
+    litellm.callbacks = [ClawLoopCallback(collector=collector)]
 
     # All subsequent litellm.completion() calls are now captured
     litellm.completion(model="gpt-4o", messages=[...])
@@ -28,7 +28,7 @@ from clawloop.core.parse import parse_tool_calls, resolve_oi_span_kind, _safe_se
 log = logging.getLogger(__name__)
 
 
-class LfxCallback:
+class ClawLoopCallback:
     """litellm callback that captures completions into EpisodeCollector.
 
     Each litellm completion becomes a single-step episode. For multi-turn
@@ -62,7 +62,7 @@ class LfxCallback:
         try:
             self._process(kwargs, response_obj, start_time, end_time)
         except Exception:
-            log.exception("LfxCallback: failed to process completion")
+            log.exception("ClawLoopCallback: failed to process completion")
 
     def log_failure_event(
         self,
@@ -217,7 +217,7 @@ class LfxCallback:
                     )
                 span.end()
             except Exception:
-                log.warning("LfxCallback: failed to emit OTel span", exc_info=True)
+                log.warning("ClawLoopCallback: failed to emit OTel span", exc_info=True)
 
         self.collector.ingest(
             ep_messages,
