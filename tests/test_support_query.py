@@ -1,6 +1,6 @@
 """Tests for data routing in the learning loop.
 
-The MetaClaw-style support-query split is disabled (see loop.py).
+The support-query split is disabled (see loop.py).
 All layers now receive all episodes. These tests verify the current behavior.
 """
 
