@@ -82,6 +82,7 @@ def _normalize_answer(answer: str) -> str:
     """
     s = answer.strip().lower()
     s = s.replace("$", "")
+    s = s.replace(",", "")  # strip thousands separators (e.g. "1,000" -> "1000")
     # Remove \text{...} but keep the content inside
     s = re.sub(r"\\text\{([^}]*)\}", r"\1", s)
     s = re.sub(r"\s+", "", s)
@@ -314,7 +315,8 @@ class MathAdapter:
         except Exception as e:
             log.warning("MathAdapter LLM call failed for %s: %s", sample.question[:40], e)
             return Episode(
-                id=uuid4().hex, state_id="", task_id=sample.question[:60],
+                id=uuid4().hex, state_id="",
+                task_id=hashlib.sha256(sample.question.encode()).hexdigest()[:12],
                 bench="math", messages=[], step_boundaries=[], steps=[],
                 summary=EpisodeSummary(filtered=True),
                 metadata={"error": type(e).__name__},
