@@ -16,8 +16,6 @@ and harness learning (prompt optimization via reflector LLM).
     # Weight training (GPU, SkyRL):
     python examples/recipes/guess_number.py --mode weight
 
-    # Full multi-layer (GPU + LLM):
-    python examples/recipes/guess_number.py --mode full
 """
 from __future__ import annotations
 
