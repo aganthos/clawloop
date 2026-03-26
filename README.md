@@ -110,7 +110,7 @@ and an `EpisodeSummary` containing reward signals. See `lfx/envs/math.py`
 ## Limitations
 
 - **`mode="full"`** (simultaneous harness + weight training) is disabled.
-  The MetaClaw-style data split needs rework for GRPO advantage computation.
+  The support-query data split needs rework for GRPO advantage computation.
   Use `weight` and `harness_learning` separately for now.
 - **Episode construction is manual.** There is no `ProblemEnv` base class yet.
   New environments must build `Episode` objects directly. A higher-level

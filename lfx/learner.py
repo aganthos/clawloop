@@ -122,7 +122,7 @@ class AsyncLearner:
                 batch_id, len(episodes), avg_reward,
             )
 
-            # NOTE: MetaClaw-style support-query split disabled — see loop.py.
+            # NOTE: Support-query split disabled — see loop.py.
             layer_datums: dict[str, Datum] = {
                 "harness": Datum(episodes=episodes),
                 "weights": Datum(episodes=episodes),

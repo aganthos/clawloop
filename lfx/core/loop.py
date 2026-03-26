@@ -218,7 +218,7 @@ def learning_loop(
             intensity.record_reward(avg_reward)
 
         # 2. Build per-layer datums
-        # NOTE: MetaClaw-style support-query split (failures→harness,
+        # NOTE: Support-query split (failures→harness,
         # successes→weights) is disabled. GRPO needs all episodes for
         # advantage variance, and the on-policy vs off-policy boundary
         # after harness updates needs more work. See roadmap Task 2.1.
