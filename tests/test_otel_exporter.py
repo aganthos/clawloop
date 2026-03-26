@@ -278,11 +278,11 @@ class TestSpanTree:
 
 
 # ---------------------------------------------------------------------------
-# TestLfxAttributes
+# TestClawLoopAttributes
 # ---------------------------------------------------------------------------
 
 
-class TestLfxAttributes:
+class TestClawLoopAttributes:
     def _root(self, ep: Episode) -> Any:
         spans = _run_export(ep)
         return next(s for s in spans if s.parent is None)

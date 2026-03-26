@@ -477,9 +477,9 @@ def main() -> None:
     logging.basicConfig(level=getattr(logging, args.log_level.upper()))
 
     # CLI args override env vars
-    api_base = args.api_base or os.environ.get("LFX_API_BASE") or None
-    api_key = args.api_key or os.environ.get("LFX_API_KEY") or None
-    model = args.model or os.environ.get("LFX_MODEL") or "gpt-4o-mini"
+    api_base = args.api_base or os.environ.get("CLAWLOOP_API_BASE") or None
+    api_key = args.api_key or os.environ.get("CLAWLOOP_API_KEY") or None
+    model = args.model or os.environ.get("CLAWLOOP_MODEL") or "gpt-4o-mini"
 
     app = create_app(
         seed_prompt_path=args.seed_prompt, bench=args.bench,

@@ -3,7 +3,7 @@
 __version__ = "0.1.0"
 
 from clawloop.agent import ClawLoopAgent
-from clawloop.callbacks.litellm_cb import LfxCallback
+from clawloop.callbacks.litellm_cb import ClawLoopCallback
 from clawloop.collector import EpisodeCollector
 from clawloop.completion import CompletionResult
 from clawloop.core.env import EvalResult, Sample, StaticTaskEnvironment
@@ -19,7 +19,7 @@ __all__ = [
     "EpisodeCollector",
     "EvalResult",
     "ClawLoopAgent",
-    "LfxCallback",
+    "ClawLoopCallback",
     "LiteLLMClient",
     "MockLLMClient",
     "RewardPipeline",
