@@ -1,0 +1,37 @@
+{
+  "entries": [
+    {
+      "id": "str-82ddc3b2",
+      "content": "For math problems, always work step-by-step and verify your answer when possible. Break complex problems into smaller, manageable steps.",
+      "helpful": 0,
+      "harmful": 0,
+      "tags": [
+        "math",
+        "problem-solving",
+        "verification"
+      ]
+    },
+    {
+      "id": "str-9ee824e4",
+      "content": "For modular arithmetic problems, look for patterns and cycles in powers. Computing the first few values often reveals a repeating period that simplifies larger exponents.",
+      "helpful": 0,
+      "harmful": 0,
+      "tags": [
+        "math",
+        "modular-arithmetic",
+        "pattern-recognition"
+      ]
+    },
+    {
+      "id": "str-cc06f545",
+      "content": "When applying algebraic rules (like exponent laws), explicitly state the rule being used before applying it. This reduces errors and makes the solution clearer.",
+      "helpful": 0,
+      "harmful": 0,
+      "tags": [
+        "math",
+        "algebra",
+        "clarity"
+      ]
+    }
+  ]
+}

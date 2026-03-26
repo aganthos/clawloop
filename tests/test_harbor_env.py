@@ -5,9 +5,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from lfx.core.episode import Episode
-from lfx.core.loop import AgentState
-from lfx.envs.harbor import HarborAdapter, HarborTaskEnvironment
+from clawloop.core.episode import Episode
+from clawloop.core.loop import AgentState
+from clawloop.envs.harbor import HarborAdapter, HarborTaskEnvironment
 
 
 def _make_env(task_dir="/data/tasks/test-task", **kwargs):

@@ -12,10 +12,10 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from lfx.core.episode import Episode
-from lfx.core.loop import AgentState
-from lfx.envs.harbor import HarborTaskEnvironment
-from lfx.exporters.skyrl import SkyRLExporter
+from clawloop.core.episode import Episode
+from clawloop.core.loop import AgentState
+from clawloop.envs.harbor import HarborTaskEnvironment
+from clawloop.exporters.skyrl import SkyRLExporter
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures" / "harbor_tasks"
 TASK_NAMES = ["bfcl-simple-0", "bfcl-simple-1", "bfcl-fail-0"]

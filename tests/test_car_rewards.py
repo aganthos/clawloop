@@ -1,11 +1,11 @@
 # tests/test_car_rewards.py
 """Tests for CAR-bench reward mapping."""
 
-from lfx.adapters._car_rewards import map_car_scores, DEFAULT_CAR_WEIGHTS
+from clawloop.adapters._car_rewards import map_car_scores, DEFAULT_CAR_WEIGHTS
 
 
 class TestMapCarScores:
-    """map_car_scores converts CAR metrics to lfx RewardSignals."""
+    """map_car_scores converts CAR metrics to ClawLoop RewardSignals."""
 
     def test_perfect_scores(self):
         """All metrics 1.0 → outcome signal near +1.0."""

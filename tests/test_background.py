@@ -3,14 +3,14 @@
 from dataclasses import dataclass
 from unittest.mock import MagicMock
 
-from lfx.core.background import (
+from clawloop.core.background import (
     BackgroundScheduler,
     BackgroundState,
     EpisodeDreamer,
     PlaybookConsolidation,
 )
-from lfx.core.episode import Episode, EpisodeSummary, Message, StepMeta
-from lfx.layers.harness import Playbook, PlaybookEntry
+from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
+from clawloop.layers.harness import Playbook, PlaybookEntry
 
 
 def _make_episode(task_id="t1", reward=0.5):

@@ -2,18 +2,18 @@
 
 import time
 
-from lfx.collector import EpisodeCollector
-from lfx.completion import CompletionResult
-from lfx.core.episode import TokenLogProb, ToolCall, TokenUsage
-from lfx.core.loop import AgentState
-from lfx.core.reward import RewardPipeline
-from lfx.exporters.skyrl import SkyRLExporter
-from lfx.extractors.execution import ExecutionExtractor
-from lfx.extractors.user_feedback import UserFeedbackExtractor
-from lfx.layers.harness import Playbook, PlaybookEntry
-from lfx.learner import AsyncLearner
-from lfx.llm import MockLLMClient
-from lfx.wrapper import wrap
+from clawloop.collector import EpisodeCollector
+from clawloop.completion import CompletionResult
+from clawloop.core.episode import TokenLogProb, ToolCall, TokenUsage
+from clawloop.core.loop import AgentState
+from clawloop.core.reward import RewardPipeline
+from clawloop.exporters.skyrl import SkyRLExporter
+from clawloop.extractors.execution import ExecutionExtractor
+from clawloop.extractors.user_feedback import UserFeedbackExtractor
+from clawloop.layers.harness import Playbook, PlaybookEntry
+from clawloop.learner import AsyncLearner
+from clawloop.llm import MockLLMClient
+from clawloop.wrapper import wrap
 
 
 class TestLiveModeEndToEnd:

@@ -1,9 +1,9 @@
-"""Tests for lfx.core.state."""
+"""Tests for clawloop.core.state."""
 
-from lfx.core.state import StateID, _canonical_json, _sha256
-from lfx.layers.harness import Harness, ToolConfig
-from lfx.layers.router import Router
-from lfx.layers.weights import Weights
+from clawloop.core.state import StateID, _canonical_json, _sha256
+from clawloop.layers.harness import Harness, ToolConfig
+from clawloop.layers.router import Router
+from clawloop.layers.weights import Weights
 
 
 class TestCanonicalJson:

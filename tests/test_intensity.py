@@ -1,6 +1,6 @@
-"""Tests for lfx.core.intensity — adaptive reflection scheduling."""
+"""Tests for clawloop.core.intensity — adaptive reflection scheduling."""
 
-from lfx.core.intensity import AdaptiveIntensity
+from clawloop.core.intensity import AdaptiveIntensity
 
 
 class TestShouldReflect:

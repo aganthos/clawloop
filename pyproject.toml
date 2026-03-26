@@ -3,11 +3,11 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "lfx"
+name = "clawloop"
 version = "0.1.0"
-description = "LfX — Learning from Experience unified learning API"
+description = "ClawLoop — Learning from Experience unified learning API"
 requires-python = ">=3.11"
-license = "MIT"
+license = "BSL-1.1"
 dependencies = [
     "litellm>=1.0",
     "pydantic>=2.0",
@@ -38,10 +38,10 @@ n8n = [
 # tau2 = ["tau-bench"]  # deferred — not yet on PyPI
 
 [project.scripts]
-lfx = "lfx.cli:main"
+clawloop = "clawloop.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["lfx"]
+packages = ["clawloop"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Demo script for lfx + n8n integration.
+"""Demo script for clawloop + n8n integration.
 
 Sends scripted customer support tickets through n8n, submits feedback,
 waits for learning, then replays to show improvement.
 
 Usage:
-    python scripts/demo.py [--n8n-url http://localhost:5678] [--lfx-url http://localhost:8400]
+    python scripts/demo.py [--n8n-url http://localhost:5678] [--clawloop-url http://localhost:8400]
 """
 
 import argparse
@@ -27,10 +27,10 @@ def send_ticket(client: httpx.Client, n8n_webhook_url: str, ticket: dict) -> dic
     return resp.json()
 
 
-def wait_for_idle(client: httpx.Client, lfx_url: str, timeout: float = 120.0) -> None:
+def wait_for_idle(client: httpx.Client, clawloop_url: str, timeout: float = 120.0) -> None:
     start = time.time()
     while time.time() - start < timeout:
-        resp = client.get(f"{lfx_url}/state")
+        resp = client.get(f"{clawloop_url}/state")
         state = resp.json()
         if state["learning_status"] == "idle" and state["playbook_version"] > 0:
             return
@@ -39,9 +39,9 @@ def wait_for_idle(client: httpx.Client, lfx_url: str, timeout: float = 120.0) ->
 
 
 def main():
-    parser = argparse.ArgumentParser(description="lfx + n8n demo")
+    parser = argparse.ArgumentParser(description="clawloop + n8n demo")
     parser.add_argument("--n8n-url", default="http://localhost:5678")
-    parser.add_argument("--lfx-url", default="http://localhost:8400")
+    parser.add_argument("--clawloop-url", default="http://localhost:8400")
     parser.add_argument("--webhook-path", default="/webhook/support")
     parser.add_argument("--tickets", default="config/demo_tickets.json")
     args = parser.parse_args()
@@ -63,7 +63,7 @@ def main():
         except Exception as e:
             print(f"  -> ERROR: {e}")
 
-    state = client.get(f"{args.lfx_url}/state").json()
+    state = client.get(f"{args.clawloop_url}/state").json()
     print(f"\nEpisodes collected: {state['metrics']['episodes_collected']}")
 
     print("\nSubmitting feedback (thumbs down on T2-T5)...")
@@ -72,12 +72,12 @@ def main():
 
     print("\nWaiting for learning to complete...")
     try:
-        wait_for_idle(client, args.lfx_url, timeout=120.0)
+        wait_for_idle(client, args.clawloop_url, timeout=120.0)
     except TimeoutError:
         print("ERROR: Learning timed out")
         sys.exit(1)
 
-    state_after = client.get(f"{args.lfx_url}/state").json()
+    state_after = client.get(f"{args.clawloop_url}/state").json()
     print(f"\nPlaybook version: {state_after['playbook_version']}")
     print(f"Playbook entries: {len(state_after['playbook_entries'])}")
     for entry in state_after["playbook_entries"]:
@@ -96,7 +96,7 @@ def main():
         except Exception as e:
             print(f"  -> ERROR: {e}")
 
-    final = client.get(f"{args.lfx_url}/state").json()
+    final = client.get(f"{args.clawloop_url}/state").json()
     print("\n" + "=" * 60)
     print("RESULTS")
     print("=" * 60)

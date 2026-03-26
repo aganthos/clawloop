@@ -1,9 +1,9 @@
 """Tests for curator graceful degradation — fallback on embedding/LLM failures."""
 
-from lfx.core.curator import CurationResult, CuratorConfig, PlaybookCurator
-from lfx.core.embeddings import MockEmbedding
-from lfx.layers.harness import Insight, Playbook, PlaybookEntry
-from lfx.llm import MockLLMClient
+from clawloop.core.curator import CurationResult, CuratorConfig, PlaybookCurator
+from clawloop.core.embeddings import MockEmbedding
+from clawloop.layers.harness import Insight, Playbook, PlaybookEntry
+from clawloop.llm import MockLLMClient
 
 
 class _FailingEmbedding:

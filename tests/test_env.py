@@ -1,8 +1,8 @@
-"""Tests for lfx.core.env — Sample, EvalResult, TaskEnvironment, StaticTaskEnvironment."""
+"""Tests for clawloop.core.env — Sample, EvalResult, TaskEnvironment, StaticTaskEnvironment."""
 
 from __future__ import annotations
 
-from lfx.core.env import EvalResult, Sample, StaticTaskEnvironment, TaskEnvironment
+from clawloop.core.env import EvalResult, Sample, StaticTaskEnvironment, TaskEnvironment
 
 
 class TestSample:

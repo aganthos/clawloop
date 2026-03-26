@@ -2,7 +2,7 @@
 
 import time
 
-from lfx.layers.harness import PlaybookEntry
+from clawloop.layers.harness import PlaybookEntry
 
 
 class TestEffectiveScoreDecay:

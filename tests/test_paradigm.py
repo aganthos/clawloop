@@ -1,12 +1,12 @@
-"""Tests for lfx.core.paradigm — ParadigmBreakthrough stagnation escape."""
+"""Tests for clawloop.core.paradigm — ParadigmBreakthrough stagnation escape."""
 
 from __future__ import annotations
 
 import json
 
-from lfx.core.paradigm import ParadigmBreakthrough, ParadigmConfig
-from lfx.layers.harness import Insight, Playbook, PlaybookEntry
-from lfx.llm import MockLLMClient
+from clawloop.core.paradigm import ParadigmBreakthrough, ParadigmConfig
+from clawloop.layers.harness import Insight, Playbook, PlaybookEntry
+from clawloop.llm import MockLLMClient
 
 
 class TestParadigmConfigDefaults:

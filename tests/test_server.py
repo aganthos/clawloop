@@ -1,8 +1,8 @@
-"""Tests for lfx-server HTTP endpoints."""
+"""Tests for clawloop-server HTTP endpoints."""
 
 import pytest
 from starlette.testclient import TestClient
-from lfx.server import create_app
+from clawloop.server import create_app
 
 
 @pytest.fixture
@@ -123,7 +123,7 @@ class TestEvents:
         route metadata directly rather than making a live HTTP request.
         """
         from starlette.routing import Route
-        from lfx.server import events as events_handler
+        from clawloop.server import events as events_handler
 
         seed = tmp_path / "seed.txt"
         seed.write_text("You are a support agent.")

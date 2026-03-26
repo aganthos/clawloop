@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from lfx.adapters.entropic import EntropicAdapter
-from lfx.core.loop import AgentState
+from clawloop.adapters.entropic import EntropicAdapter
+from clawloop.core.loop import AgentState
 
 
 class TestEntropicAdapterResultsParsing:
@@ -135,7 +135,7 @@ class TestEvalConfigGeneration:
 
 
 class TestEpisodeMapping:
-    """_map_to_episode converts green agent output to lfx Episodes."""
+    """_map_to_episode converts green agent output to ClawLoop Episodes."""
 
     def test_maps_task_result(self):
         adapter = EntropicAdapter()

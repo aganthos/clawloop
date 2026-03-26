@@ -37,23 +37,23 @@ source .venv/bin/activate
 
 # --- Install SkyRL with fsdp extra (torch, vllm, ray, flash-attn, etc.) ---
 # IMPORTANT: install SkyRL first to get torch/vllm pins right
-cd lfx/skyrl
+cd clawloop/skyrl
 uv pip install -e ".[fsdp,dev]"
 cd ../..
 
-# --- Install LfX ---
+# --- Install ClawLoop ---
 uv pip install -e ".[dev]"
 
 # --- Pin litellm to known-good version to avoid dependency chaos ---
 uv pip install "litellm==1.82.1"
 
 # --- Prepare GSM8K data (small subset for testing) ---
-python lfx/skyrl/examples/train/gsm8k/gsm8k_dataset.py \
+python clawloop/skyrl/examples/train/gsm8k/gsm8k_dataset.py \
     --output_dir ~/data/gsm8k \
     --max_train_dataset_length 100
 
 # --- Prepare multiply data ---
-python lfx/skyrl/examples/train/multiply/multiply_dataset.py \
+python clawloop/skyrl/examples/train/multiply/multiply_dataset.py \
     --output_dir ~/data/multiply \
     --train_size 200 --test_size 50
 

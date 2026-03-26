@@ -1,6 +1,6 @@
 """Tests for PlaybookEntry.needs_reembed() — embedding invalidation logic."""
 
-from lfx.layers.harness import PlaybookEntry
+from clawloop.layers.harness import PlaybookEntry
 
 
 class TestEmbeddingInvalidation:

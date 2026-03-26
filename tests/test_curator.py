@@ -1,9 +1,9 @@
 """Tests for PlaybookCurator retrieve-classify-revise pipeline."""
 
-from lfx.core.curator import PlaybookCurator
-from lfx.core.embeddings import MockEmbedding, cosine_similarity
-from lfx.layers.harness import Insight, Playbook, PlaybookEntry
-from lfx.llm import MockLLMClient
+from clawloop.core.curator import PlaybookCurator
+from clawloop.core.embeddings import MockEmbedding, cosine_similarity
+from clawloop.layers.harness import Insight, Playbook, PlaybookEntry
+from clawloop.llm import MockLLMClient
 
 
 # ---------------------------------------------------------------------------
