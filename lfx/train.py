@@ -129,6 +129,7 @@ def _build_entropic(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]
 
     adapter = EntropicAdapter()
     adapter.setup(entropic_cfg)
+    # Default to 3 tasks (CRMArena indices 0-2) if not specified in env_config
     n_tasks = entropic_cfg.get("task_limit", len(entropic_cfg.get("task_ids", [0, 1, 2])))
     return adapter, [f"base_{i}" for i in range(n_tasks)]
 
