@@ -14,8 +14,9 @@ from skyrl_gym.envs.base_text_env import BaseTextEnv, BaseTextEnvStepOutput
 class ArithmeticEnv(BaseTextEnv):
     """Tinker-compatible arithmetic environment."""
 
-    def __init__(self, env_config: Dict[str, Any] = {}, extras: Dict[str, Any] = {}):
+    def __init__(self, env_config: Dict[str, Any] | None = None, extras: Dict[str, Any] | None = None):
         super().__init__()
+        extras = extras or {}
         assert "reward_spec" in extras, "reward_spec required"
         assert "ground_truth" in extras["reward_spec"], "ground_truth required"
         self.ground_truth = str(extras["reward_spec"]["ground_truth"])

@@ -187,8 +187,9 @@ playbook entries exist.
 
 The learning loop already implements:
 
-1. **Support-query separation**: failures → harness, successes → weights.
-   Active when both layers are trained (`full` mode).
+1. **Support-query separation**: DISABLED. The split (failures→harness,
+   successes→weights) is incompatible with GRPO which needs all episodes
+   for advantage variance. See roadmap Task 2.1 for rework plan.
 2. **Generation-flush**: when `playbook_generation` advances, stale episodes
    flushed from weights buffer. Prevents training on pre-adaptation behavior.
 3. **Cross-layer rollback**: if any layer's optim_step fails, all layers roll

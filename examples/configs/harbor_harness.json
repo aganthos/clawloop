@@ -8,10 +8,19 @@
         }
     },
     "harbor": {
-        "task_dirs": ["/path/to/bfcl_parity/hash/bfcl-simple-python-332"],
+        "task_dirs": [
+            "REPLACE_WITH_TASK_DIR (run: harbor datasets download bfcl_parity@1.0 -o ~/data/bfcl_parity)"
+        ],
         "trial_config": {
-            "agent": {"name": "oracle", "kwargs": {"store_all_messages": true}},
-            "environment": {"type": "docker"}
+            "agent": {
+                "name": "oracle",
+                "kwargs": {
+                    "store_all_messages": true
+                }
+            },
+            "environment": {
+                "type": "docker"
+            }
         }
     },
     "n_iterations": 2,

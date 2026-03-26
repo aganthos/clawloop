@@ -5,18 +5,20 @@
     "llm_clients": {
         "reflector": {
             "model": "openai/claude-sonnet-4-5-20250929",
-            "api_base": "http://127.0.0.1:8317/v1",
-            "api_key": "kuhhandel-bench-key"
+            "api_base": "http://127.0.0.1:8317/v1"
         },
         "task": {
             "model": "openai/claude-haiku-4-5-20251001",
-            "api_base": "http://127.0.0.1:8317/v1",
-            "api_key": "kuhhandel-bench-key"
+            "api_base": "http://127.0.0.1:8317/v1"
         }
     },
     "env_config": {
         "entropic_bench_path": "benchmarks/a2a/entropic-crmarenapro",
-        "task_ids": [0, 1, 2],
+        "task_ids": [
+            0,
+            1,
+            2
+        ],
         "task_limit": 3
     },
     "n_iterations": 3,

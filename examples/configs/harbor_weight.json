@@ -3,9 +3,17 @@
     "env_type": "harbor",
     "system_prompt": "You are a capable coding assistant. Use tools precisely.",
     "harbor": {
-        "task_dirs": ["/data/harbor/tasks/task-001", "/data/harbor/tasks/task-002"],
+        "task_dirs": [
+            "/data/harbor/tasks/task-001",
+            "/data/harbor/tasks/task-002"
+        ],
         "trial_config": {
-            "agent": {"name": "terminus-2", "kwargs": {"max_turns": 16}}
+            "agent": {
+                "name": "terminus-2",
+                "kwargs": {
+                    "max_turns": 16
+                }
+            }
         }
     },
     "skyrl": {
@@ -28,10 +36,15 @@
             "generator.inference_engine.gpu_memory_utilization": 0.5,
             "trainer.use_sample_packing": false
         },
-        "lora_config": {"rank": 32, "alpha": 32.0},
+        "lora_config": {
+            "rank": 32,
+            "alpha": 32.0
+        },
         "training_config": {
             "loss_fn": "cross_entropy",
-            "adam_params": {"learning_rate": 3e-5}
+            "adam_params": {
+                "learning_rate": 3e-05
+            }
         }
     },
     "n_iterations": 100,
