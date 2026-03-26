@@ -206,7 +206,7 @@ def main():
     p.add_argument("--lora-rank", type=int, default=32)
     p.add_argument("--agent", default="oracle", help="Harbor agent (oracle, terminus-2)")
     p.add_argument("--api-base", default=os.environ.get("LFX_API_BASE", "http://127.0.0.1:8317/v1"))
-    p.add_argument("--api-key", default=os.environ.get("LFX_API_KEY", "kuhhandel-bench-key"))
+    p.add_argument("--api-key", default=os.environ.get("LFX_API_KEY", ""))
     p.add_argument("--task-model", default="gemini/gemini-2.0-flash-lite")
     p.add_argument("--reflector-model", default="openai/claude-sonnet-4-5-20250929")
     args = p.parse_args()

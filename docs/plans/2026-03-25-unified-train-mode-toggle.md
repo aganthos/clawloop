@@ -77,11 +77,6 @@ def validate_config(config: TrainConfig):
     if config.env_type == "harbor":
         if not config.harbor or not config.harbor.task_dirs:
             raise ValueError("harbor env requires harbor.task_dirs")
-        if "weights" in layers and not config.skyrl.get("backend_config", {}).get(
-            "generator.inference_engine.enable_http_endpoint", False
-        ):
-            # Harbor needs inference_url in weight/full mode
-            pass  # inference_url is set by SkyRLWeightsBackend if configured
 
     if config.env_type == "math":
         if "task" not in config.llm_clients:
