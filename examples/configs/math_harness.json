@@ -5,13 +5,11 @@
     "llm_clients": {
         "reflector": {
             "model": "openai/claude-sonnet-4-5-20250929",
-            "api_base": "http://127.0.0.1:8317/v1",
-            "api_key": "kuhhandel-bench-key"
+            "api_base": "http://127.0.0.1:8317/v1"
         },
         "task": {
             "model": "openai/claude-haiku-4-5-20251001",
-            "api_base": "http://127.0.0.1:8317/v1",
-            "api_key": "kuhhandel-bench-key"
+            "api_base": "http://127.0.0.1:8317/v1"
         }
     },
     "n_iterations": 10,

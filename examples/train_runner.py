@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """LfX unified training runner.
 
-Load a JSON config, call train(). One script, three modes.
+Load a JSON config, call train(). One script, two modes.
 
     # Harness learning (prompt optimization, no GPU):
     python examples/train_runner.py examples/configs/math_harness.json
@@ -9,13 +9,9 @@ Load a JSON config, call train(). One script, three modes.
     # Weight training (SkyRL GRPO on GPU):
     python examples/train_runner.py examples/configs/math_weight.json
 
-    # Full multi-layer (harness + weights, GPU + LLM):
-    python examples/train_runner.py examples/configs/math_full.json
-
-Tinker-compatible: the weight and full modes use SkyRL's training
-infrastructure under the hood. LfX wraps it with a unified API that
-lets you switch between prompt learning and weight training by changing
-one field in the config.
+Tinker-compatible: weight mode uses SkyRL's training infrastructure
+under the hood. LfX wraps it with a unified API that lets you switch
+between prompt learning and weight training by changing one field.
 """
 from __future__ import annotations
 
@@ -26,7 +22,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from lfx.train import TrainConfig, train
+from lfx.train import MODE_LAYERS, TrainConfig, train
 
 
 def main():
@@ -45,9 +41,7 @@ def main():
 
     logging.getLogger("lfx").info(
         "mode=%s env=%s layers=%s",
-        config.mode, config.env_type,
-        {"weight": ["weights"], "harness_learning": ["harness", "router"],
-         "full": ["harness", "router", "weights"]}[config.mode],
+        config.mode, config.env_type, MODE_LAYERS[config.mode],
     )
 
     agent_state, state_id = train(config)

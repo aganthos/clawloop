@@ -5,8 +5,7 @@
     "llm_clients": {
         "task": {
             "model": "openai/claude-haiku-4-5-20251001",
-            "api_base": "http://127.0.0.1:8317/v1",
-            "api_key": "kuhhandel-bench-key"
+            "api_base": "http://127.0.0.1:8317/v1"
         }
     },
     "skyrl": {
@@ -34,7 +33,9 @@
         },
         "training_config": {
             "loss_fn": "cross_entropy",
-            "adam_params": {"learning_rate": 1e-5}
+            "adam_params": {
+                "learning_rate": 1e-05
+            }
         }
     },
     "n_iterations": 5,

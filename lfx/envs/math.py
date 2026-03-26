@@ -337,7 +337,7 @@ class MathAdapter:
         return Episode(
             id=uuid4().hex,
             state_id=state_id,
-            task_id=hashlib.md5(sample.question.encode()).hexdigest()[:12],
+            task_id=hashlib.sha256(sample.question.encode()).hexdigest()[:12],
             bench="math",
             messages=[
                 Message(role="system", content=prompt),

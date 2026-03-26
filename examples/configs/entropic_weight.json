@@ -9,7 +9,10 @@
     },
     "env_config": {
         "entropic_bench_path": "benchmarks/a2a/entropic-crmarenapro",
-        "task_ids": [0, 1],
+        "task_ids": [
+            0,
+            1
+        ],
         "task_limit": 2
     },
     "skyrl": {
@@ -31,10 +34,15 @@
             "generator.inference_engine.gpu_memory_utilization": 0.4,
             "trainer.use_sample_packing": false
         },
-        "lora_config": {"rank": 8, "alpha": 16.0},
+        "lora_config": {
+            "rank": 8,
+            "alpha": 16.0
+        },
         "training_config": {
             "loss_fn": "cross_entropy",
-            "adam_params": {"learning_rate": 1e-5}
+            "adam_params": {
+                "learning_rate": 1e-05
+            }
         }
     },
     "n_iterations": 1,

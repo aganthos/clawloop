@@ -183,7 +183,7 @@ class GuessNumberAdapter:
 
 def parse_args():
     p = argparse.ArgumentParser(description="LfX Guess the Number (Tinker-compatible)")
-    p.add_argument("--mode", choices=["weight", "harness_learning", "full"], default="harness_learning")
+    p.add_argument("--mode", choices=["weight", "harness_learning"], default="harness_learning")
     p.add_argument("--model", default="Qwen/Qwen2.5-0.5B-Instruct")
     p.add_argument("--iterations", type=int, default=5)
     p.add_argument("--episodes", type=int, default=8)

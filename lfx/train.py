@@ -95,9 +95,6 @@ def _make_llm_client(cfg: LLMClientConfig):
 def _build_harbor(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]):
     from lfx.envs.harbor import HarborAdapter, HarborTaskEnvironment
 
-    if not config.harbor or not config.harbor.task_dirs:
-        raise ValueError("harbor env requires harbor.task_dirs")
-
     envs = [
         HarborTaskEnvironment(
             task_dir=Path(d),
@@ -111,9 +108,6 @@ def _build_harbor(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]):
 
 def _build_math(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]):
     from lfx.envs.math import MathAdapter, MathEnvironment
-
-    if "task" not in llm_clients:
-        raise ValueError("math env requires 'task' in llm_clients")
 
     task_client = _make_llm_client(llm_clients["task"])
     math_env = MathEnvironment()
@@ -133,9 +127,6 @@ def _build_entropic(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]
         if tc.api_base:
             entropic_cfg.setdefault("api_base", tc.api_base)
 
-    if not entropic_cfg:
-        raise ValueError("entropic env requires 'env_config'")
-
     adapter = EntropicAdapter()
     adapter.setup(entropic_cfg)
     n_tasks = entropic_cfg.get("task_limit", len(entropic_cfg.get("task_ids", [0, 1, 2])))
@@ -146,7 +137,7 @@ def _build_entropic(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]
 # Environment registry — add new envs here
 # ---------------------------------------------------------------------------
 
-ENV_BUILDERS: dict[str, callable] = {
+ENV_BUILDERS: dict[str, Any] = {
     "harbor": _build_harbor,
     "math": _build_math,
     "entropic": _build_entropic,
