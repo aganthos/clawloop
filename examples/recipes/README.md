@@ -57,6 +57,23 @@ Docker containers, the verifier scores results, GRPO trains.
 The reflector analyzes failures and evolves the system prompt to improve
 function calling accuracy.
 
+## A2A CRMArena (Entropic)
+
+Trains on [CRMArenaPro](https://github.com/salesforce/CRMArena) tasks via A2A
+protocol. A purple agent (LfX-controlled) interacts with a green evaluator
+to solve CRM service requests. 7-dimension reward scoring.
+
+```bash
+# Harness learning (no GPU, needs LLM API + entropic bench)
+python examples/recipes/a2a_crmarena.py --mode harness_learning --task-ids 0 1 2
+
+# Weight training (GPU + LLM API for episode collection)
+python examples/recipes/a2a_crmarena.py --mode weight --task-ids 0 1 2
+```
+
+Requires the entropic-crmarenapro benchmark at `benchmarks/a2a/entropic-crmarenapro/`
+with its own venv (`uv sync` in that directory).
+
 ## Guess the Number (multi-turn)
 
 Multi-turn RL where the LLM guesses an integer 0-1024 via binary search.
@@ -75,6 +92,7 @@ recipes/
 ├── arithmetic_env.py       # SkyRL gym environment (Tinker-compatible)
 ├── arithmetic_dataset.py   # Data generator (Tinker parquet format)
 ├── harbor_bfcl.py          # Harbor BFCL (--mode weight | harness_learning)
+├── a2a_crmarena.py         # A2A CRMArena (--mode weight | harness_learning)
 ├── guess_number.py         # Multi-turn binary search (harness_learning)
 ├── README.md
 └── SETUP_HARBOR.md         # Harbor setup instructions
