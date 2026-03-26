@@ -4,8 +4,8 @@
     "system_prompt": "You are a math competition solver. Solve step by step and present your final answer in \\boxed{} notation.",
     "llm_clients": {
         "task": {
-            "model": "openai/claude-haiku-4-5-20251001",
-            "api_base": "http://127.0.0.1:8317/v1"
+            "model": "anthropic/claude-haiku-4-5-20251001",
+            "api_base": ""
         }
     },
     "skyrl": {
