@@ -31,9 +31,9 @@ from clawloop.llm import LiteLLMClient
 
 log = logging.getLogger(__name__)
 
-_API_BASE = os.environ.get("LFX_API_BASE", "http://127.0.0.1:8317/v1")
-_API_KEY = os.environ.get("LFX_API_KEY", "your-api-key-1")
-_MODEL = os.environ.get("LFX_MODEL", "openai/claude-haiku-4-5-20251001")
+_API_BASE = os.environ.get("CLAWLOOP_API_BASE", "http://127.0.0.1:8317/v1")
+_API_KEY = os.environ.get("CLAWLOOP_API_KEY", "your-api-key-1")
+_MODEL = os.environ.get("CLAWLOOP_MODEL", "openai/claude-haiku-4-5-20251001")
 
 
 def _proxy_available() -> bool:

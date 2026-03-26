@@ -1,11 +1,11 @@
-"""Tests for LfxCallback — litellm integration for Mode B capture."""
+"""Tests for ClawLoopCallback — litellm integration for Mode B capture."""
 
 from __future__ import annotations
 
 import time
 from unittest.mock import MagicMock
 
-from clawloop.callbacks.litellm_cb import LfxCallback
+from clawloop.callbacks.litellm_cb import ClawLoopCallback
 from clawloop.collector import EpisodeCollector
 from clawloop.core.reward import RewardPipeline
 
@@ -44,10 +44,10 @@ def _make_mock_response(
     return response
 
 
-class TestLfxCallbackBasic:
+class TestClawLoopCallbackBasic:
     def test_log_success_creates_episode(self) -> None:
         collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
-        cb = LfxCallback(collector=collector)
+        cb = ClawLoopCallback(collector=collector)
         kwargs = {"messages": [{"role": "user", "content": "What is 2+2?"}], "model": "gpt-4o"}
         response = _make_mock_response(content="4")
         start = time.time()
@@ -56,7 +56,7 @@ class TestLfxCallbackBasic:
 
     def test_captures_model(self) -> None:
         collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
-        cb = LfxCallback(collector=collector)
+        cb = ClawLoopCallback(collector=collector)
         kwargs = {"messages": [{"role": "user", "content": "hi"}]}
         response = _make_mock_response(model="gpt-4o-2024-08-06")
         cb.log_success_event(kwargs, response, time.time(), time.time())
@@ -65,7 +65,7 @@ class TestLfxCallbackBasic:
 
     def test_captures_usage(self) -> None:
         collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
-        cb = LfxCallback(collector=collector)
+        cb = ClawLoopCallback(collector=collector)
         kwargs = {"messages": [{"role": "user", "content": "hi"}]}
         response = _make_mock_response(prompt_tokens=50, completion_tokens=20)
         cb.log_success_event(kwargs, response, time.time(), time.time())
@@ -75,7 +75,7 @@ class TestLfxCallbackBasic:
 
     def test_captures_timing(self) -> None:
         collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
-        cb = LfxCallback(collector=collector)
+        cb = ClawLoopCallback(collector=collector)
         kwargs = {"messages": [{"role": "user", "content": "hi"}]}
         response = _make_mock_response()
         start = time.time()
@@ -86,7 +86,7 @@ class TestLfxCallbackBasic:
 
     def test_captures_logprobs(self) -> None:
         collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
-        cb = LfxCallback(collector=collector)
+        cb = ClawLoopCallback(collector=collector)
         lp1 = MagicMock()
         lp1.token = "Hello"
         lp1.logprob = -0.3
@@ -103,7 +103,7 @@ class TestLfxCallbackBasic:
 
     def test_captures_tool_calls(self) -> None:
         collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
-        cb = LfxCallback(collector=collector)
+        cb = ClawLoopCallback(collector=collector)
         tc = MagicMock()
         tc.id = "tc-1"
         tc.function.name = "search"
@@ -123,7 +123,7 @@ class TestLfxCallbackBasic:
             batch_size=2,
             on_batch=lambda eps: batches.append(eps),
         )
-        cb = LfxCallback(collector=collector)
+        cb = ClawLoopCallback(collector=collector)
         kwargs = {"messages": [{"role": "user", "content": "hi"}]}
         response = _make_mock_response(content="hello there friend")
         cb.log_success_event(kwargs, response, time.time(), time.time())
@@ -132,7 +132,7 @@ class TestLfxCallbackBasic:
 
     def test_session_id_from_metadata(self) -> None:
         collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
-        cb = LfxCallback(collector=collector)
+        cb = ClawLoopCallback(collector=collector)
         kwargs = {
             "messages": [{"role": "user", "content": "hi"}],
             "metadata": {"session_id": "sess-abc"},
@@ -147,7 +147,7 @@ class TestLfxCallbackBasic:
         from datetime import datetime, timedelta
 
         collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
-        cb = LfxCallback(collector=collector)
+        cb = ClawLoopCallback(collector=collector)
         kwargs = {"messages": [{"role": "user", "content": "hi"}]}
         response = _make_mock_response()
         start = datetime(2026, 3, 11, 12, 0, 0)
@@ -160,7 +160,7 @@ class TestLfxCallbackBasic:
     def test_vision_message_content(self) -> None:
         """List-type content (vision/multimodal) must not crash session_id hash."""
         collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
-        cb = LfxCallback(collector=collector)
+        cb = ClawLoopCallback(collector=collector)
         kwargs = {
             "messages": [
                 {
@@ -179,7 +179,7 @@ class TestLfxCallbackBasic:
     def test_input_tool_calls_parsed(self) -> None:
         """Tool calls on prior assistant messages in input should be parsed."""
         collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
-        cb = LfxCallback(collector=collector)
+        cb = ClawLoopCallback(collector=collector)
         kwargs = {
             "messages": [
                 {"role": "user", "content": "search for x"},
@@ -207,7 +207,7 @@ class TestLfxCallbackBasic:
     def test_error_handling_does_not_propagate(self) -> None:
         """Errors in _process should be logged, not propagated."""
         collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
-        cb = LfxCallback(collector=collector)
+        cb = ClawLoopCallback(collector=collector)
         # Malformed response — choices is empty
         response = MagicMock()
         response.choices = []
@@ -220,7 +220,7 @@ class TestLfxCallbackBasic:
     def test_none_content_not_stringified(self) -> None:
         """Messages with content=None (e.g. tool-call-only) must become '' not 'None'."""
         collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
-        cb = LfxCallback(collector=collector)
+        cb = ClawLoopCallback(collector=collector)
         kwargs = {
             "messages": [
                 {"role": "user", "content": "call search"},
@@ -240,7 +240,7 @@ class TestLfxCallbackBasic:
 
     def test_log_failure_is_noop(self) -> None:
         collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
-        cb = LfxCallback(collector=collector)
+        cb = ClawLoopCallback(collector=collector)
         cb.log_failure_event(
             kwargs={"messages": []},
             response_obj=None,
@@ -251,10 +251,10 @@ class TestLfxCallbackBasic:
         assert collector.metrics["episodes_collected"] == 0
 
 
-class TestLfxCallbackTracer:
+class TestClawLoopCallbackTracer:
     def test_accepts_tracer_kwarg(self) -> None:
         collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
-        cb = LfxCallback(collector=collector, tracer=None)
+        cb = ClawLoopCallback(collector=collector, tracer=None)
         kwargs = {"messages": [{"role": "user", "content": "hi"}]}
         response = _make_mock_response()
         cb.log_success_event(kwargs, response, time.time(), time.time())
@@ -274,7 +274,7 @@ class TestLfxCallbackTracer:
         tracer = provider.get_tracer("test")
 
         collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
-        cb = LfxCallback(collector=collector, tracer=tracer)
+        cb = ClawLoopCallback(collector=collector, tracer=tracer)
         kwargs = {"messages": [{"role": "user", "content": "hi"}]}
         response = _make_mock_response(content="hello")
         cb.log_success_event(kwargs, response, time.time(), time.time())
