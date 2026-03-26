@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""LfX Demo — Learn to solve math problems via the LfX learning loop.
+"""ClawLoop Demo — Learn to solve math problems via the ClawLoop learning loop.
 
 Run in dry-run mode (no API calls, finishes in seconds):
     python examples/demo_math.py --dry-run
@@ -11,12 +11,12 @@ Run with direct API keys:
     ANTHROPIC_API_KEY=sk-... python examples/demo_math.py
 
 Environment variables:
-    LFX_TASK_MODEL       (default: claude-haiku-4-5-20251001)
-    LFX_REFLECTOR_MODEL  (default: claude-sonnet-4-5-20250929)
-    LFX_API_BASE         (default: http://127.0.0.1:8317/v1)
-    LFX_API_KEY          (default: kuhhandel-bench-key)
-    LFX_ITERATIONS       (default: 5)
-    LFX_EPISODES         (default: 5)
+    CLAWLOOP_TASK_MODEL       (default: claude-haiku-4-5-20251001)
+    CLAWLOOP_REFLECTOR_MODEL  (default: claude-sonnet-4-5-20250929)
+    CLAWLOOP_API_BASE         (default: http://127.0.0.1:8317/v1)
+    CLAWLOOP_API_KEY          (default: kuhhandel-bench-key)
+    CLAWLOOP_ITERATIONS       (default: 5)
+    CLAWLOOP_EPISODES         (default: 5)
 """
 
 from __future__ import annotations
@@ -33,11 +33,11 @@ from typing import Any
 # ---------------------------------------------------------------------------
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from lfx.agent import LfXAgent
-from lfx.envs.math import MathEnvironment, _BUILTIN_PROBLEMS
-from lfx.llm import LiteLLMClient, MockLLMClient
+from clawloop.agent import ClawLoopAgent
+from clawloop.envs.math import MathEnvironment, _BUILTIN_PROBLEMS
+from clawloop.llm import LiteLLMClient, MockLLMClient
 
-log = logging.getLogger("lfx.demo")
+log = logging.getLogger("clawloop.demo")
 
 # ---------------------------------------------------------------------------
 # Base system prompt for the math domain
@@ -163,7 +163,7 @@ def _build_mock_reflector_responses() -> list[str]:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="LfX demo: learn to solve math problems"
+        description="ClawLoop demo: learn to solve math problems"
     )
     parser.add_argument(
         "--dry-run",
@@ -204,18 +204,18 @@ def main() -> None:
     )
 
     # Resolve configuration
-    iterations = args.iterations or int(os.environ.get("LFX_ITERATIONS", "5"))
-    episodes = args.episodes or int(os.environ.get("LFX_EPISODES", "5"))
+    iterations = args.iterations or int(os.environ.get("CLAWLOOP_ITERATIONS", "5"))
+    episodes = args.episodes or int(os.environ.get("CLAWLOOP_EPISODES", "5"))
 
     if args.dry_run:
         log.info("=== DRY-RUN MODE (mock LLM clients, no API calls) ===")
         task_client = MockTaskClient()
         reflector_client = MockLLMClient(responses=_build_mock_reflector_responses())
     else:
-        task_model = os.environ.get("LFX_TASK_MODEL", "claude-haiku-4-5-20251001")
-        reflector_model = os.environ.get("LFX_REFLECTOR_MODEL", "claude-sonnet-4-5-20250929")
-        api_base = os.environ.get("LFX_API_BASE", "http://127.0.0.1:8317/v1")
-        api_key = os.environ.get("LFX_API_KEY", "kuhhandel-bench-key")
+        task_model = os.environ.get("CLAWLOOP_TASK_MODEL", "claude-haiku-4-5-20251001")
+        reflector_model = os.environ.get("CLAWLOOP_REFLECTOR_MODEL", "claude-sonnet-4-5-20250929")
+        api_base = os.environ.get("CLAWLOOP_API_BASE", "http://127.0.0.1:8317/v1")
+        api_key = os.environ.get("CLAWLOOP_API_KEY", "kuhhandel-bench-key")
 
         log.info("=== REAL LLM MODE ===")
         log.info("  Task model:      %s", task_model)
@@ -243,8 +243,8 @@ def main() -> None:
     n_tasks = len(env.get_tasks())
     log.info("MathEnvironment loaded with %d problems", n_tasks)
 
-    # -- Step 2: Create the LfXAgent --
-    agent = LfXAgent(
+    # -- Step 2: Create the ClawLoopAgent --
+    agent = ClawLoopAgent(
         task_client=task_client,
         reflector_client=reflector_client,
         bench="math",
@@ -253,7 +253,7 @@ def main() -> None:
 
     # -- Step 3: Run the learning loop --
     print("\n" + "=" * 60)
-    print("  LfX Learning Loop -- Math Demo")
+    print("  ClawLoop Learning Loop -- Math Demo")
     print("=" * 60 + "\n")
 
     results = agent.learn(env, iterations=iterations, episodes_per_iter=episodes)

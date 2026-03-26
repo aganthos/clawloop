@@ -3,7 +3,7 @@
 import time
 from unittest.mock import patch
 
-from lfx.core.intensity import AdaptiveIntensity
+from clawloop.core.intensity import AdaptiveIntensity
 
 
 class TestActivityCooldown:
@@ -93,7 +93,7 @@ class TestActivityCooldown:
         ai.record_reward(0.5)
         ai.record_reward(0.5)
 
-        with patch("lfx.core.intensity.time") as mock_time:
+        with patch("clawloop.core.intensity.time") as mock_time:
             # record_user_activity at t=1000
             mock_time.time.return_value = 1000.0
             ai.record_user_activity()

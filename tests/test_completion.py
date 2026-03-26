@@ -2,8 +2,8 @@
 
 import pytest
 
-from lfx.completion import CompletionResult
-from lfx.core.episode import TokenLogProb, TokenUsage, ToolCall
+from clawloop.completion import CompletionResult
+from clawloop.core.episode import TokenLogProb, TokenUsage, ToolCall
 
 
 class TestCompletionResultBasic:

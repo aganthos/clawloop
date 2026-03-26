@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>lfx — Community vs Cloud Pro</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'IBM Plex Sans',sans-serif;background:#fafaf8;color:#1a1a1a;display:flex;justify-content:center;padding:40px 24px}
+.c{width:1100px;max-width:100%}
+h1{font-family:'Source Serif 4',serif;font-size:24px;text-align:center;margin-bottom:4px}
+h1 em{color:#2563eb;font-style:italic}
+.sub{text-align:center;font-size:13px;color:#64748b;margin-bottom:32px}
+
+/* main comparison grid */
+.compare{display:grid;grid-template-columns:200px 1fr 1fr;gap:0}
+.compare .head{font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:2px;padding:12px 16px;border-bottom:2px solid #1a1a1a;font-weight:600}
+.head-feat{background:#f8fafc;color:#64748b}
+.head-comm{background:#eff6ff;color:#2563eb;text-align:center}
+.head-cloud{background:#fdf2f8;color:#db2777;text-align:center}
+
+.row{display:contents}
+.row .cell{padding:10px 16px;border-bottom:1px solid #e2e8f0;font-size:12px;display:flex;align-items:center}
+.row:last-child .cell{border-bottom:none}
+.cell-feat{background:#f8fafc;font-weight:600;color:#475569;font-size:11px}
+.cell-comm{background:#fff}
+.cell-cloud{background:#fff}
+
+/* layer headers */
+.layer-header{display:contents}
+.layer-header .lh-cell{padding:8px 16px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;border-bottom:1px solid #e2e8f0}
+
+/* icons */
+.yes{display:inline-flex;align-items:center;gap:6px;color:#16a34a}
+.yes::before{content:'✓';font-weight:700;font-size:14px}
+.plus{display:inline-flex;align-items:center;gap:6px;color:#db2777}
+.plus::before{content:'★';font-size:12px}
+.no{color:#94a3b8;font-style:italic}
+
+/* funnel at bottom */
+.funnel{margin-top:32px;border:2px solid #1a1a1a;background:#fff}
+.funnel-title{text-align:center;padding:12px;font-family:'Source Serif 4',serif;font-size:16px;font-weight:700;border-bottom:1px solid #e2e8f0}
+.funnel-steps{display:flex;flex-direction:column}
+.funnel-step{display:grid;grid-template-columns:140px 1fr 1fr;border-bottom:1px solid #e2e8f0}
+.funnel-step:last-child{border-bottom:none}
+.ft-tier{padding:12px 16px;border-right:1px solid #e2e8f0;font-family:'IBM Plex Mono',monospace;font-weight:600;display:flex;flex-direction:column;justify-content:center}
+.ft-tier .price{font-size:18px;line-height:1;margin-bottom:2px}
+.ft-tier .name{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#64748b}
+.ft-what{padding:12px 16px;border-right:1px solid #e2e8f0;font-size:12px;color:#475569}
+.ft-hook{padding:12px 16px;font-size:12px;color:#64748b;font-style:italic}
+
+.f0{background:#f0fdf4}.f0 .ft-tier{color:#16a34a}
+.f1{background:#eff6ff}.f1 .ft-tier{color:#2563eb}
+.f2{background:#f5f3ff}.f2 .ft-tier{color:#7c3aed}
+.f3{background:#fef3c7}.f3 .ft-tier{color:#d97706}
+.f4{background:#fdf2f8}.f4 .ft-tier{color:#db2777}
+
+@media(max-width:800px){.compare{grid-template-columns:1fr 1fr 1fr}.funnel-step{grid-template-columns:100px 1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="c">
+<h1><em>lfx</em> — Community vs Cloud Pro</h1>
+<p class="sub">Same engine, same protocol, same data formats · Cloud adds infrastructure + scale</p>
+
+<div class="compare">
+  <!-- HEADERS -->
+  <div class="head head-feat">Capability</div>
+  <div class="head head-comm">Community (Free)</div>
+  <div class="head head-cloud">Cloud Pro ($149+)</div>
+
+  <!-- HARNESS SECTION -->
+  <div class="layer-header">
+    <div class="lh-cell" style="background:#eff6ff;color:#2563eb">Harness</div>
+    <div class="lh-cell" style="background:#eff6ff"></div>
+    <div class="lh-cell" style="background:#eff6ff"></div>
+  </div>
+
+  <div class="row">
+    <div class="cell cell-feat">Reflector</div>
+    <div class="cell cell-comm"><span class="yes">BYO API key</span></div>
+    <div class="cell cell-cloud"><span class="plus">Managed (we pay)</span></div>
+  </div>
+  <div class="row">
+    <div class="cell cell-feat">Playbook</div>
+    <div class="cell cell-comm"><span class="yes">Full, in-memory</span></div>
+    <div class="cell cell-cloud"><span class="plus">Persisted, versioned, rollback</span></div>
+  </div>
+  <div class="row">
+    <div class="cell cell-feat">Curator</div>
+    <div class="cell cell-comm"><span class="yes">Heuristic (cosine)</span></div>
+    <div class="cell cell-cloud"><span class="plus">+ LLM classify + auto-resolve</span></div>
+  </div>
+  <div class="row">
+    <div class="cell cell-feat">GEPA Evolution</div>
+    <div class="cell cell-comm"><span class="yes">Full: archive + mutate + cross</span></div>
+    <div class="cell cell-cloud"><span class="plus">Same + managed compute</span></div>
+  </div>
+  <div class="row">
+    <div class="cell cell-feat">Approval</div>
+    <div class="cell cell-comm"><span class="no">Auto-apply</span></div>
+    <div class="cell cell-cloud"><span class="plus">Pending → approve/reject</span></div>
+  </div>
+  <div class="row">
+    <div class="cell cell-feat">Consolidation</div>
+    <div class="cell cell-comm"><span class="yes">Manual trigger</span></div>
+    <div class="cell cell-cloud"><span class="plus">Scheduled background</span></div>
+  </div>
+
+  <!-- ROUTER SECTION -->
+  <div class="layer-header">
+    <div class="lh-cell" style="background:#f5f3ff;color:#7c3aed">Router</div>
+    <div class="lh-cell" style="background:#f5f3ff"></div>
+    <div class="lh-cell" style="background:#f5f3ff"></div>
+  </div>
+
+  <div class="row">
+    <div class="cell cell-feat">Model routing</div>
+    <div class="cell cell-comm"><span class="yes">Local, single-agent</span></div>
+    <div class="cell cell-cloud"><span class="plus">Cross-agent, A/B tested</span></div>
+  </div>
+  <div class="row">
+    <div class="cell cell-feat">Cost tracking</div>
+    <div class="cell cell-comm"><span class="yes">Metrics dict</span></div>
+    <div class="cell cell-cloud"><span class="plus">Dashboard: "saved $X/month"</span></div>
+  </div>
+
+  <!-- WEIGHTS SECTION -->
+  <div class="layer-header">
+    <div class="lh-cell" style="background:#fdf2f8;color:#db2777">Weights</div>
+    <div class="lh-cell" style="background:#fdf2f8"></div>
+    <div class="lh-cell" style="background:#fdf2f8"></div>
+  </div>
+
+  <div class="row">
+    <div class="cell cell-feat">Training</div>
+    <div class="cell cell-comm"><span class="yes">Self-hosted GPU</span></div>
+    <div class="cell cell-cloud"><span class="plus">Managed GPU workers</span></div>
+  </div>
+  <div class="row">
+    <div class="cell cell-feat">gate_for_deploy</div>
+    <div class="cell cell-comm"><span class="yes">Manual CLI</span></div>
+    <div class="cell cell-cloud"><span class="plus">Automatic before promotion</span></div>
+  </div>
+  <div class="row">
+    <div class="cell cell-feat">Checkpoints</div>
+    <div class="cell cell-comm"><span class="yes">Local filesystem</span></div>
+    <div class="cell cell-cloud"><span class="plus">S3, versioned, rollback</span></div>
+  </div>
+
+  <!-- PLATFORM SECTION -->
+  <div class="layer-header">
+    <div class="lh-cell" style="background:#f1f5f9;color:#475569">Platform</div>
+    <div class="lh-cell" style="background:#f1f5f9"></div>
+    <div class="lh-cell" style="background:#f1f5f9"></div>
+  </div>
+
+  <div class="row">
+    <div class="cell cell-feat">Storage</div>
+    <div class="cell cell-comm"><span class="no">In-memory (restart = gone)</span></div>
+    <div class="cell cell-cloud"><span class="plus">Postgres + S3</span></div>
+  </div>
+  <div class="row">
+    <div class="cell cell-feat">Users</div>
+    <div class="cell cell-comm"><span class="no">Single-user</span></div>
+    <div class="cell cell-cloud"><span class="plus">Team, multi-workspace</span></div>
+  </div>
+  <div class="row">
+    <div class="cell cell-feat">Eval quality</div>
+    <div class="cell cell-comm"><span class="no">Self-evaluated</span></div>
+    <div class="cell cell-cloud"><span class="plus">Hidden eval sets + A/B testing</span></div>
+  </div>
+  <div class="row">
+    <div class="cell cell-feat">Cross-tenant</div>
+    <div class="cell cell-comm"><span class="no">N/A</span></div>
+    <div class="cell cell-cloud"><span class="plus">Meta-learning: seed from population</span></div>
+  </div>
+  <div class="row">
+    <div class="cell cell-feat">Audit</div>
+    <div class="cell cell-comm"><span class="no">None</span></div>
+    <div class="cell cell-cloud"><span class="plus">Full audit trail</span></div>
+  </div>
+</div>
+
+<!-- FUNNEL -->
+<div class="funnel">
+  <div class="funnel-title">Upgrade Path</div>
+  <div class="funnel-steps">
+    <div class="funnel-step f0">
+      <div class="ft-tier"><span class="price">Free</span><span class="name">Community</span></div>
+      <div class="ft-what"><code style="font-family:'IBM Plex Mono',monospace;font-size:11px">pip install lfx</code><br>All 3 layers, local, BYO keys</div>
+      <div class="ft-hook">"Your agent improved 15% on CRM tasks"</div>
+    </div>
+    <div class="funnel-step f1">
+      <div class="ft-tier"><span class="price">$149</span><span class="name">Pro</span></div>
+      <div class="ft-what">Persisted playbooks, version history, approval workflow, team access</div>
+      <div class="ft-hook">"Never lose a playbook. Roll back bad changes."</div>
+    </div>
+    <div class="funnel-step f2">
+      <div class="ft-tier"><span class="price">$499</span><span class="name">Team</span></div>
+      <div class="ft-what">+ Router cost dashboard, cross-agent learning, shared routing policy</div>
+      <div class="ft-hook">"Saved $2k/month routing to cheaper models"</div>
+    </div>
+    <div class="funnel-step f3">
+      <div class="ft-tier"><span class="price">$1.5k</span><span class="name">Scale</span></div>
+      <div class="ft-what">+ A/B testing, hidden eval gates, meta-learning seed strategies</div>
+      <div class="ft-hook">"New agents start 30% better on day one"</div>
+    </div>
+    <div class="funnel-step f4">
+      <div class="ft-tier"><span class="price">Custom</span><span class="name">Enterprise</span></div>
+      <div class="ft-what">+ Managed training (LoRA/GRPO), VPC, SSO, SLA, dedicated support</div>
+      <div class="ft-hook">"Fine-tuned 7B matches GPT-4o on your domain"</div>
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

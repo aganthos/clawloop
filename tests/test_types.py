@@ -1,10 +1,10 @@
-"""Tests for lfx.core.types — Future, Datum, result dataclasses."""
+"""Tests for clawloop.core.types — Future, Datum, result dataclasses."""
 
 import threading
 
 import pytest
 
-from lfx.core.types import (
+from clawloop.core.types import (
     Datum,
     FBResult,
     Future,
@@ -101,7 +101,7 @@ class TestResultTypes:
         assert r.status == "ok"
 
 
-from lfx.core.layer import Layer
+from clawloop.core.layer import Layer
 
 
 class TestLayerProtocol:

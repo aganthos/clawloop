@@ -1,9 +1,9 @@
 """Tests for Harness layer consuming reward signals instead of total_reward."""
 
-from lfx.core.episode import Episode, EpisodeSummary, Message
-from lfx.core.reward import RewardSignal
-from lfx.core.types import Datum
-from lfx.layers.harness import Harness, Insight, Playbook, PlaybookEntry
+from clawloop.core.episode import Episode, EpisodeSummary, Message
+from clawloop.core.reward import RewardSignal
+from clawloop.core.types import Datum
+from clawloop.layers.harness import Harness, Insight, Playbook, PlaybookEntry
 
 
 def _ep_with_signal(name: str, value: float, confidence: float = 1.0) -> Episode:

@@ -6,10 +6,10 @@ import json
 
 import pytest
 
-from lfx.core.episode import Episode, EpisodeSummary, Message, StepMeta
-from lfx.core.evolution import EvolverConfig, PromptEvolver
-from lfx.layers.harness import PromptCandidate
-from lfx.llm import MockLLMClient
+from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
+from clawloop.core.evolution import EvolverConfig, PromptEvolver
+from clawloop.layers.harness import PromptCandidate
+from clawloop.llm import MockLLMClient
 
 
 # -- Factories ----------------------------------------------------------------

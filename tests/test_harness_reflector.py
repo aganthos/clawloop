@@ -2,11 +2,11 @@
 
 import json
 
-from lfx.core.episode import Episode, EpisodeSummary, Message, StepMeta
-from lfx.core.reflector import Reflector
-from lfx.core.types import Datum
-from lfx.layers.harness import Harness, PlaybookEntry
-from lfx.llm import MockLLMClient
+from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
+from clawloop.core.reflector import Reflector
+from clawloop.core.types import Datum
+from clawloop.layers.harness import Harness, PlaybookEntry
+from clawloop.llm import MockLLMClient
 
 
 def _make_episode(reward: float = 0.3) -> Episode:

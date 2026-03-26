@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Analyze an lfx experiment run — prints reward curves, playbook evolution,
+"""Analyze an clawloop experiment run — prints reward curves, playbook evolution,
 and per-task metric breakdowns from experiment.jsonl + results.json files.
 
 Usage:

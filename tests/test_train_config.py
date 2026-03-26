@@ -1,10 +1,10 @@
-"""Tests for lfx.train — config validation, mode presets, MathAdapter."""
+"""Tests for clawloop.train — config validation, mode presets, MathAdapter."""
 from __future__ import annotations
 
 import pytest
 from pydantic import SecretStr
 
-from lfx.train import (
+from clawloop.train import (
     HarborConfig,
     LLMClientConfig,
     MODE_LAYERS,
@@ -159,8 +159,8 @@ class TestMathAdapter:
     def test_run_episode_produces_episode(self):
         from unittest.mock import MagicMock
 
-        from lfx.core.episode import Episode
-        from lfx.envs.math import MathAdapter, MathEnvironment
+        from clawloop.core.episode import Episode
+        from clawloop.envs.math import MathAdapter, MathEnvironment
 
         env = MathEnvironment()
         mock_client = MagicMock()
@@ -187,7 +187,7 @@ class TestMathAdapter:
     def test_wrong_answer_gives_zero_reward(self):
         from unittest.mock import MagicMock
 
-        from lfx.envs.math import MathAdapter, MathEnvironment
+        from clawloop.envs.math import MathAdapter, MathEnvironment
 
         env = MathEnvironment()
         mock_client = MagicMock()
@@ -210,7 +210,7 @@ class TestMathAdapter:
     def test_llm_failure_returns_filtered_episode(self):
         from unittest.mock import MagicMock
 
-        from lfx.envs.math import MathAdapter, MathEnvironment
+        from clawloop.envs.math import MathAdapter, MathEnvironment
 
         env = MathEnvironment()
         mock_client = MagicMock()
@@ -235,7 +235,7 @@ class TestMathAdapter:
 
 class TestMakeLLMClient:
     def test_empty_key_becomes_none(self):
-        from lfx.train import LLMClientConfig, _make_llm_client
+        from clawloop.train import LLMClientConfig, _make_llm_client
 
         cfg = LLMClientConfig(model="test-model")
         client = _make_llm_client(cfg)
@@ -243,7 +243,7 @@ class TestMakeLLMClient:
         assert client.api_base is None
 
     def test_explicit_key_preserved(self):
-        from lfx.train import LLMClientConfig, _make_llm_client
+        from clawloop.train import LLMClientConfig, _make_llm_client
 
         cfg = LLMClientConfig(model="test-model", api_key=SecretStr("sk-123"), api_base="http://proxy")
         client = _make_llm_client(cfg)
@@ -260,7 +260,7 @@ class TestTrainEndToEnd:
         """Full pipeline: train() with harness_learning + math env (mocked LLMs)."""
         from unittest.mock import MagicMock, patch
 
-        from lfx.train import LLMClientConfig, TrainConfig, train
+        from clawloop.train import LLMClientConfig, TrainConfig, train
 
         mock_reflector = MagicMock()
         mock_reflector.complete.return_value = "[]"
@@ -278,7 +278,7 @@ class TestTrainEndToEnd:
             n_iterations=1,
         )
 
-        with patch("lfx.train._make_llm_client") as mock_make:
+        with patch("clawloop.train._make_llm_client") as mock_make:
             def _pick_client(llm_cfg):
                 if "reflector" in llm_cfg.model:
                     return mock_reflector

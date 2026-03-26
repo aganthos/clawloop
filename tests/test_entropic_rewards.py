@@ -1,11 +1,11 @@
 # tests/test_entropic_rewards.py
 """Tests for Entropic CRMArenaPro reward mapping."""
 
-from lfx.adapters._entropic_rewards import map_entropic_scores, DEFAULT_ENTROPIC_WEIGHTS
+from clawloop.adapters._entropic_rewards import map_entropic_scores, DEFAULT_ENTROPIC_WEIGHTS
 
 
 class TestMapEntropicScores:
-    """map_entropic_scores converts 7-dimension scores to lfx RewardSignals."""
+    """map_entropic_scores converts 7-dimension scores to ClawLoop RewardSignals."""
 
     def test_perfect_scores(self):
         """All dimensions 100 → outcome +1.0, all signals +1.0."""

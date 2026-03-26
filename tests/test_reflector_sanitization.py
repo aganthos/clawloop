@@ -2,9 +2,9 @@
 
 import json
 
-from lfx.core.episode import Episode, EpisodeSummary, Message, StepMeta
-from lfx.core.reflector import Reflector, ReflectorConfig, _sanitize_str, _sanitize_obj
-from lfx.layers.harness import Playbook, PlaybookEntry
+from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
+from clawloop.core.reflector import Reflector, ReflectorConfig, _sanitize_str, _sanitize_obj
+from clawloop.layers.harness import Playbook, PlaybookEntry
 
 
 def _make_episode(

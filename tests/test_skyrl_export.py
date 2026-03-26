@@ -1,7 +1,7 @@
-"""Tests for lfx.exporters.skyrl — Episode -> GeneratorOutput serialization."""
+"""Tests for clawloop.exporters.skyrl — Episode -> GeneratorOutput serialization."""
 
-from lfx.core.episode import Episode, EpisodeSummary, Message, StepMeta, TokenLogProb, TokenUsage
-from lfx.exporters.skyrl import SkyRLExporter, TrajectoryID
+from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta, TokenLogProb, TokenUsage
+from clawloop.exporters.skyrl import SkyRLExporter, TrajectoryID
 
 
 class FakeTokenizer:
@@ -154,7 +154,7 @@ class TestSkyRLExporter:
 
     def test_tool_call_tokens_in_response(self) -> None:
         """Assistant tool-call messages must produce non-empty response tokens."""
-        from lfx.core.episode import ToolCall
+        from clawloop.core.episode import ToolCall
 
         messages = [
             Message(role="system", content="You are helpful."),

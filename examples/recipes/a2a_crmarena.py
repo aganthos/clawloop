@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""LfX recipe: A2A CRMArena (Entropic).
+"""ClawLoop recipe: A2A CRMArena (Entropic).
 
 Trains on Salesforce CRMArenaPro tasks — an A2A benchmark where a purple
-agent (LfX-controlled) interacts with a green evaluator agent to solve CRM
+agent (ClawLoop-controlled) interacts with a green evaluator agent to solve CRM
 tasks. 7-dimension scoring: functional, drift_adaptation, token_efficiency,
 query_efficiency, error_recovery, trajectory_efficiency, hallucination_rate.
 
@@ -10,7 +10,7 @@ Two learning modes via --mode:
   weight           SkyRL/Tinker GRPO on episodes collected from CRMArena trials.
                    Purple agent generates responses, green agent scores them,
                    SkyRL trains the weights.
-  harness_learning LfX harness layer — reflector analyzes failures across the
+  harness_learning ClawLoop harness layer — reflector analyzes failures across the
                    7 reward dimensions and evolves the system prompt.
 
 Harness mode (no GPU, needs LLM API):
@@ -30,7 +30,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
-log = logging.getLogger("lfx.recipe.a2a_crmarena")
+log = logging.getLogger("clawloop.recipe.a2a_crmarena")
 
 
 # ---------------------------------------------------------------------------
@@ -38,14 +38,14 @@ log = logging.getLogger("lfx.recipe.a2a_crmarena")
 # ---------------------------------------------------------------------------
 
 def run_harness_learning(args):
-    from lfx.adapters.entropic import EntropicAdapter
-    from lfx.core.intensity import AdaptiveIntensity
-    from lfx.core.loop import AgentState, learning_loop
-    from lfx.core.reflector import Reflector
-    from lfx.layers.harness import Harness
-    from lfx.layers.router import Router
-    from lfx.layers.weights import Weights
-    from lfx.llm import LiteLLMClient
+    from clawloop.adapters.entropic import EntropicAdapter
+    from clawloop.core.intensity import AdaptiveIntensity
+    from clawloop.core.loop import AgentState, learning_loop
+    from clawloop.core.reflector import Reflector
+    from clawloop.layers.harness import Harness
+    from clawloop.layers.router import Router
+    from clawloop.layers.weights import Weights
+    from clawloop.llm import LiteLLMClient
 
     harness = Harness(system_prompts={
         "entropic": (
@@ -90,12 +90,12 @@ def run_harness_learning(args):
 # ---------------------------------------------------------------------------
 
 def run_weight_training(args):
-    from lfx.adapters.entropic import EntropicAdapter
-    from lfx.backends.skyrl import SkyRLWeightsBackend, SkyRLWeightsConfig
-    from lfx.core.loop import AgentState, learning_loop
-    from lfx.layers.harness import Harness
-    from lfx.layers.router import Router
-    from lfx.layers.weights import Weights
+    from clawloop.adapters.entropic import EntropicAdapter
+    from clawloop.backends.skyrl import SkyRLWeightsBackend, SkyRLWeightsConfig
+    from clawloop.core.loop import AgentState, learning_loop
+    from clawloop.layers.harness import Harness
+    from clawloop.layers.router import Router
+    from clawloop.layers.weights import Weights
 
     harness = Harness(system_prompts={
         "entropic": (
@@ -162,15 +162,15 @@ def run_weight_training(args):
 # ---------------------------------------------------------------------------
 
 def main():
-    p = argparse.ArgumentParser(description="LfX A2A CRMArena — Tinker-compatible")
+    p = argparse.ArgumentParser(description="ClawLoop A2A CRMArena — Tinker-compatible")
     p.add_argument("--mode", choices=["weight", "harness_learning"], required=True)
     p.add_argument("--model", default="Qwen/Qwen2.5-0.5B-Instruct", help="Base model for weight training")
     p.add_argument("--iterations", type=int, default=3)
     p.add_argument("--task-ids", type=int, nargs="+", default=[0, 1, 2], help="CRMArena task indices")
     p.add_argument("--lora-rank", type=int, default=8)
     p.add_argument("--bench-path", default="benchmarks/a2a/entropic-crmarenapro")
-    p.add_argument("--api-base", default=os.environ.get("LFX_API_BASE", "http://127.0.0.1:8317/v1"))
-    p.add_argument("--api-key", default=os.environ.get("LFX_API_KEY", ""))
+    p.add_argument("--api-base", default=os.environ.get("CLAWLOOP_API_BASE", "http://127.0.0.1:8317/v1"))
+    p.add_argument("--api-key", default=os.environ.get("CLAWLOOP_API_KEY", ""))
     p.add_argument("--task-model", default="openai/claude-haiku-4-5-20251001")
     p.add_argument("--reflector-model", default="openai/claude-sonnet-4-5-20250929")
     args = p.parse_args()

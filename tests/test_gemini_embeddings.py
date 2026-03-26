@@ -10,10 +10,10 @@ import os
 
 import pytest
 
-from lfx.core.embeddings import GeminiEmbedding, cosine_similarity, find_similar
-from lfx.core.curator import PlaybookCurator, CuratorConfig
-from lfx.layers.harness import Insight, Playbook, PlaybookEntry
-from lfx.llm import MockLLMClient
+from clawloop.core.embeddings import GeminiEmbedding, cosine_similarity, find_similar
+from clawloop.core.curator import PlaybookCurator, CuratorConfig
+from clawloop.layers.harness import Insight, Playbook, PlaybookEntry
+from clawloop.llm import MockLLMClient
 
 # Load .env if present
 _env_path = os.path.join(os.path.dirname(__file__), "..", ".env")

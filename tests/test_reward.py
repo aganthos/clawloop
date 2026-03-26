@@ -1,9 +1,9 @@
-"""Tests for lfx.core.reward and EpisodeSummary signal integration."""
+"""Tests for clawloop.core.reward and EpisodeSummary signal integration."""
 
 import pytest
 
-from lfx.core.episode import Episode, EpisodeSummary, Message, StepMeta
-from lfx.core.reward import RewardExtractor, RewardPipeline, RewardSignal
+from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
+from clawloop.core.reward import RewardExtractor, RewardPipeline, RewardSignal
 
 
 # ── RewardSignal tests ──────────────────────────────────────────────────

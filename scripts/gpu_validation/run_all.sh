@@ -31,9 +31,9 @@ run_test() {
 run_test "pytest: SkyRL compat + export + backend tests" \
     python -m pytest tests/test_skyrl_compat.py tests/test_skyrl_export.py tests/test_skyrl_backend.py -v
 
-# 1. LfX integration: export pipeline (no GPU needed, fast)
-run_test "LfX export pipeline -> PreparedModelPassBatch" \
-    python scripts/gpu_validation/test_lfx_integration.py
+# 1. ClawLoop integration: export pipeline (no GPU needed, fast)
+run_test "ClawLoop export pipeline -> PreparedModelPassBatch" \
+    python scripts/gpu_validation/test_clawloop_integration.py
 
 # 2. SkyRL native: GSM8K GRPO LoRA 0.5B (single A10)
 run_test "SkyRL native: GSM8K 0.5B LoRA GRPO" \

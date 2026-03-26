@@ -16,7 +16,7 @@ if [ ! -f "$DATA_DIR/train.parquet" ]; then
 fi
 
 # Run from SkyRL submodule so module paths resolve
-cd lfx/skyrl
+cd clawloop/skyrl
 
 python -m skyrl.train.entrypoints.main_base \
     data.train_data="['$DATA_DIR/train.parquet']" \
@@ -53,7 +53,7 @@ python -m skyrl.train.entrypoints.main_base \
     generator.inference_engine.gpu_memory_utilization=0.5 \
     trainer.use_sample_packing=false \
     trainer.logger="console" \
-    trainer.project_name="lfx_validation" \
+    trainer.project_name="clawloop_validation" \
     trainer.run_name="gsm8k_0.5b_lora_test" \
     trainer.resume_mode=null \
     trainer.ckpt_interval=999 \

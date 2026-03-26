@@ -10,8 +10,8 @@ from unittest.mock import patch
 
 import pytest
 
-from lfx.adapters.car import CARAdapter
-from lfx.core.loop import AgentState
+from clawloop.adapters.car import CARAdapter
+from clawloop.core.loop import AgentState
 
 
 class TestCARAdapterResultsParsing:

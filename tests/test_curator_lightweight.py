@@ -5,8 +5,8 @@ embedding infrastructure is overkill, the curator should still provide
 pruning, capping, and metrics without requiring external services.
 """
 
-from lfx.core.curator import CuratorConfig, PlaybookCurator
-from lfx.layers.harness import Insight, Playbook, PlaybookEntry
+from clawloop.core.curator import CuratorConfig, PlaybookCurator
+from clawloop.layers.harness import Insight, Playbook, PlaybookEntry
 
 
 class TestLightweightCurator:

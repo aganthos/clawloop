@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""LfX unified training runner.
+"""ClawLoop unified training runner.
 
 Load a JSON config, call train(). One script, two modes.
 
@@ -10,7 +10,7 @@ Load a JSON config, call train(). One script, two modes.
     python examples/train_runner.py examples/configs/math_weight.json
 
 Tinker-compatible: weight mode uses SkyRL's training infrastructure
-under the hood. LfX wraps it with a unified API that lets you switch
+under the hood. ClawLoop wraps it with a unified API that lets you switch
 between prompt learning and weight training by changing one field.
 """
 from __future__ import annotations
@@ -22,7 +22,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from lfx.train import MODE_LAYERS, TrainConfig, train
+from clawloop.train import MODE_LAYERS, TrainConfig, train
 
 
 def main():
@@ -39,7 +39,7 @@ def main():
     raw = json.loads(config_path.read_text())
     config = TrainConfig(**raw)
 
-    logging.getLogger("lfx").info(
+    logging.getLogger("clawloop").info(
         "mode=%s env=%s layers=%s",
         config.mode, config.env_type, MODE_LAYERS[config.mode],
     )

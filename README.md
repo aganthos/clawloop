@@ -1,4 +1,4 @@
-# LfX — Learning from Experience
+# ClawLoop — Learning from Experience
 
 Unified learning API for AI agents. Three learning layers — **harness** (prompt/playbook), **router** (model routing), **weights** (LoRA/GRPO) — all following the same protocol. Tinker/SkyRL compatible.
 
@@ -10,7 +10,7 @@ pip install -e .
 
 For weight training (GPU):
 ```bash
-pip install -e lfx/skyrl[fsdp]
+pip install -e clawloop/skyrl[fsdp]
 ```
 
 ## Quickstart
@@ -59,7 +59,7 @@ Same config shape. Change `"mode"` from `"harness_learning"` to `"weight"`:
 
 ## LLM Providers
 
-LfX uses [litellm](https://docs.litellm.ai/) — any provider works:
+ClawLoop uses [litellm](https://docs.litellm.ai/) — any provider works:
 
 ```json
 {"model": "anthropic/claude-haiku-4-5-20251001"}
@@ -87,14 +87,14 @@ train(config)
   -> learning_loop()            # collect episodes, forward_backward, optim_step
 ```
 
-Environments are pluggable via `ENV_BUILDERS` registry in `lfx/train.py`.
+Environments are pluggable via `ENV_BUILDERS` registry in `clawloop/train.py`.
 
 ## Adding a New Environment
 
 Write a builder function that returns `(adapter, tasks)`:
 
 ```python
-# lfx/train.py
+# clawloop/train.py
 def _build_my_env(config, llm_clients):
     adapter = MyAdapter(...)  # must implement run_episode(task, agent_state) -> Episode
     tasks = ["task1", "task2"]
@@ -104,7 +104,7 @@ ENV_BUILDERS["my_env"] = _build_my_env
 ```
 
 Your adapter's `run_episode` must return an `Episode` with messages, steps,
-and an `EpisodeSummary` containing reward signals. See `lfx/envs/math.py`
+and an `EpisodeSummary` containing reward signals. See `clawloop/envs/math.py`
 (`MathAdapter`) for a minimal example (~60 lines).
 
 ## Limitations

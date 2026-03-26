@@ -4,13 +4,13 @@ import json
 
 import pytest
 
-from lfx.core.episode import Episode, EpisodeSummary, Message, StepMeta
-from lfx.core.intensity import AdaptiveIntensity
-from lfx.core.loop import AgentState, learning_loop
-from lfx.core.paradigm import ParadigmBreakthrough
-from lfx.core.reflector import Reflector, ReflectorConfig
-from lfx.core.types import Datum, FBResult, Future, OptimResult
-from lfx.layers.harness import Harness, Insight, PlaybookEntry
+from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
+from clawloop.core.intensity import AdaptiveIntensity
+from clawloop.core.loop import AgentState, learning_loop
+from clawloop.core.paradigm import ParadigmBreakthrough
+from clawloop.core.reflector import Reflector, ReflectorConfig
+from clawloop.core.types import Datum, FBResult, Future, OptimResult
+from clawloop.layers.harness import Harness, Insight, PlaybookEntry
 
 
 def _make_episode(
@@ -152,7 +152,7 @@ class TestPerSampleReflection:
         ep = _make_episode(bench="entropic", task_id="t1", reward=-0.5)
         ep.metadata = {"entropic_category": "knowledge_qa"}
 
-        from lfx.core.types import Datum
+        from clawloop.core.types import Datum
         harness.forward_backward(Datum(episodes=[ep]))
 
         # Insights should be auto-tagged with bench + category
@@ -165,7 +165,7 @@ class TestSelectivePlaybookRetrieval:
     """Playbook.render(tags=...) filters entries by tag (ACE/DC-RS style)."""
 
     def test_render_filters_by_tag(self):
-        from lfx.layers.harness import Playbook, PlaybookEntry
+        from clawloop.layers.harness import Playbook, PlaybookEntry
         pb = Playbook(entries=[
             PlaybookEntry(id="e1", content="Refuse confidential info", tags=["confidential_company_knowledge"]),
             PlaybookEntry(id="e2", content="Check data access", tags=["handle_time"]),
@@ -177,7 +177,7 @@ class TestSelectivePlaybookRetrieval:
         assert "General strategy" not in rendered
 
     def test_render_no_match_falls_back_to_all(self):
-        from lfx.layers.harness import Playbook, PlaybookEntry
+        from clawloop.layers.harness import Playbook, PlaybookEntry
         pb = Playbook(entries=[
             PlaybookEntry(id="e1", content="Entry one", tags=["alpha"]),
             PlaybookEntry(id="e2", content="Entry two", tags=["beta"]),
@@ -187,7 +187,7 @@ class TestSelectivePlaybookRetrieval:
         assert "Entry two" in rendered
 
     def test_render_no_tags_returns_all(self):
-        from lfx.layers.harness import Playbook, PlaybookEntry
+        from clawloop.layers.harness import Playbook, PlaybookEntry
         pb = Playbook(entries=[
             PlaybookEntry(id="e1", content="Entry one", tags=["alpha"]),
             PlaybookEntry(id="e2", content="Entry two", tags=["beta"]),
@@ -197,7 +197,7 @@ class TestSelectivePlaybookRetrieval:
         assert "Entry two" in rendered
 
     def test_system_prompt_passes_tags(self):
-        from lfx.layers.harness import Playbook, PlaybookEntry
+        from clawloop.layers.harness import Playbook, PlaybookEntry
         harness = Harness(system_prompts={"test": "Base prompt."})
         harness.playbook = Playbook(entries=[
             PlaybookEntry(id="e1", content="Privacy rule", tags=["confidential_company_knowledge"]),

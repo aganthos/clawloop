@@ -3,8 +3,8 @@ and the Episode -> GeneratorOutput translation path works."""
 
 import pytest
 
-from lfx.core.episode import Episode, EpisodeSummary, Message, StepMeta
-from lfx.exporters.skyrl import SkyRLExporter
+from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
+from clawloop.exporters.skyrl import SkyRLExporter
 
 
 def _skyrl_available() -> bool:

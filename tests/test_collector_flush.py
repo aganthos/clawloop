@@ -1,8 +1,8 @@
 """Tests for EpisodeCollector.flush_buffer()."""
 
-from lfx.collector import EpisodeCollector
-from lfx.core.episode import Message
-from lfx.core.reward import RewardPipeline
+from clawloop.collector import EpisodeCollector
+from clawloop.core.episode import Message
+from clawloop.core.reward import RewardPipeline
 
 
 class _TrackingCallback:

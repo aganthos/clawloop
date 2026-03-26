@@ -1,11 +1,11 @@
-"""Full integration test: LfXAgent + MathEnvironment + Reflector."""
+"""Full integration test: ClawLoopAgent + MathEnvironment + Reflector."""
 
 import json
 
-from lfx.agent import LfXAgent
-from lfx.envs.math import MathEnvironment
-from lfx.llm import MockLLMClient
-from lfx.core.episode import Episode, EpisodeSummary, Message, StepMeta
+from clawloop.agent import ClawLoopAgent
+from clawloop.envs.math import MathEnvironment
+from clawloop.llm import MockLLMClient
+from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
 
 
 # ---------------------------------------------------------------------------
@@ -68,7 +68,7 @@ class TestMathLearningLoopEndToEnd:
         ]
         reflector_client = MockLLMClient(responses=reflector_responses)
 
-        agent = LfXAgent(
+        agent = ClawLoopAgent(
             task_client=task_client,
             reflector_client=reflector_client,
             bench="math",
@@ -111,7 +111,7 @@ class TestSaveLoadPreservesLearning:
             _insight_response("For summation problems, use n(n+1)/2"),
         ])
 
-        agent = LfXAgent(
+        agent = ClawLoopAgent(
             task_client=task_client,
             reflector_client=reflector_client,
             bench="math",
@@ -129,7 +129,7 @@ class TestSaveLoadPreservesLearning:
         agent.save_playbook(save_path)
 
         # Create a brand-new agent and load the playbook
-        agent2 = LfXAgent(
+        agent2 = ClawLoopAgent(
             task_client=MockLLMClient(),
             reflector_client=MockLLMClient(),
             bench="math",
@@ -178,7 +178,7 @@ class TestIngestExternalEpisodes:
             _insight_response("Show work"),
         ])
 
-        agent = LfXAgent(
+        agent = ClawLoopAgent(
             task_client=MockLLMClient(),
             reflector_client=reflector_client,
             bench="math",
