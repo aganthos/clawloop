@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from lfx.core.env import EvalResult, Sample
-from lfx.envs.math import MathEnvironment, extract_answer
+from clawloop.core.env import EvalResult, Sample
+from clawloop.envs.math import MathEnvironment, extract_answer
 
 
 # ---------------------------------------------------------------------------

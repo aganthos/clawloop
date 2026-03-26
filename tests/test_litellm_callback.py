@@ -5,9 +5,9 @@ from __future__ import annotations
 import time
 from unittest.mock import MagicMock
 
-from lfx.callbacks.litellm_cb import LfxCallback
-from lfx.collector import EpisodeCollector
-from lfx.core.reward import RewardPipeline
+from clawloop.callbacks.litellm_cb import LfxCallback
+from clawloop.collector import EpisodeCollector
+from clawloop.core.reward import RewardPipeline
 
 
 def _make_mock_response(

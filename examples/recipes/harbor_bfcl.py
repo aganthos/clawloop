@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""LfX recipe: Harbor BFCL (Berkeley Function Calling Leaderboard).
+"""ClawLoop recipe: Harbor BFCL (Berkeley Function Calling Leaderboard).
 
 Trains an agent to make correct function calls using Harbor's sandboxed
 execution environment + BFCL tasks.
@@ -7,7 +7,7 @@ execution environment + BFCL tasks.
 Two modes:
   weight           SkyRL/Tinker GRPO — model generates rollouts via vLLM,
                    Harbor verifies in Docker, GRPO trains the weights.
-  harness_learning LfX harness — an API model runs the trials, reflector
+  harness_learning ClawLoop harness — an API model runs the trials, reflector
                    analyzes failures and evolves the system prompt.
 
 Weight mode (GPU + Docker):
@@ -29,25 +29,25 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
-log = logging.getLogger("lfx.recipe.harbor_bfcl")
+log = logging.getLogger("clawloop.recipe.harbor_bfcl")
 
 
 # ---------------------------------------------------------------------------
-# Harness learning — LfX loop with Harbor trials
+# Harness learning — ClawLoop loop with Harbor trials
 # ---------------------------------------------------------------------------
 
 def run_harness_learning(args):
     """Prompt optimization via reflector. Harbor runs real agent trials."""
     from pathlib import Path
 
-    from lfx.core.intensity import AdaptiveIntensity
-    from lfx.core.loop import AgentState, learning_loop
-    from lfx.core.reflector import Reflector
-    from lfx.envs.harbor import HarborAdapter, HarborTaskEnvironment
-    from lfx.layers.harness import Harness
-    from lfx.layers.router import Router
-    from lfx.layers.weights import Weights
-    from lfx.llm import LiteLLMClient
+    from clawloop.core.intensity import AdaptiveIntensity
+    from clawloop.core.loop import AgentState, learning_loop
+    from clawloop.core.reflector import Reflector
+    from clawloop.envs.harbor import HarborAdapter, HarborTaskEnvironment
+    from clawloop.layers.harness import Harness
+    from clawloop.layers.router import Router
+    from clawloop.layers.weights import Weights
+    from clawloop.llm import LiteLLMClient
 
     task_dirs = _find_task_dirs(args.task_dir)
     if not task_dirs:
@@ -156,7 +156,7 @@ def run_weight_training(args):
         "generator.inference_engine.gpu_memory_utilization": 0.5,
         "trainer.use_sample_packing": False,
         "trainer.logger": "console",
-        "trainer.project_name": "lfx_harbor_bfcl",
+        "trainer.project_name": "clawloop_harbor_bfcl",
         "trainer.run_name": f"bfcl_{args.model.split('/')[-1]}",
         "trainer.resume_mode": "none",
         "trainer.ckpt_interval": 999,
@@ -196,7 +196,7 @@ def _find_task_dirs(base_dir: str) -> list[str]:
 # ---------------------------------------------------------------------------
 
 def main():
-    p = argparse.ArgumentParser(description="LfX Harbor BFCL — Tinker-compatible")
+    p = argparse.ArgumentParser(description="ClawLoop Harbor BFCL — Tinker-compatible")
     p.add_argument("--mode", choices=["weight", "harness_learning"], required=True)
     p.add_argument("--task-dir", required=True, help="Path to Harbor BFCL task directory")
     p.add_argument("--model", default="Qwen/Qwen2.5-0.5B-Instruct")

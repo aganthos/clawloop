@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>lfx Community vs Cloud</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:#fff;display:flex;justify-content:center;padding:20px}
+.slide{width:960px;height:400px}
+
+.title{font-size:20px;font-weight:700;margin-bottom:16px;text-align:center}
+.title span{color:#2563eb}
+
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;height:340px}
+
+.card{border-radius:12px;padding:18px 20px;display:flex;flex-direction:column}
+
+.card-comm{background:#f0f9ff;border:2px solid #2563eb}
+.card-cloud{background:#fdf2f8;border:2px solid #db2777}
+
+.card h3{font-size:16px;font-weight:700;margin-bottom:2px}
+.card .price{font-size:12px;color:#64748b;margin-bottom:12px}
+
+.feat-list{flex:1;display:flex;flex-direction:column;gap:4px}
+.feat{display:flex;align-items:flex-start;gap:7px;font-size:11px;line-height:1.4}
+.feat .ico{flex-shrink:0;font-size:12px;margin-top:1px}
+.check{color:#16a34a}
+.star{color:#db2777}
+.dim{color:#94a3b8}
+
+.divider{height:1px;background:#e2e8f0;margin:6px 0}
+
+/* bottom funnel strip */
+.funnel{display:flex;margin-top:12px;border-radius:8px;overflow:hidden;height:36px}
+.f-step{flex:1;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;gap:4px}
+.f0{background:#f0fdf4;color:#16a34a}
+.f1{background:#dbeafe;color:#2563eb}
+.f2{background:#f3e8ff;color:#7c3aed}
+.f3{background:#fef3c7;color:#d97706}
+.f4{background:#fce7f3;color:#db2777}
+</style>
+</head>
+<body>
+<div class="slide">
+
+<div class="title"><span>lfx</span> — Community vs Cloud Pro</div>
+
+<div class="grid">
+
+  <!-- COMMUNITY -->
+  <div class="card card-comm">
+    <h3 style="color:#2563eb">Community Edition</h3>
+    <div class="price">Free · BSL license · pip install lfx</div>
+    <div class="feat-list">
+      <div class="feat"><span class="ico check">✓</span>All 3 layers — fully functional locally</div>
+      <div class="feat"><span class="ico check">✓</span>SDK: lfx.wrap() + LfxCallback + REST API</div>
+      <div class="feat"><span class="ico check">✓</span>Full Reflector (BYO API key)</div>
+      <div class="feat"><span class="ico check">✓</span>Full GEPA: mutation + crossover + Pareto</div>
+      <div class="feat"><span class="ico check">✓</span>Curator (heuristic conflict/redundancy detection)</div>
+      <div class="feat"><span class="ico check">✓</span>Router with tier-based model selection</div>
+      <div class="feat"><span class="ico check">✓</span>Weights training (self-hosted GPU via SkyRL)</div>
+      <div class="divider"></div>
+      <div class="feat"><span class="ico dim">—</span><span class="dim">In-memory only (restart = gone)</span></div>
+      <div class="feat"><span class="ico dim">—</span><span class="dim">Single-user, no approval workflow</span></div>
+      <div class="feat"><span class="ico dim">—</span><span class="dim">Self-evaluated (no hidden eval sets)</span></div>
+    </div>
+  </div>
+
+  <!-- CLOUD -->
+  <div class="card card-cloud">
+    <h3 style="color:#db2777">Cloud Pro</h3>
+    <div class="price">From $149/mo · Managed · api.aganthos.com</div>
+    <div class="feat-list">
+      <div class="feat"><span class="ico star">★</span>Persisted playbooks with version history + rollback</div>
+      <div class="feat"><span class="ico star">★</span>Approval workflow: pending → approve/reject</div>
+      <div class="feat"><span class="ico star">★</span>LLM-powered curator (auto-resolve conflicts)</div>
+      <div class="feat"><span class="ico star">★</span>Router cost dashboard: "saved $X/month"</div>
+      <div class="feat"><span class="ico star">★</span>Managed GPU training (on-demand workers)</div>
+      <div class="feat"><span class="ico star">★</span>Automatic gate_for_deploy before promotion</div>
+      <div class="divider"></div>
+      <div class="feat"><span class="ico star">★</span>Team collaboration + multi-workspace</div>
+      <div class="feat"><span class="ico star">★</span>Hidden eval sets + A/B testing on live traffic</div>
+      <div class="feat"><span class="ico star">★</span>Cross-tenant meta-learning (seed strategies)</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="funnel">
+  <div class="f-step f0">Free → learn locally</div>
+  <div class="f-step f1">Pro $149 → persist + approve</div>
+  <div class="f-step f2">Team $499 → routing + team</div>
+  <div class="f-step f3">Scale $1.5k → A/B + meta</div>
+  <div class="f-step f4">Enterprise → training + VPC</div>
+</div>
+
+</div>
+</body>
+</html>

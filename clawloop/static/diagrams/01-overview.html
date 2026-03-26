@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>lfx — Ecosystem Overview</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'IBM Plex Sans',sans-serif;background:#fafaf8;color:#1a1a1a;display:flex;justify-content:center;padding:40px 24px}
+.c{width:1100px;max-width:100%}
+h1{font-family:'Source Serif 4',serif;font-size:28px;text-align:center;margin-bottom:4px}
+h1 em{font-style:italic;color:#2563eb}
+.sub{text-align:center;font-size:13px;color:#64748b;margin-bottom:32px}
+.fig-label{font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#94a3b8;margin-bottom:8px}
+.fig-label span{color:#1a1a1a}
+
+/* grid: left integrations | center engine | right backends */
+.grid{display:grid;grid-template-columns:220px 1fr 220px;gap:16px;align-items:start}
+
+/* columns */
+.col-box{border:1.5px solid #e2e8f0;background:#fff;padding:14px 16px}
+.col-title{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #e2e8f0}
+.item{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px;font-weight:500}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.tag{font-size:9px;font-weight:500;padding:1px 6px;border-radius:3px;margin-left:auto}
+.t-frame{background:#dbeafe;color:#2563eb}.t-sdk{background:#dcfce7;color:#16a34a}
+.t-wf{background:#fef3c7;color:#d97706}.t-bench{background:#f3e8ff;color:#9333ea}
+.t-gpu{background:#fce7f3;color:#db2777}.t-prov{background:#f1f5f9;color:#475569}
+.sep{border:none;border-top:1px dashed #e2e8f0;margin:8px 0}
+
+/* center engine */
+.engine{border:2px solid #1a1a1a;background:#fff;position:relative;display:flex;flex-direction:column}
+.engine-title{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:#fafaf8;padding:0 14px;font-family:'Source Serif 4',serif;font-size:15px;font-weight:700;white-space:nowrap}
+.layer-strip{display:flex;border-bottom:1px solid #e2e8f0}
+.layer-strip:last-child{border-bottom:none}
+.ls-label{width:50px;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:700;border-right:1px solid #e2e8f0}
+.ls-body{flex:1;padding:12px 16px}
+.ls-body h4{font-size:12px;font-weight:600;margin-bottom:4px}
+.ls-body p{font-size:11px;color:#64748b;line-height:1.5}
+.lh .ls-label{background:#eff6ff;color:#2563eb}
+.lr .ls-label{background:#f5f3ff;color:#7c3aed}
+.lw .ls-label{background:#fdf2f8;color:#db2777}
+
+/* arrows */
+.arrow-row{display:flex;justify-content:center;align-items:center;gap:6px;padding:6px 0;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#94a3b8}
+.arrow-row .a{font-size:16px;color:#cbd5e1}
+
+@media(max-width:800px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="c">
+<h1><em>lfx</em> — Ecosystem Overview</h1>
+<p class="sub">Three learning layers · One protocol · Any LLM provider</p>
+
+<div class="grid">
+
+<!-- LEFT: INTEGRATIONS -->
+<div>
+  <div class="col-box">
+    <div class="col-title" style="color:#2563eb">Agent Builders</div>
+    <div class="item"><div class="dot" style="background:#dc2626"></div>OpenClaw<span class="tag t-frame">framework</span></div>
+    <div class="item"><div class="dot" style="background:#d97706"></div>n8n<span class="tag t-wf">workflow</span></div>
+    <div class="item"><div class="dot" style="background:#16a34a"></div>LangChain<span class="tag t-frame">framework</span></div>
+    <div class="item"><div class="dot" style="background:#7c3aed"></div>CrewAI<span class="tag t-frame">framework</span></div>
+    <div class="item"><div class="dot" style="background:#2563eb"></div>Custom agents<span class="tag t-sdk">SDK</span></div>
+  </div>
+  <div class="arrow-row"><span class="a">↓</span> via lfx.wrap() · LfxCallback · REST API</div>
+  <div class="col-box">
+    <div class="col-title" style="color:#16a34a">LLM Providers</div>
+    <div class="item"><div class="dot" style="background:#da7756"></div>Claude<span class="tag t-prov">API</span></div>
+    <div class="item"><div class="dot" style="background:#10a37f"></div>OpenAI / GPT<span class="tag t-prov">API</span></div>
+    <div class="item"><div class="dot" style="background:#4285f4"></div>Gemini<span class="tag t-prov">API</span></div>
+    <div class="item"><div class="dot" style="background:#6366f1"></div>OpenRouter<span class="tag t-prov">proxy</span></div>
+    <div class="item"><div class="dot" style="background:#1a1a2e"></div>Qwen · Kimi · MiniMax<span class="tag t-prov">API</span></div>
+    <hr class="sep">
+    <div class="item"><div class="dot" style="background:#ff6b35"></div>vLLM<span class="tag t-prov">direct</span></div>
+    <div class="item"><div class="dot" style="background:#2d7d3a"></div>SGLang<span class="tag t-prov">direct</span></div>
+    <div class="item"><div class="dot" style="background:#ff4500"></div>Ollama<span class="tag t-prov">local</span></div>
+    <div class="item"><div class="dot" style="background:#94a3b8"></div>Any OpenAI-compat<span class="tag t-prov">proxy</span></div>
+    <div style="font-size:10px;color:#94a3b8;margin-top:6px;font-style:italic">100+ providers via LiteLLM</div>
+  </div>
+</div>
+
+<!-- CENTER: ENGINE -->
+<div>
+  <div class="engine" style="margin-top:28px">
+    <span class="engine-title">lfx Learning Engine</span>
+    <div class="layer-strip lh">
+      <div class="ls-label">H</div>
+      <div class="ls-body">
+        <h4>Harness — Prompt + Playbook Memory</h4>
+        <p>Reflector analyzes failures → Curator resolves conflicts → Playbook accumulates strategies → GEPA evolves prompts via Pareto selection, mutation, crossover</p>
+      </div>
+    </div>
+    <div class="layer-strip lr">
+      <div class="ls-label">R</div>
+      <div class="ls-body">
+        <h4>Router — Model Selection + Cost Optimization</h4>
+        <p>Tracks per-model quality scores → Routes queries to cheapest model that passes quality threshold → Fallback chains on failure</p>
+      </div>
+    </div>
+    <div class="layer-strip lw">
+      <div class="ls-label">W</div>
+      <div class="ls-body">
+        <h4>Weights — RL Fine-Tuning</h4>
+        <p>GRPO + custom algorithms via SkyRL/Harbor → gate_for_deploy regression check → Atomic snapshot-rollback on failure</p>
+      </div>
+    </div>
+  </div>
+  <div class="arrow-row" style="margin-top:8px"><span class="a">↕</span> Layer Protocol: forward_backward → optim_step · Content-addressed StateID · Snapshot-Rollback</div>
+</div>
+
+<!-- RIGHT: BACKENDS + BENCHMARKS -->
+<div>
+  <div class="col-box">
+    <div class="col-title" style="color:#db2777">Training Backends</div>
+    <div class="item"><div class="dot" style="background:#2563eb"></div>SkyRL<span class="tag t-gpu">self-hosted</span></div>
+    <div class="item"><div class="dot" style="background:#7c3aed"></div>Harbor<span class="tag t-gpu">self-hosted</span></div>
+    <div class="item"><div class="dot" style="background:#db2777"></div>Tinker<span class="tag t-gpu">cloud</span></div>
+    <div class="item"><div class="dot" style="background:#16a34a"></div>MinT<span class="tag t-gpu">self-hosted</span></div>
+  </div>
+  <div class="arrow-row"><span class="a">↑</span> Weights layer delegates to backend</div>
+  <div class="col-box">
+    <div class="col-title" style="color:#9333ea">Benchmarks & Eval</div>
+    <div class="item"><div class="dot" style="background:#d97706"></div>AgentBeats<span class="tag t-bench">A2A</span></div>
+    <div class="item"><div class="dot" style="background:#2563eb"></div>CAR-bench<span class="tag t-bench">A2A</span></div>
+    <div class="item"><div class="dot" style="background:#7c3aed"></div>CRM Arena<span class="tag t-bench">A2A</span></div>
+    <div class="item"><div class="dot" style="background:#db2777"></div>τ²-bench<span class="tag t-bench">A2A</span></div>
+    <hr class="sep">
+    <div class="item"><div class="dot" style="background:#16a34a"></div>Harbor tasks<span class="tag t-bench">env</span></div>
+    <div class="item"><div class="dot" style="background:#ff6b35"></div>SkyRL Gym<span class="tag t-bench">env</span></div>
+    <div class="item"><div class="dot" style="background:#94a3b8"></div>Custom envs<span class="tag t-bench">env</span></div>
+  </div>
+</div>
+
+</div>
+</div>
+</body>
+</html>

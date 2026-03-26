@@ -1,8 +1,8 @@
-"""Tests for lfx.layers (harness, router, weights)."""
+"""Tests for clawloop.layers (harness, router, weights)."""
 
 import json
 
-from lfx.layers.harness import (
+from clawloop.layers.harness import (
     Harness,
     Insight,
     ParetoFront,
@@ -11,8 +11,8 @@ from lfx.layers.harness import (
     PromptCandidate,
     ToolConfig,
 )
-from lfx.layers.router import QueryFeatures, Router, Tier
-from lfx.layers.weights import GRPOConfig, Weights
+from clawloop.layers.router import QueryFeatures, Router, Tier
+from clawloop.layers.weights import GRPOConfig, Weights
 
 
 # -- ToolConfig --

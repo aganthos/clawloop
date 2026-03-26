@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""LfX recipe: Arithmetic RL.
+"""ClawLoop recipe: Arithmetic RL.
 
 Mirrors Tinker cookbook math_rl/arithmetic — trains to solve x + y = ?.
 
 Two learning modes via --mode:
   weight           Uses SkyRL/Tinker natively — model generates its own rollouts
                    via vLLM, environment scores them, GRPO trains. Real Tinker.
-  harness_learning Uses LfX harness layer — an external LLM generates responses,
+  harness_learning Uses ClawLoop harness layer — an external LLM generates responses,
                    reflector analyzes failures, playbook evolves the prompt.
 
 Same environment, same scoring, different learning space.
@@ -29,25 +29,25 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
-log = logging.getLogger("lfx.recipe.arithmetic")
+log = logging.getLogger("clawloop.recipe.arithmetic")
 
 
 # ---------------------------------------------------------------------------
-# Harness learning path — LfX learning loop
+# Harness learning path — ClawLoop learning loop
 # ---------------------------------------------------------------------------
 
 def run_harness_learning(args):
     """Prompt optimization via reflector LLM. No GPU needed."""
-    from lfx.core.episode import Episode, EpisodeSummary, Message, StepMeta
-    from lfx.core.intensity import AdaptiveIntensity
-    from lfx.core.loop import AgentState, learning_loop
-    from lfx.core.reflector import Reflector
-    from lfx.core.reward import RewardSignal
-    from lfx.core.types import SampleContext
-    from lfx.layers.harness import Harness
-    from lfx.layers.router import Router
-    from lfx.layers.weights import Weights
-    from lfx.llm import LiteLLMClient
+    from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
+    from clawloop.core.intensity import AdaptiveIntensity
+    from clawloop.core.loop import AgentState, learning_loop
+    from clawloop.core.reflector import Reflector
+    from clawloop.core.reward import RewardSignal
+    from clawloop.core.types import SampleContext
+    from clawloop.layers.harness import Harness
+    from clawloop.layers.router import Router
+    from clawloop.layers.weights import Weights
+    from clawloop.llm import LiteLLMClient
 
     harness = Harness(system_prompts={
         "arithmetic": "Solve arithmetic problems step by step. Put your final answer in \\boxed{} notation.",
@@ -161,7 +161,7 @@ def run_weight_training(args):
         "generator.inference_engine.gpu_memory_utilization": 0.5,
         "trainer.use_sample_packing": False,
         "trainer.logger": "console",
-        "trainer.project_name": "lfx_arithmetic",
+        "trainer.project_name": "clawloop_arithmetic",
         "trainer.run_name": f"arithmetic_{args.model.split('/')[-1]}",
         "trainer.resume_mode": "none",
         "trainer.ckpt_interval": 999,
@@ -187,7 +187,7 @@ def run_weight_training(args):
 # ---------------------------------------------------------------------------
 
 def main():
-    p = argparse.ArgumentParser(description="LfX Arithmetic RL — Tinker-compatible")
+    p = argparse.ArgumentParser(description="ClawLoop Arithmetic RL — Tinker-compatible")
     p.add_argument("--mode", choices=["weight", "harness_learning"], required=True)
     p.add_argument("--model", default="Qwen/Qwen2.5-0.5B-Instruct")
     p.add_argument("--iterations", type=int, default=3)

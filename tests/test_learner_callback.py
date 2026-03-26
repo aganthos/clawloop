@@ -3,11 +3,11 @@
 import threading
 from unittest.mock import MagicMock, patch
 
-from lfx.core.episode import Episode, EpisodeSummary, Message
-from lfx.core.loop import AgentState
-from lfx.core.types import FBResult, Future
-from lfx.layers.harness import Harness, Playbook, PlaybookEntry
-from lfx.learner import AsyncLearner
+from clawloop.core.episode import Episode, EpisodeSummary, Message
+from clawloop.core.loop import AgentState
+from clawloop.core.types import FBResult, Future
+from clawloop.layers.harness import Harness, Playbook, PlaybookEntry
+from clawloop.learner import AsyncLearner
 
 
 def _make_episodes(n: int, reward: float = 0.8) -> list[Episode]:

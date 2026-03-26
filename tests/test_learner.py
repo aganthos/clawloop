@@ -4,12 +4,12 @@ import json
 import time
 from unittest.mock import MagicMock, patch
 
-from lfx.core.episode import Episode, EpisodeSummary, Message
-from lfx.core.loop import AgentState
-from lfx.core.reflector import Reflector, ReflectorConfig
-from lfx.core.types import FBResult, Future, OptimResult
-from lfx.layers.harness import Harness, Playbook, PlaybookEntry
-from lfx.learner import AsyncLearner
+from clawloop.core.episode import Episode, EpisodeSummary, Message
+from clawloop.core.loop import AgentState
+from clawloop.core.reflector import Reflector, ReflectorConfig
+from clawloop.core.types import FBResult, Future, OptimResult
+from clawloop.layers.harness import Harness, Playbook, PlaybookEntry
+from clawloop.learner import AsyncLearner
 
 
 class _MockLLMClient:

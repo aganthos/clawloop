@@ -2,7 +2,7 @@
 
 import pytest
 from starlette.testclient import TestClient
-from lfx.server import create_app
+from clawloop.server import create_app
 
 
 @pytest.fixture

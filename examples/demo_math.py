@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""LfX Demo — Learn to solve math problems via the LfX learning loop.
+"""ClawLoop Demo — Learn to solve math problems via the ClawLoop learning loop.
 
 Run in dry-run mode (no API calls, finishes in seconds):
     python examples/demo_math.py --dry-run
@@ -33,11 +33,11 @@ from typing import Any
 # ---------------------------------------------------------------------------
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from lfx.agent import LfXAgent
-from lfx.envs.math import MathEnvironment, _BUILTIN_PROBLEMS
-from lfx.llm import LiteLLMClient, MockLLMClient
+from clawloop.agent import ClawLoopAgent
+from clawloop.envs.math import MathEnvironment, _BUILTIN_PROBLEMS
+from clawloop.llm import LiteLLMClient, MockLLMClient
 
-log = logging.getLogger("lfx.demo")
+log = logging.getLogger("clawloop.demo")
 
 # ---------------------------------------------------------------------------
 # Base system prompt for the math domain
@@ -163,7 +163,7 @@ def _build_mock_reflector_responses() -> list[str]:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="LfX demo: learn to solve math problems"
+        description="ClawLoop demo: learn to solve math problems"
     )
     parser.add_argument(
         "--dry-run",
@@ -243,8 +243,8 @@ def main() -> None:
     n_tasks = len(env.get_tasks())
     log.info("MathEnvironment loaded with %d problems", n_tasks)
 
-    # -- Step 2: Create the LfXAgent --
-    agent = LfXAgent(
+    # -- Step 2: Create the ClawLoopAgent --
+    agent = ClawLoopAgent(
         task_client=task_client,
         reflector_client=reflector_client,
         bench="math",
@@ -253,7 +253,7 @@ def main() -> None:
 
     # -- Step 3: Run the learning loop --
     print("\n" + "=" * 60)
-    print("  LfX Learning Loop -- Math Demo")
+    print("  ClawLoop Learning Loop -- Math Demo")
     print("=" * 60 + "\n")
 
     results = agent.learn(env, iterations=iterations, episodes_per_iter=episodes)

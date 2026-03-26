@@ -1,8 +1,8 @@
-"""Tests for lfx.llm — LLM client abstraction."""
+"""Tests for clawloop.llm — LLM client abstraction."""
 
-from lfx.completion import CompletionResult
-from lfx.core.episode import TokenLogProb, ToolCall
-from lfx.llm import LiteLLMClient, MockLLMClient
+from clawloop.completion import CompletionResult
+from clawloop.core.episode import TokenLogProb, ToolCall
+from clawloop.llm import LiteLLMClient, MockLLMClient
 
 
 class TestMockLLMClient:

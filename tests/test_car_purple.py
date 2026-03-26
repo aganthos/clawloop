@@ -4,8 +4,8 @@
 import json
 from unittest.mock import MagicMock, patch
 
-from lfx.adapters._car_purple import CarPurpleAgent
-from lfx.layers.harness import Harness
+from clawloop.adapters._car_purple import CarPurpleAgent
+from clawloop.layers.harness import Harness
 
 
 def _make_harness(prompt: str = "") -> Harness:

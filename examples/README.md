@@ -1,6 +1,6 @@
-# LfX Examples
+# ClawLoop Examples
 
-LfX provides a **unified training API** — one `train()` call, one config, flip
+ClawLoop provides a **unified training API** — one `train()` call, one config, flip
 `mode` to switch between prompt learning and weight training.
 
 ## Unified API (`train_runner.py` + JSON configs)
@@ -39,7 +39,7 @@ harness and weight variants is `mode` and the presence of `skyrl` config.
 
 Self-contained scripts that mirror
 [Tinker cookbook](https://github.com/thinking-machines-lab/tinker-cookbook)
-patterns. These use the LfX layer API directly for more control.
+patterns. These use the ClawLoop layer API directly for more control.
 
 See [recipes/README.md](recipes/README.md) for details.
 
