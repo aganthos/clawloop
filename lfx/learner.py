@@ -122,13 +122,10 @@ class AsyncLearner:
                 batch_id, len(episodes), avg_reward,
             )
 
-            # Support-query separation (MetaClaw Algorithm 1)
-            support_episodes = [ep for ep in episodes if ep.summary.effective_reward() < 0]
-            query_episodes = [ep for ep in episodes if ep.summary.effective_reward() >= 0]
-
+            # NOTE: MetaClaw-style support-query split disabled — see loop.py.
             layer_datums: dict[str, Datum] = {
-                "harness": Datum(episodes=support_episodes),
-                "weights": Datum(episodes=query_episodes),
+                "harness": Datum(episodes=episodes),
+                "weights": Datum(episodes=episodes),
                 "router": Datum(episodes=episodes),
             }
 

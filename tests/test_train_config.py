@@ -89,29 +89,10 @@ class TestHarnessLearningValidation:
 # ---------------------------------------------------------------------------
 
 class TestFullValidation:
-    def test_requires_skyrl(self):
-        cfg = TrainConfig(mode="full", harbor=_harbor(), llm_clients=_llm("reflector"))
-        with pytest.raises(ValueError, match="skyrl"):
-            validate_config(cfg)
-
-    def test_requires_reflector(self):
-        cfg = TrainConfig(mode="full", skyrl=_skyrl(), harbor=_harbor())
-        with pytest.raises(ValueError, match="reflector"):
-            validate_config(cfg)
-
-    def test_ok(self):
+    def test_full_mode_raises_not_implemented(self):
         cfg = TrainConfig(mode="full", skyrl=_skyrl(), harbor=_harbor(), llm_clients=_llm("reflector"))
-        assert validate_config(cfg) == ["harness", "router", "weights"]
-
-    def test_math_requires_task(self):
-        cfg = TrainConfig(mode="full", env_type="math", skyrl=_skyrl(), llm_clients=_llm("reflector"))
-        with pytest.raises(ValueError, match="task"):
+        with pytest.raises(NotImplementedError, match="disabled"):
             validate_config(cfg)
-
-    def test_math_ok(self):
-        clients = {**_llm("reflector"), **_llm("task")}
-        cfg = TrainConfig(mode="full", env_type="math", skyrl=_skyrl(), llm_clients=clients)
-        assert validate_config(cfg) == ["harness", "router", "weights"]
 
 
 # ---------------------------------------------------------------------------

@@ -71,6 +71,14 @@ class TrainConfig(BaseModel):
 
 def validate_config(config: TrainConfig) -> list[str]:
     """Validate config consistency. Returns the active layers list."""
+    if config.mode == "full":
+        raise NotImplementedError(
+            "mode='full' is disabled. The MetaClaw-style support-query split "
+            "needs rework: GRPO requires all episodes for advantage variance, "
+            "and the on-policy boundary after harness updates is unresolved. "
+            "Use mode='weight' or mode='harness_learning' separately."
+        )
+
     layers = MODE_LAYERS[config.mode]
 
     if "weights" in layers and not config.skyrl:
