@@ -100,7 +100,9 @@ class HarborTaskEnvironment:
             metadata["reward_transform_error"] = True
         metadata["transformed_reward"] = reward
 
-        chat_history = results.agent_result.metadata.get("all_messages", [])
+        chat_history = []
+        if results.agent_result and results.agent_result.metadata:
+            chat_history = results.agent_result.metadata.get("all_messages", [])
         score_breakdown = results.verifier_result.rewards
 
         return self._build_episode(agent_state, chat_history=chat_history, reward=reward,
