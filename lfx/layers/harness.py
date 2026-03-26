@@ -93,7 +93,7 @@ class PlaybookEntry:
     harmful: int = 0
     tags: list[str] = field(default_factory=list)
     source_episode_ids: list[str] = field(default_factory=list)
-    # --- Structured fields (MetaClaw-inspired) ---
+    # --- Structured skill fields ---
     name: str = ""
     description: str = ""
     anti_patterns: str = ""

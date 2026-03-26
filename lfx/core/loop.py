@@ -217,19 +217,16 @@ def learning_loop(
         if intensity is not None:
             intensity.record_reward(avg_reward)
 
-        # 2. Support-query separation (MetaClaw Algorithm 1)
-        support_episodes = [ep for ep in episodes if ep.summary.effective_reward() < 0]
-        query_episodes = [ep for ep in episodes if ep.summary.effective_reward() >= 0]
-
+        # 2. Build per-layer datums
+        # NOTE: Support-query split (failures→harness,
+        # successes→weights) is disabled. GRPO needs all episodes for
+        # advantage variance, and the on-policy vs off-policy boundary
+        # after harness updates needs more work. See roadmap Task 2.1.
         layer_datums: dict[str, Datum] = {
-            "harness": Datum(episodes=support_episodes),  # learn from failures
-            "weights": Datum(episodes=query_episodes),     # optimize from successes
-            "router": Datum(episodes=episodes),            # needs both signals
+            "harness": Datum(episodes=episodes),
+            "weights": Datum(episodes=episodes),
+            "router": Datum(episodes=episodes),
         }
-        log.info(
-            "  support=%d query=%d (of %d episodes)",
-            len(support_episodes), len(query_episodes), len(episodes),
-        )
 
         # 3. Phase 1: forward_backward (all active layers)
         fb_results: dict[str, FBResult] = {}
@@ -340,8 +337,8 @@ def learning_loop(
                 best = front.best()
                 if best is None:
                     continue
-                # Mutation: use support (failure) episodes filtered to this bench
-                bench_failures = [ep for ep in support_episodes if ep.bench == bench]
+                # Mutation: use failure episodes filtered to this bench
+                bench_failures = [ep for ep in episodes if ep.bench == bench and ep.summary.effective_reward() < 0]
                 if bench_failures:
                     mutations_done = 0
                     for _ in range(evolver.config.max_mutations_per_step):

@@ -139,10 +139,10 @@ class TestSupportQueryRealLayers:
             for h in state.weights.training_history
         ), "Weights should have recorded advantages from success episodes"
 
-    def test_all_successes_skip_reflector(self) -> None:
-        """When all episodes are successes, the harness reflector should NOT fire."""
+    def test_all_successes_still_reach_harness(self) -> None:
+        """All episodes reach harness (support-query split disabled)."""
         reflector_client = MockLLMClient(responses=[
-            _insight_json("Should not appear"),
+            _insight_json("Insight from successes"),
         ])
         reflector = Reflector(client=reflector_client, config=ReflectorConfig())
         harness = Harness(
@@ -159,12 +159,11 @@ class TestSupportQueryRealLayers:
             tasks=["t1", "t2"], n_episodes=2, n_iterations=1,
         )
 
-        # Reflector should NOT have been called (harness got empty support set)
-        assert len(reflector_client.call_log) == 0
-        assert len(state.harness.playbook.entries) == 0
+        # Harness receives all episodes (split disabled)
+        assert len(reflector_client.call_log) > 0
 
-    def test_all_failures_skip_weights(self) -> None:
-        """When all episodes are failures, weights should get empty query set."""
+    def test_all_failures_still_reach_weights(self) -> None:
+        """All episodes reach all layers (support-query split disabled)."""
         reflector_client = MockLLMClient(responses=[
             _insight_json("Handle edge cases"),
         ])
@@ -182,11 +181,8 @@ class TestSupportQueryRealLayers:
             tasks=["t1", "t2"], n_episodes=2, n_iterations=1,
         )
 
-        # Weights should have no advantages (empty query set)
-        assert all(
-            h.get("advantages_computed", 0) == 0
-            for h in state.weights.training_history
-        ) or len(state.weights.training_history) == 0
+        # Weights receives all episodes (support-query split disabled)
+        assert len(state.weights.training_history) > 0
 
 
 # ---------------------------------------------------------------------------

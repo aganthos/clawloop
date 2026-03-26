@@ -139,7 +139,7 @@ class TestForwardBackwardRealTypes:
         batch = backend._to_prepared_batch(gen_output)
 
         n = len(gen_output["prompt_token_ids"])
-        assert len(batch.all_input_ids) == n
+        assert len(batch.all_model_inputs) == n
         assert len(batch.all_targets) == n
         assert len(batch.all_token_weights) == n
         assert len(batch.all_sampling_logprobs) == n
@@ -147,14 +147,16 @@ class TestForwardBackwardRealTypes:
         assert len(batch.all_model_ids) == n
         assert len(batch.all_loss_fns) == n
 
-    def test_input_ids_are_prompt_plus_response(self) -> None:
+    def test_model_inputs_contain_prompt_plus_response(self) -> None:
         backend = _make_backend_with_mocks()
         gen_output = backend._exporter.export([_make_episode()])
         batch = backend._to_prepared_batch(gen_output)
 
         for i in range(len(gen_output["prompt_token_ids"])):
             expected = gen_output["prompt_token_ids"][i] + gen_output["response_ids"][i]
-            assert batch.all_input_ids[i] == expected
+            # ModelInput wraps tokens in EncodedTextChunk
+            actual_tokens = batch.all_model_inputs[i].chunks[0].tokens
+            assert actual_tokens == expected
 
     def test_targets_are_response_ids(self) -> None:
         backend = _make_backend_with_mocks()
@@ -231,7 +233,7 @@ class TestForwardBackwardRealTypes:
 
         assert isinstance(batch, PreparedModelPassBatch)
         # All arrays have consistent lengths
-        n = len(batch.all_input_ids)
+        n = len(batch.all_model_inputs)
         assert n > 0
         assert len(batch.all_targets) == n
         assert len(batch.all_advantages) == n

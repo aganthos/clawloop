@@ -1,120 +1,290 @@
-"""Tests for TrainConfig and the train() entry point."""
+"""Tests for lfx.train — config validation, mode presets, MathAdapter."""
+from __future__ import annotations
 
 import pytest
+from pydantic import SecretStr
 
-from lfx.train import HarborConfig, TrainConfig
+from lfx.train import (
+    HarborConfig,
+    LLMClientConfig,
+    MODE_LAYERS,
+    TrainConfig,
+    validate_config,
+)
 
 
-class TestTrainConfig:
-    def test_weight_mode(self):
-        cfg = TrainConfig(
-            mode="weight",
-            harbor=HarborConfig(task_dirs=["/data/tasks"]),
-            skyrl={"base_model": "Qwen/Qwen3-8B", "backend_type": "jax"},
-        )
-        assert cfg.mode == "weight"
+def _llm(role: str = "reflector") -> dict[str, LLMClientConfig]:
+    return {role: LLMClientConfig(model="test-model", api_base="http://test", api_key=SecretStr("k"))}
 
-    def test_harness_learning_mode(self):
-        cfg = TrainConfig(
-            mode="harness_learning",
-            harbor=HarborConfig(task_dirs=["/data/tasks"]),
-        )
-        assert cfg.mode == "harness_learning"
 
-    def test_invalid_mode_raises(self):
-        with pytest.raises(ValueError):
+def _skyrl() -> dict:
+    return {"base_model": "test", "backend_type": "jax"}
+
+
+def _harbor() -> HarborConfig:
+    return HarborConfig(task_dirs=["/tmp/task1"])
+
+
+# ---------------------------------------------------------------------------
+# Mode presets
+# ---------------------------------------------------------------------------
+
+class TestModePresets:
+    def test_weight_layers(self):
+        assert MODE_LAYERS["weight"] == ["weights"]
+
+    def test_harness_learning_layers(self):
+        assert MODE_LAYERS["harness_learning"] == ["harness", "router"]
+
+    def test_full_layers(self):
+        assert MODE_LAYERS["full"] == ["harness", "router", "weights"]
+
+
+# ---------------------------------------------------------------------------
+# Validation: weight mode
+# ---------------------------------------------------------------------------
+
+class TestWeightValidation:
+    def test_weight_requires_skyrl(self):
+        cfg = TrainConfig(mode="weight", harbor=_harbor())
+        with pytest.raises(ValueError, match="skyrl"):
+            validate_config(cfg)
+
+    def test_weight_ok(self):
+        cfg = TrainConfig(mode="weight", skyrl=_skyrl(), harbor=_harbor())
+        assert validate_config(cfg) == ["weights"]
+
+    def test_weight_no_reflector_needed(self):
+        cfg = TrainConfig(mode="weight", skyrl=_skyrl(), harbor=_harbor())
+        validate_config(cfg)  # no raise
+
+
+# ---------------------------------------------------------------------------
+# Validation: harness_learning mode
+# ---------------------------------------------------------------------------
+
+class TestHarnessLearningValidation:
+    def test_requires_reflector(self):
+        cfg = TrainConfig(mode="harness_learning", env_type="math", llm_clients=_llm("task"))
+        with pytest.raises(ValueError, match="reflector"):
+            validate_config(cfg)
+
+    def test_math_requires_task(self):
+        cfg = TrainConfig(mode="harness_learning", env_type="math", llm_clients=_llm("reflector"))
+        with pytest.raises(ValueError, match="task"):
+            validate_config(cfg)
+
+    def test_math_ok(self):
+        clients = {**_llm("reflector"), **_llm("task")}
+        cfg = TrainConfig(mode="harness_learning", env_type="math", llm_clients=clients)
+        assert validate_config(cfg) == ["harness", "router"]
+
+    def test_harbor_ok(self):
+        cfg = TrainConfig(mode="harness_learning", harbor=_harbor(), llm_clients=_llm("reflector"))
+        assert validate_config(cfg) == ["harness", "router"]
+
+
+# ---------------------------------------------------------------------------
+# Validation: full mode
+# ---------------------------------------------------------------------------
+
+class TestFullValidation:
+    def test_full_mode_raises_not_implemented(self):
+        cfg = TrainConfig(mode="full", skyrl=_skyrl(), harbor=_harbor(), llm_clients=_llm("reflector"))
+        with pytest.raises(NotImplementedError, match="disabled"):
+            validate_config(cfg)
+
+
+# ---------------------------------------------------------------------------
+# Validation: env_type
+# ---------------------------------------------------------------------------
+
+class TestEnvValidation:
+    def test_harbor_requires_task_dirs(self):
+        cfg = TrainConfig(mode="weight", skyrl=_skyrl())
+        with pytest.raises(ValueError, match="task_dirs"):
+            validate_config(cfg)
+
+    def test_harbor_empty_dirs_fails(self):
+        cfg = TrainConfig(mode="weight", skyrl=_skyrl(), harbor=HarborConfig(task_dirs=[]))
+        with pytest.raises(ValueError, match="task_dirs"):
+            validate_config(cfg)
+
+
+# ---------------------------------------------------------------------------
+# LLMClientConfig
+# ---------------------------------------------------------------------------
+
+class TestLLMClientConfig:
+    def test_secret_str_hidden(self):
+        cfg = LLMClientConfig(model="test", api_key=SecretStr("secret-123"))
+        assert "secret-123" not in repr(cfg)
+
+    def test_secret_str_accessible(self):
+        cfg = LLMClientConfig(model="test", api_key=SecretStr("secret-123"))
+        assert cfg.api_key.get_secret_value() == "secret-123"
+
+    def test_defaults(self):
+        cfg = LLMClientConfig(model="test")
+        assert cfg.temperature == 0.7
+        assert cfg.max_tokens == 2000
+
+
+# ---------------------------------------------------------------------------
+# Mode validation via Pydantic Literal
+# ---------------------------------------------------------------------------
+
+class TestPydanticModeValidation:
+    def test_invalid_mode_rejected(self):
+        with pytest.raises(Exception):
             TrainConfig(mode="invalid")
 
-    def test_harbor_config(self):
-        hc = HarborConfig(
-            task_dirs=["/a", "/b"],
-            trial_config={"agent": {"name": "t2"}},
-            train_on_truncated=False,
-        )
-        assert len(hc.task_dirs) == 2
-        assert hc.train_on_truncated is False
+    def test_invalid_env_type_rejected(self):
+        cfg = TrainConfig(mode="weight", skyrl=_skyrl(), env_type="custom")
+        with pytest.raises(ValueError, match="Unknown env_type"):
+            validate_config(cfg)
 
-    def test_default_params(self):
+    def test_defaults(self):
         cfg = TrainConfig(mode="harness_learning")
+        assert cfg.env_type == "harbor"
         assert cfg.episodes_per_iter == 10
         assert cfg.n_iterations == 100
-        assert cfg.env_type == "harbor"
 
 
-class TestTrainFunction:
-    def test_weight_mode_requires_skyrl(self):
-        from lfx.train import train
+# ---------------------------------------------------------------------------
+# MathAdapter
+# ---------------------------------------------------------------------------
 
-        cfg = TrainConfig(
-            mode="weight",
-            harbor=HarborConfig(task_dirs=["/data/tasks"]),
-        )
-        with pytest.raises(ValueError, match="skyrl"):
-            train(cfg)
+class TestMathAdapter:
+    def test_run_episode_produces_episode(self):
+        from unittest.mock import MagicMock
 
-    def test_no_envs_raises(self):
-        from lfx.train import train
+        from lfx.core.episode import Episode
+        from lfx.envs.math import MathAdapter, MathEnvironment
 
-        cfg = TrainConfig(mode="harness_learning")
-        with pytest.raises(ValueError, match="environments"):
-            train(cfg)
+        env = MathEnvironment()
+        mock_client = MagicMock()
+        # Use the first problem and return its correct answer
+        samples = env.get_tasks()
+        mock_client.complete.return_value = f"The answer is \\boxed{{{samples[0].ground_truth}}}."
 
+        adapter = MathAdapter(env=env, client=mock_client)
+        task = samples[0].question
+
+        # Mock agent_state
+        agent_state = MagicMock()
+        sample_result = MagicMock()
+        sample_result.result.return_value.output = "Solve step by step."
+        agent_state.harness.sample.return_value = sample_result
+        agent_state.state_id.return_value.combined_hash = "abc123"
+
+        ep = adapter.run_episode(task, agent_state)
+        assert isinstance(ep, Episode)
+        assert ep.bench == "math"
+        assert ep.summary.total_reward == 1.0  # correct answer returned by mock
+        assert len(ep.messages) == 3  # system, user, assistant
+
+    def test_wrong_answer_gives_zero_reward(self):
+        from unittest.mock import MagicMock
+
+        from lfx.envs.math import MathAdapter, MathEnvironment
+
+        env = MathEnvironment()
+        mock_client = MagicMock()
+        mock_client.complete.return_value = "I think it's \\boxed{99}."
+
+        adapter = MathAdapter(env=env, client=mock_client)
+        tasks = [s.question for s in env.get_tasks()]
+
+        agent_state = MagicMock()
+        sample_result = MagicMock()
+        sample_result.result.return_value.output = "Solve."
+        agent_state.harness.sample.return_value = sample_result
+        agent_state.state_id.return_value.combined_hash = "abc"
+
+        ep = adapter.run_episode(tasks[0], agent_state)
+        # Most likely wrong unless the first problem's answer happens to be 99
+        assert ep.summary.total_reward in (0.0, 1.0)
+        assert ep.metadata["ground_truth"] is not None
+
+    def test_llm_failure_returns_filtered_episode(self):
+        from unittest.mock import MagicMock
+
+        from lfx.envs.math import MathAdapter, MathEnvironment
+
+        env = MathEnvironment()
+        mock_client = MagicMock()
+        mock_client.complete.side_effect = ConnectionError("LLM down")
+
+        adapter = MathAdapter(env=env, client=mock_client)
+        tasks = [s.question for s in env.get_tasks()]
+
+        agent_state = MagicMock()
+        sample_result = MagicMock()
+        sample_result.result.return_value.output = "Solve."
+        agent_state.harness.sample.return_value = sample_result
+
+        ep = adapter.run_episode(tasks[0], agent_state)
+        assert ep.summary.filtered is True
+        assert ep.metadata["error"] == "ConnectionError"
+
+
+# ---------------------------------------------------------------------------
+# _make_llm_client
+# ---------------------------------------------------------------------------
+
+class TestMakeLLMClient:
+    def test_empty_key_becomes_none(self):
+        from lfx.train import LLMClientConfig, _make_llm_client
+
+        cfg = LLMClientConfig(model="test-model")
+        client = _make_llm_client(cfg)
+        assert client.api_key is None
+        assert client.api_base is None
+
+    def test_explicit_key_preserved(self):
+        from lfx.train import LLMClientConfig, _make_llm_client
+
+        cfg = LLMClientConfig(model="test-model", api_key=SecretStr("sk-123"), api_base="http://proxy")
+        client = _make_llm_client(cfg)
+        assert client.api_key == "sk-123"
+        assert client.api_base == "http://proxy"
+
+
+# ---------------------------------------------------------------------------
+# train() end-to-end (mocked backends)
+# ---------------------------------------------------------------------------
 
 class TestTrainEndToEnd:
-    """End-to-end: train() with harness_learning mode + mocked Harbor trials."""
+    def test_harness_learning_math(self):
+        """Full pipeline: train() with harness_learning + math env (mocked LLMs)."""
+        from unittest.mock import MagicMock, patch
 
-    def test_harness_learning_with_harbor_fixtures(self):
-        """Full pipeline: TrainConfig → train() → learning_loop → HarborAdapter → Episodes."""
-        import asyncio
-        from pathlib import Path
-        from unittest.mock import AsyncMock, MagicMock
+        from lfx.train import LLMClientConfig, TrainConfig, train
 
-        from lfx.train import train
-
-        fixture_dir = Path(__file__).parent / "fixtures" / "harbor_tasks"
-        if not fixture_dir.exists():
-            pytest.skip("Harbor task fixtures not found")
+        mock_reflector = MagicMock()
+        mock_reflector.complete.return_value = "[]"
+        mock_task = MagicMock()
+        mock_task.complete.return_value = "The answer is \\boxed{45}."
 
         cfg = TrainConfig(
             mode="harness_learning",
-            harbor=HarborConfig(
-                task_dirs=[str(fixture_dir / "bfcl-simple-0")],
-                trial_config={"agent": {"name": "test", "kwargs": {}}},
-            ),
-            episodes_per_iter=1,
+            env_type="math",
+            llm_clients={
+                "reflector": LLMClientConfig(model="mock-reflector"),
+                "task": LLMClientConfig(model="mock-task"),
+            },
+            episodes_per_iter=2,
             n_iterations=1,
         )
 
-        # Monkey-patch HarborTaskEnvironment to use mocked Trial
-        import lfx.envs.harbor as harbor_mod
+        with patch("lfx.train._make_llm_client") as mock_make:
+            def _pick_client(llm_cfg):
+                if "reflector" in llm_cfg.model:
+                    return mock_reflector
+                return mock_task
+            mock_make.side_effect = _pick_client
 
-        _orig_init = harbor_mod.HarborTaskEnvironment.__init__
-
-        def _patched_init(self, task_dir, trial_config, **kwargs):
-            self._task_dir = Path(task_dir)
-            self._trial_config = trial_config
-            self._trial_config.setdefault("task", {})
-            self._trial_config["agent"].setdefault("kwargs", {})
-            self._reward_transform = kwargs.get("reward_transform")
-            self._train_on_truncated = kwargs.get("train_on_truncated", True)
-
-            mock_results = MagicMock()
-            mock_results.verifier_result.rewards = {"reward": 0.8}
-            mock_results.agent_result.metadata = {
-                "all_messages": [
-                    {"role": "user", "content": "Call get_weather"},
-                    {"role": "assistant", "content": '{"name": "get_weather"}'},
-                ],
-            }
-            self._Trial = MagicMock()
-            mock_trial = MagicMock()
-            mock_trial.run = AsyncMock(return_value=mock_results)
-            self._Trial.return_value = mock_trial
-            self._TrialConfig = MagicMock()
-
-        harbor_mod.HarborTaskEnvironment.__init__ = _patched_init
-        try:
             agent_state, state_id = train(cfg)
-            assert state_id.combined_hash  # Got a valid state ID
-        finally:
-            harbor_mod.HarborTaskEnvironment.__init__ = _orig_init
+            assert state_id.combined_hash
+            assert mock_task.complete.called

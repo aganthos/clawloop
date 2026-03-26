@@ -6,9 +6,19 @@ exact-match scoring.  No external dependencies required.
 
 from __future__ import annotations
 
+import hashlib
+import logging
 import re
+from typing import TYPE_CHECKING, Any
+from uuid import uuid4
 
 from lfx.core.env import EvalResult, Sample
+
+if TYPE_CHECKING:
+    from lfx.core.episode import Episode
+    from lfx.core.loop import AgentState
+
+log = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -72,6 +82,7 @@ def _normalize_answer(answer: str) -> str:
     """
     s = answer.strip().lower()
     s = s.replace("$", "")
+    s = s.replace(",", "")  # strip thousands separators (e.g. "1,000" -> "1000")
     # Remove \text{...} but keep the content inside
     s = re.sub(r"\\text\{([^}]*)\}", r"\1", s)
     s = re.sub(r"\s+", "", s)
@@ -258,4 +269,90 @@ class MathEnvironment:
             score=1.0 if correct else 0.0,
             feedback=feedback,
             metrics={"exact_match": 1.0 if correct else 0.0},
+        )
+
+
+# ---------------------------------------------------------------------------
+# MathAdapter — AdapterLike wrapper for the learning loop
+# ---------------------------------------------------------------------------
+
+class MathAdapter:
+    """Wraps MathEnvironment + LLM client as AdapterLike for the learning loop.
+
+    Tasks are identified by question text. The adapter:
+    1. Looks up the Sample by question
+    2. Gets the current system prompt from the harness
+    3. Calls the task LLM to generate a response
+    4. Evaluates and builds an Episode
+    """
+
+    def __init__(self, env: MathEnvironment, client: Any) -> None:
+        self._env = env
+        self._client = client
+        self._samples = {s.question: s for s in env.get_tasks()}
+
+    def run_episode(self, task: str, agent_state: AgentState) -> Episode:
+        from lfx.core.episode import Episode, EpisodeSummary, Message, StepMeta
+        from lfx.core.reward import RewardSignal
+        from lfx.core.types import SampleContext
+
+        sample = self._samples[task]
+
+        # Get current system prompt from harness (includes playbook entries)
+        try:
+            result = agent_state.harness.sample(SampleContext(bench="math"))
+            prompt = result.result().output or "Solve step by step."
+        except Exception as e:
+            log.warning("Failed to get prompt from harness, using default: %s", e)
+            prompt = "Solve step by step."
+
+        # Call LLM — on failure return a filtered episode so training continues
+        try:
+            response = str(self._client.complete([
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": sample.question},
+            ]))
+        except Exception as e:
+            log.warning("MathAdapter LLM call failed for %s: %s", sample.question[:40], e)
+            return Episode(
+                id=uuid4().hex, state_id="",
+                task_id=hashlib.sha256(sample.question.encode()).hexdigest()[:12],
+                bench="math", messages=[], step_boundaries=[], steps=[],
+                summary=EpisodeSummary(filtered=True),
+                metadata={"error": type(e).__name__},
+            )
+
+        eval_result = self._env.evaluate(sample, response)
+        reward = eval_result.score
+
+        # Map [0, 1] score to [-1, 1] reward signal
+        summary = EpisodeSummary(total_reward=reward)
+        summary.signals["outcome"] = RewardSignal(
+            name="outcome", value=reward * 2 - 1, confidence=1.0,
+        )
+
+        state_id = ""
+        try:
+            state_id = agent_state.state_id().combined_hash
+        except Exception:
+            pass
+
+        return Episode(
+            id=uuid4().hex,
+            state_id=state_id,
+            task_id=hashlib.sha256(sample.question.encode()).hexdigest()[:12],
+            bench="math",
+            messages=[
+                Message(role="system", content=prompt),
+                Message(role="user", content=sample.question),
+                Message(role="assistant", content=response),
+            ],
+            step_boundaries=[0],
+            steps=[StepMeta(t=0, reward=reward, done=True, timing_ms=0.0)],
+            summary=summary,
+            metadata={
+                "ground_truth": sample.ground_truth,
+                "feedback": eval_result.feedback,
+                "exact_match": eval_result.metrics.get("exact_match", 0.0),
+            },
         )

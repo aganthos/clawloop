@@ -109,11 +109,19 @@ class SkyRLWeightsBackend:
                 self._backend = JaxBackend(config.base_model, jax_cfg)
             elif config.backend_type == "skyrl_train":
                 from skyrl.backends.skyrl_train_backend import (
+                    FSDPBackendOverrides,
+                    MegatronBackendOverrides,
                     SkyRLTrainBackend,
-                    SkyRLTrainBackendOverrides,
                 )
 
-                train_cfg = SkyRLTrainBackendOverrides(**config.backend_config)
+                strategy = config.backend_config.get("strategy", "fsdp2")
+                cfg_kwargs = {k: v for k, v in config.backend_config.items() if k != "strategy"}
+                if strategy in ("fsdp", "fsdp2"):
+                    train_cfg = FSDPBackendOverrides(strategy=strategy, **cfg_kwargs)
+                elif strategy == "megatron":
+                    train_cfg = MegatronBackendOverrides(**cfg_kwargs)
+                else:
+                    raise ValueError(f"Unknown strategy: {strategy!r}")
                 self._backend = SkyRLTrainBackend(config.base_model, train_cfg)
             else:
                 raise ValueError(f"Unknown backend_type: {config.backend_type!r}")
@@ -263,7 +271,7 @@ class SkyRLWeightsBackend:
         expects.  Computes GRPO advantages (group-mean subtraction across
         rollouts sharing the same task_id via trajectory_ids).
         """
-        from skyrl.tinker.types import PreparedModelPassBatch
+        from skyrl.tinker.types import EncodedTextChunk, ModelInput, PreparedModelPassBatch
 
         prompt_ids_list = gen_output["prompt_token_ids"]
         response_ids_list = gen_output["response_ids"]
@@ -298,7 +306,7 @@ class SkyRLWeightsBackend:
                 advantages_per_seq[idx] = reward - group_mean
 
         # -- Build per-sequence arrays ---------------------------------------
-        all_input_ids: list[list[int]] = []
+        all_model_inputs: list[ModelInput] = []
         all_targets: list[list[int]] = []
         all_token_weights: list[list[float]] = []
         all_sampling_logprobs: list[list[float]] = []
@@ -309,7 +317,9 @@ class SkyRLWeightsBackend:
             resp_ids = response_ids_list[i]
             mask = loss_masks_list[i] if i < len(loss_masks_list) else [1.0] * len(resp_ids)
 
-            all_input_ids.append(full_ids)
+            all_model_inputs.append(
+                ModelInput(chunks=[EncodedTextChunk(tokens=full_ids)])
+            )
             all_targets.append(resp_ids)
             all_token_weights.append([float(w) for w in mask])
 
@@ -328,7 +338,7 @@ class SkyRLWeightsBackend:
         ]
 
         return PreparedModelPassBatch(
-            all_input_ids=all_input_ids,
+            all_model_inputs=all_model_inputs,
             all_targets=all_targets,
             all_token_weights=all_token_weights,
             all_sampling_logprobs=all_sampling_logprobs,
