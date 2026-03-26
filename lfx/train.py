@@ -1,13 +1,17 @@
 """Unified training entry point.
 
-Three modes:
+Two modes:
   weight           — SkyRL GRPO/PPO weight training (GPU)
   harness_learning — prompt/playbook optimization via reflector LLM (no GPU)
-  full             — multi-layer: failures→harness, successes→weights (GPU + LLM)
+
+Environments are pluggable via ENV_BUILDERS registry. Each builder is a
+function (config, llm_clients) -> (adapter, tasks) that constructs an
+AdapterLike and a task list for the learning loop.
 """
 
 from __future__ import annotations
 
+import importlib
 from pathlib import Path
 from typing import Any, Literal
 
@@ -51,12 +55,12 @@ class TrainConfig(BaseModel):
     """Unified training configuration."""
 
     mode: Literal["weight", "harness_learning", "full"]
-    env_type: Literal["harbor", "math", "entropic"] = "harbor"
+    env_type: str = "harbor"
 
     llm_clients: dict[str, LLMClientConfig] = {}
     skyrl: dict[str, Any] | None = None
-    entropic: dict[str, Any] | None = None
     harbor: HarborConfig | None = None
+    env_config: dict[str, Any] | None = None
 
     system_prompt: str = "You are a helpful assistant."
     benches: list[str] = ["default"]
@@ -64,6 +68,89 @@ class TrainConfig(BaseModel):
     n_iterations: int = 100
 
     model_config = {"arbitrary_types_allowed": True}
+
+
+# ---------------------------------------------------------------------------
+# LLM client helper
+# ---------------------------------------------------------------------------
+
+def _make_llm_client(cfg: LLMClientConfig):
+    """Build a LiteLLMClient from config."""
+    from lfx.llm import LiteLLMClient
+
+    key = cfg.api_key.get_secret_value() or None
+    return LiteLLMClient(
+        model=cfg.model,
+        api_key=key,
+        api_base=cfg.api_base or None,
+        temperature=cfg.temperature,
+        max_tokens=cfg.max_tokens,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Environment builders — each returns (adapter, tasks)
+# ---------------------------------------------------------------------------
+
+def _build_harbor(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]):
+    from lfx.envs.harbor import HarborAdapter, HarborTaskEnvironment
+
+    if not config.harbor or not config.harbor.task_dirs:
+        raise ValueError("harbor env requires harbor.task_dirs")
+
+    envs = [
+        HarborTaskEnvironment(
+            task_dir=Path(d),
+            trial_config=config.harbor.trial_config,
+            train_on_truncated=config.harbor.train_on_truncated,
+        )
+        for d in config.harbor.task_dirs
+    ]
+    return HarborAdapter(envs), [env.task_id for env in envs]
+
+
+def _build_math(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]):
+    from lfx.envs.math import MathAdapter, MathEnvironment
+
+    if "task" not in llm_clients:
+        raise ValueError("math env requires 'task' in llm_clients")
+
+    task_client = _make_llm_client(llm_clients["task"])
+    math_env = MathEnvironment()
+    return MathAdapter(env=math_env, client=task_client), [s.question for s in math_env.get_tasks()]
+
+
+def _build_entropic(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]):
+    from lfx.adapters.entropic import EntropicAdapter
+
+    entropic_cfg = dict(config.env_config or {})
+    if "task" in llm_clients:
+        tc = llm_clients["task"]
+        entropic_cfg.setdefault("model", tc.model)
+        key = tc.api_key.get_secret_value() if tc.api_key else None
+        if key:
+            entropic_cfg.setdefault("api_key", key)
+        if tc.api_base:
+            entropic_cfg.setdefault("api_base", tc.api_base)
+
+    if not entropic_cfg:
+        raise ValueError("entropic env requires 'env_config'")
+
+    adapter = EntropicAdapter()
+    adapter.setup(entropic_cfg)
+    n_tasks = entropic_cfg.get("task_limit", len(entropic_cfg.get("task_ids", [0, 1, 2])))
+    return adapter, [f"base_{i}" for i in range(n_tasks)]
+
+
+# ---------------------------------------------------------------------------
+# Environment registry — add new envs here
+# ---------------------------------------------------------------------------
+
+ENV_BUILDERS: dict[str, callable] = {
+    "harbor": _build_harbor,
+    "math": _build_math,
+    "entropic": _build_entropic,
+}
 
 
 # ---------------------------------------------------------------------------
@@ -88,17 +175,22 @@ def validate_config(config: TrainConfig) -> list[str]:
     if "harness" in layers and "reflector" not in config.llm_clients:
         raise ValueError(f"mode='{config.mode}' requires 'reflector' in llm_clients")
 
+    if config.env_type not in ENV_BUILDERS:
+        raise ValueError(
+            f"Unknown env_type: {config.env_type!r}. "
+            f"Available: {sorted(ENV_BUILDERS.keys())}"
+        )
+
+    # Env-specific validation (fail fast before expensive backend init)
     if config.env_type == "harbor":
         if not config.harbor or not config.harbor.task_dirs:
             raise ValueError("harbor env requires harbor.task_dirs")
-
     if config.env_type == "math":
         if "task" not in config.llm_clients:
             raise ValueError("math env requires 'task' in llm_clients")
-
     if config.env_type == "entropic":
-        if not config.entropic:
-            raise ValueError("entropic env requires 'entropic' config")
+        if not config.env_config:
+            raise ValueError("entropic env requires 'env_config'")
 
     return layers
 
@@ -107,25 +199,12 @@ def validate_config(config: TrainConfig) -> list[str]:
 # Train
 # ---------------------------------------------------------------------------
 
-def _make_llm_client(cfg: LLMClientConfig):
-    """Build a LiteLLMClient from config."""
-    from lfx.llm import LiteLLMClient
-
-    key = cfg.api_key.get_secret_value() or None
-    return LiteLLMClient(
-        model=cfg.model,
-        api_key=key,
-        api_base=cfg.api_base or None,
-        temperature=cfg.temperature,
-        max_tokens=cfg.max_tokens,
-    )
-
-
 def train(config: TrainConfig):
     """Unified training entry point.
 
-    Builds layers, environments, and backend based on config.mode,
-    then runs the learning loop.
+    Builds layers, environment adapter, and runs the learning loop.
+    Environment is selected via env_type and constructed by the matching
+    builder from ENV_BUILDERS.
     """
     from lfx.core.intensity import AdaptiveIntensity
     from lfx.core.loop import AgentState, learning_loop
@@ -137,8 +216,8 @@ def train(config: TrainConfig):
 
     # 1. Harness — always created; reflector wired only if harness is active
     prompts = {b: config.system_prompt for b in config.benches}
-    prompts.setdefault("harbor", config.system_prompt)
-    prompts.setdefault("math", config.system_prompt)
+    # Auto-register env_type as prompt key so harness.sample(bench=env_type) works
+    prompts.setdefault(config.env_type, config.system_prompt)
     harness = Harness(system_prompts=prompts)
 
     if "harness" in layers:
@@ -160,50 +239,9 @@ def train(config: TrainConfig):
 
     router = Router()
 
-    # 3. Environment adapter
-    if config.env_type == "harbor":
-        from lfx.envs.harbor import HarborAdapter, HarborTaskEnvironment
-
-        envs = [
-            HarborTaskEnvironment(
-                task_dir=Path(d),
-                trial_config=config.harbor.trial_config,
-                train_on_truncated=config.harbor.train_on_truncated,
-            )
-            for d in config.harbor.task_dirs
-        ]
-        adapter = HarborAdapter(envs)
-        tasks = [env.task_id for env in envs]
-
-    elif config.env_type == "math":
-        from lfx.envs.math import MathAdapter, MathEnvironment
-
-        task_client = _make_llm_client(config.llm_clients["task"])
-        math_env = MathEnvironment()
-        adapter = MathAdapter(env=math_env, client=task_client)
-        tasks = [s.question for s in math_env.get_tasks()]
-
-    elif config.env_type == "entropic":
-        from lfx.adapters.entropic import EntropicAdapter
-
-        entropic_cfg = dict(config.entropic or {})
-        # Wire LLM client config into adapter if not already set
-        if "task" in config.llm_clients:
-            tc = config.llm_clients["task"]
-            entropic_cfg.setdefault("model", tc.model)
-            key = tc.api_key.get_secret_value() if tc.api_key else None
-            if key:
-                entropic_cfg.setdefault("api_key", key)
-            if tc.api_base:
-                entropic_cfg.setdefault("api_base", tc.api_base)
-
-        adapter = EntropicAdapter()
-        adapter.setup(entropic_cfg)
-        n_tasks = entropic_cfg.get("task_limit", len(entropic_cfg.get("task_ids", [0, 1, 2])))
-        tasks = [f"base_{i}" for i in range(n_tasks)]
-
-    else:
-        raise ValueError(f"Unsupported env_type: {config.env_type!r}")
+    # 3. Environment adapter — dispatched via registry
+    build_env = ENV_BUILDERS[config.env_type]
+    adapter, tasks = build_env(config, config.llm_clients)
 
     # 4. Agent state
     agent_state = AgentState(

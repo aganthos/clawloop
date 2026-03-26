@@ -140,8 +140,9 @@ class TestPydanticModeValidation:
             TrainConfig(mode="invalid")
 
     def test_invalid_env_type_rejected(self):
-        with pytest.raises(Exception):
-            TrainConfig(mode="weight", env_type="custom")
+        cfg = TrainConfig(mode="weight", skyrl=_skyrl(), env_type="custom")
+        with pytest.raises(ValueError, match="Unknown env_type"):
+            validate_config(cfg)
 
     def test_defaults(self):
         cfg = TrainConfig(mode="harness_learning")
