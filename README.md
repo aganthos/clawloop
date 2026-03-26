@@ -88,3 +88,30 @@ train(config)
 ```
 
 Environments are pluggable via `ENV_BUILDERS` registry in `lfx/train.py`.
+
+## Adding a New Environment
+
+Write a builder function that returns `(adapter, tasks)`:
+
+```python
+# lfx/train.py
+def _build_my_env(config, llm_clients):
+    adapter = MyAdapter(...)  # must implement run_episode(task, agent_state) -> Episode
+    tasks = ["task1", "task2"]
+    return adapter, tasks
+
+ENV_BUILDERS["my_env"] = _build_my_env
+```
+
+Your adapter's `run_episode` must return an `Episode` with messages, steps,
+and an `EpisodeSummary` containing reward signals. See `lfx/envs/math.py`
+(`MathAdapter`) for a minimal example (~60 lines).
+
+## Limitations
+
+- **`mode="full"`** (simultaneous harness + weight training) is disabled.
+  The MetaClaw-style data split needs rework for GRPO advantage computation.
+  Use `weight` and `harness_learning` separately for now.
+- **Episode construction is manual.** There is no `ProblemEnv` base class yet.
+  New environments must build `Episode` objects directly. A higher-level
+  abstraction (like Tinker cookbook's `ProblemEnv`) is planned.
