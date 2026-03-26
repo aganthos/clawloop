@@ -68,18 +68,17 @@ def run_harness_learning(args):
 
     trial_config = {
         "agent": {
-            "name": "terminus-2",
-            "model_name": args.task_model,
-            "kwargs": {
-                "max_turns": 16,
-                "store_all_messages": True,
-                "temperature": 0.7,
-                "api_base": args.api_base,
-                "api_key": args.api_key,
-            },
+            "name": args.agent,
+            "kwargs": {"store_all_messages": True},
         },
         "environment": {"type": "docker"},
     }
+    if args.agent != "oracle":
+        trial_config["agent"]["model_name"] = args.task_model
+        trial_config["agent"]["kwargs"].update({
+            "max_turns": 16, "temperature": 0.7,
+            "api_base": args.api_base, "api_key": args.api_key,
+        })
 
     envs = [
         HarborTaskEnvironment(
@@ -205,9 +204,10 @@ def main():
     p.add_argument("--episodes", type=int, default=5)
     p.add_argument("--max-tasks", type=int, default=20, help="Max tasks to use")
     p.add_argument("--lora-rank", type=int, default=32)
+    p.add_argument("--agent", default="oracle", help="Harbor agent (oracle, terminus-2)")
     p.add_argument("--api-base", default=os.environ.get("LFX_API_BASE", "http://127.0.0.1:8317/v1"))
     p.add_argument("--api-key", default=os.environ.get("LFX_API_KEY", "kuhhandel-bench-key"))
-    p.add_argument("--task-model", default="openai/claude-haiku-4-5-20251001")
+    p.add_argument("--task-model", default="gemini/gemini-2.0-flash-lite")
     p.add_argument("--reflector-model", default="openai/claude-sonnet-4-5-20250929")
     args = p.parse_args()
 
