@@ -111,7 +111,8 @@ def _build_math(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]):
 
     task_client = _make_llm_client(llm_clients["task"])
     math_env = MathEnvironment()
-    return MathAdapter(env=math_env, client=task_client), [s.question for s in math_env.get_tasks()]
+    tasks = math_env.get_tasks()
+    return MathAdapter(env=math_env, client=task_client), [s.question for s in tasks]
 
 
 def _build_entropic(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]):

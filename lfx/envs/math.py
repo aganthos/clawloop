@@ -301,7 +301,8 @@ class MathAdapter:
         try:
             result = agent_state.harness.sample(SampleContext(bench="math"))
             prompt = result.result().output or "Solve step by step."
-        except Exception:
+        except Exception as e:
+            log.warning("Failed to get prompt from harness, using default: %s", e)
             prompt = "Solve step by step."
 
         # Call LLM — on failure return a filtered episode so training continues
