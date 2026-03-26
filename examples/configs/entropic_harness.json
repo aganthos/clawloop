@@ -14,7 +14,7 @@
             "api_key": "kuhhandel-bench-key"
         }
     },
-    "entropic": {
+    "env_config": {
         "entropic_bench_path": "benchmarks/a2a/entropic-crmarenapro",
         "task_ids": [0, 1, 2],
         "task_limit": 3
