@@ -1,15 +1,15 @@
-"""Tests for the LfXAgent convenience wrapper."""
+"""Tests for the ClawLoopAgent convenience wrapper."""
 
 import json
 import os
 
 import pytest
 
-from lfx.agent import LfXAgent
-from lfx.core.env import EvalResult, Sample, StaticTaskEnvironment
-from lfx.core.episode import Episode, EpisodeSummary, Message, StepMeta
-from lfx.layers.harness import Insight, PlaybookEntry
-from lfx.llm import MockLLMClient
+from clawloop.agent import ClawLoopAgent
+from clawloop.core.env import EvalResult, Sample, StaticTaskEnvironment
+from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
+from clawloop.layers.harness import Insight, PlaybookEntry
+from clawloop.llm import MockLLMClient
 
 
 def _make_env(n_tasks: int = 3, score: float = 0.8) -> StaticTaskEnvironment:
@@ -65,7 +65,7 @@ class TestLearnRunsLoop:
         reflector_client = MockLLMClient(responses=[_reflector_response_add()])
         env = _make_env(n_tasks=3, score=0.7)
 
-        agent = LfXAgent(
+        agent = ClawLoopAgent(
             task_client=task_client,
             reflector_client=reflector_client,
             bench="default",
@@ -88,7 +88,7 @@ class TestGetSystemPromptEmptyInitially:
         task_client = MockLLMClient()
         reflector_client = MockLLMClient()
 
-        agent = LfXAgent(
+        agent = ClawLoopAgent(
             task_client=task_client,
             reflector_client=reflector_client,
         )
@@ -107,7 +107,7 @@ class TestGetSystemPromptAfterLearning:
         reflector_client = MockLLMClient(responses=[_reflector_response_add()])
         env = _make_env(n_tasks=3, score=0.8)
 
-        agent = LfXAgent(
+        agent = ClawLoopAgent(
             task_client=task_client,
             reflector_client=reflector_client,
             bench="default",
@@ -127,7 +127,7 @@ class TestIngestEpisodes:
         task_client = MockLLMClient()
         reflector_client = MockLLMClient(responses=[_reflector_response_add()])
 
-        agent = LfXAgent(
+        agent = ClawLoopAgent(
             task_client=task_client,
             reflector_client=reflector_client,
         )
@@ -151,7 +151,7 @@ class TestSaveLoadPlaybook:
         reflector_client = MockLLMClient(responses=[_reflector_response_add()])
         env = _make_env(n_tasks=3, score=0.8)
 
-        agent = LfXAgent(
+        agent = ClawLoopAgent(
             task_client=task_client,
             reflector_client=reflector_client,
             bench="default",
@@ -166,7 +166,7 @@ class TestSaveLoadPlaybook:
         assert os.path.exists(save_path)
 
         # Create a new agent and load
-        agent2 = LfXAgent(
+        agent2 = ClawLoopAgent(
             task_client=MockLLMClient(),
             reflector_client=MockLLMClient(),
             bench="default",

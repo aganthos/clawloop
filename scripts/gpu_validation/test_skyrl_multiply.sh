@@ -14,7 +14,7 @@ if [ ! -f "$DATA_DIR/train.parquet" ]; then
 fi
 
 # Run from the SkyRL submodule directory so the custom entry point resolves
-cd lfx/skyrl
+cd clawloop/skyrl
 
 python -m examples.train.multiply.main_multiply \
     data.train_data="['$DATA_DIR/train.parquet']" \
@@ -51,7 +51,7 @@ python -m examples.train.multiply.main_multiply \
     generator.inference_engine.gpu_memory_utilization=0.5 \
     trainer.use_sample_packing=false \
     trainer.logger="console" \
-    trainer.project_name="lfx_validation" \
+    trainer.project_name="clawloop_validation" \
     trainer.run_name="multiply_0.5b_test" \
     trainer.resume_mode=null \
     trainer.ckpt_path="$HOME/ckpts/multiply_test" \

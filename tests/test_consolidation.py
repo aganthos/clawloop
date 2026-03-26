@@ -2,14 +2,14 @@
 
 import time
 
-from lfx.core.curator import (
+from clawloop.core.curator import (
     ConsolidationReport,
     CuratorConfig,
     PlaybookCurator,
 )
-from lfx.core.embeddings import MockEmbedding
-from lfx.layers.harness import Playbook, PlaybookEntry
-from lfx.llm import MockLLMClient
+from clawloop.core.embeddings import MockEmbedding
+from clawloop.layers.harness import Playbook, PlaybookEntry
+from clawloop.llm import MockLLMClient
 
 
 def _entry(

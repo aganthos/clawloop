@@ -1,4 +1,4 @@
-"""Tests for lfx.exporters.otel — OTelExporter."""
+"""Tests for clawloop.exporters.otel — OTelExporter."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 from opentelemetry.trace import StatusCode
 
-from lfx.core.episode import (
+from clawloop.core.episode import (
     Episode,
     EpisodeSummary,
     Message,
@@ -26,8 +26,8 @@ from lfx.core.episode import (
     TokenUsage,
     ToolCall,
 )
-from lfx.core.reward import RewardSignal
-from lfx.exporters.otel import OTelExporter, _ms_to_ns, _to_ns
+from clawloop.core.reward import RewardSignal
+from clawloop.exporters.otel import OTelExporter, _ms_to_ns, _to_ns
 
 
 # ---------------------------------------------------------------------------
@@ -278,11 +278,11 @@ class TestSpanTree:
 
 
 # ---------------------------------------------------------------------------
-# TestLfxAttributes
+# TestClawLoopAttributes
 # ---------------------------------------------------------------------------
 
 
-class TestLfxAttributes:
+class TestClawLoopAttributes:
     def _root(self, ep: Episode) -> Any:
         spans = _run_export(ep)
         return next(s for s in spans if s.parent is None)
@@ -290,54 +290,54 @@ class TestLfxAttributes:
     def test_episode_id(self) -> None:
         ep = _make_otel_episode()
         root = self._root(ep)
-        assert root.attributes["lfx.episode.id"] == ep.id
+        assert root.attributes["clawloop.episode.id"] == ep.id
 
     def test_state_id(self) -> None:
         ep = _make_otel_episode()
         root = self._root(ep)
-        assert root.attributes["lfx.state.id"] == "state-abc"
+        assert root.attributes["clawloop.state.id"] == "state-abc"
 
     def test_task_id(self) -> None:
         ep = _make_otel_episode()
         root = self._root(ep)
-        assert root.attributes["lfx.task.id"] == "task-xyz"
+        assert root.attributes["clawloop.task.id"] == "task-xyz"
 
     def test_session_id(self) -> None:
         ep = _make_otel_episode()
         root = self._root(ep)
-        assert root.attributes["lfx.session.id"] == "sess-123"
+        assert root.attributes["clawloop.session.id"] == "sess-123"
 
     def test_bench(self) -> None:
         ep = _make_otel_episode()
         root = self._root(ep)
-        assert root.attributes["lfx.bench"] == "test-bench"
+        assert root.attributes["clawloop.bench"] == "test-bench"
 
     def test_reward_effective(self) -> None:
         ep = _make_otel_episode(reward=0.8)
         root = self._root(ep)
         # effective_reward is in [-1, 1]; 0.8 → mapped = 0.6
-        assert abs(root.attributes["lfx.reward.effective"] - 0.6) < 1e-6
+        assert abs(root.attributes["clawloop.reward.effective"] - 0.6) < 1e-6
 
     def test_reward_normalized(self) -> None:
         ep = _make_otel_episode(reward=0.8)
         root = self._root(ep)
-        assert abs(root.attributes["lfx.reward.normalized"] - 0.8) < 1e-6
+        assert abs(root.attributes["clawloop.reward.normalized"] - 0.8) < 1e-6
 
     def test_reward_effective_range_negative(self) -> None:
         ep = _make_otel_episode(reward=0.0)
         root = self._root(ep)
         # 0.0 → mapped = -1.0
-        assert abs(root.attributes["lfx.reward.effective"] - (-1.0)) < 1e-6
+        assert abs(root.attributes["clawloop.reward.effective"] - (-1.0)) < 1e-6
 
     def test_reward_normalized_range_full(self) -> None:
         ep = _make_otel_episode(reward=1.0)
         root = self._root(ep)
-        assert abs(root.attributes["lfx.reward.normalized"] - 1.0) < 1e-6
+        assert abs(root.attributes["clawloop.reward.normalized"] - 1.0) < 1e-6
 
     def test_signals_json(self) -> None:
         ep = _make_otel_episode(reward=0.8)
         root = self._root(ep)
-        raw = root.attributes["lfx.reward.signals"]
+        raw = root.attributes["clawloop.reward.signals"]
         signals = json.loads(raw)
         assert "outcome" in signals
         assert "execution" in signals
@@ -347,33 +347,33 @@ class TestLfxAttributes:
     def test_per_signal_attrs(self) -> None:
         ep = _make_otel_episode(reward=0.8)
         root = self._root(ep)
-        assert "lfx.reward.outcome.value" in root.attributes
-        assert "lfx.reward.outcome.confidence" in root.attributes
-        assert "lfx.reward.execution.value" in root.attributes
-        assert "lfx.reward.execution.confidence" in root.attributes
-        assert root.attributes["lfx.reward.outcome.confidence"] == 1.0
+        assert "clawloop.reward.outcome.value" in root.attributes
+        assert "clawloop.reward.outcome.confidence" in root.attributes
+        assert "clawloop.reward.execution.value" in root.attributes
+        assert "clawloop.reward.execution.confidence" in root.attributes
+        assert root.attributes["clawloop.reward.outcome.confidence"] == 1.0
 
     def test_harness_version(self) -> None:
         ep = _make_otel_episode()
         root = self._root(ep)
-        assert root.attributes["lfx.harness.version"] == "v2.1"
+        assert root.attributes["clawloop.harness.version"] == "v2.1"
 
     def test_harness_version_missing(self) -> None:
         ep = _make_otel_episode()
         ep.metadata = {}
         root = self._root(ep)
-        assert "lfx.harness.version" not in root.attributes
+        assert "clawloop.harness.version" not in root.attributes
 
     def test_filtered_false(self) -> None:
         ep = _make_otel_episode()
         root = self._root(ep)
-        assert root.attributes["lfx.filtered"] is False
+        assert root.attributes["clawloop.filtered"] is False
 
     def test_filtered_true(self) -> None:
         ep = _make_otel_episode()
         ep.summary.filtered = True
         root = self._root(ep)
-        assert root.attributes["lfx.filtered"] is True
+        assert root.attributes["clawloop.filtered"] is True
 
     def test_evaluation_event(self) -> None:
         ep = _make_otel_episode(reward=0.8)
@@ -631,44 +631,44 @@ class TestStepIndex:
         spans = _run_export(ep)
         llm_spans = sorted(
             [s for s in spans if s.name.startswith("llm:")],
-            key=lambda s: s.attributes["lfx.step.index"],
+            key=lambda s: s.attributes["clawloop.step.index"],
         )
         assert len(llm_spans) == 3
         for i, ls in enumerate(llm_spans):
-            assert ls.attributes["lfx.step.index"] == i
+            assert ls.attributes["clawloop.step.index"] == i
 
     def test_step_reward_on_llm_spans(self) -> None:
         ep = _make_otel_episode(n_steps=2, reward=0.9)
         spans = _run_export(ep)
         llm_spans = sorted(
             [s for s in spans if s.name.startswith("llm:")],
-            key=lambda s: s.attributes["lfx.step.index"],
+            key=lambda s: s.attributes["clawloop.step.index"],
         )
         # First step reward = 0.0 (non-terminal)
-        assert llm_spans[0].attributes["lfx.step.reward"] == 0.0
+        assert llm_spans[0].attributes["clawloop.step.reward"] == 0.0
         # Last step reward = 0.9 (terminal)
-        assert abs(llm_spans[1].attributes["lfx.step.reward"] - 0.9) < 1e-6
+        assert abs(llm_spans[1].attributes["clawloop.step.reward"] - 0.9) < 1e-6
 
     def test_step_done_flag(self) -> None:
         ep = _make_otel_episode(n_steps=2)
         spans = _run_export(ep)
         llm_spans = sorted(
             [s for s in spans if s.name.startswith("llm:")],
-            key=lambda s: s.attributes["lfx.step.index"],
+            key=lambda s: s.attributes["clawloop.step.index"],
         )
-        assert llm_spans[0].attributes["lfx.step.done"] is False
-        assert llm_spans[1].attributes["lfx.step.done"] is True
+        assert llm_spans[0].attributes["clawloop.step.done"] is False
+        assert llm_spans[1].attributes["clawloop.step.done"] is True
 
     def test_step_index_on_tool_spans(self) -> None:
         ep = _make_otel_episode(n_steps=2, with_tools=True)
         spans = _run_export(ep)
         tool_spans = sorted(
             [s for s in spans if s.name.startswith("tool:")],
-            key=lambda s: s.attributes["lfx.step.index"],
+            key=lambda s: s.attributes["clawloop.step.index"],
         )
         assert len(tool_spans) == 2
-        assert tool_spans[0].attributes["lfx.step.index"] == 0
-        assert tool_spans[1].attributes["lfx.step.index"] == 1
+        assert tool_spans[0].attributes["clawloop.step.index"] == 0
+        assert tool_spans[1].attributes["clawloop.step.index"] == 1
 
 
 # ---------------------------------------------------------------------------
@@ -776,7 +776,7 @@ class TestStepIndexMultipleAssistants:
         assert len(llm_spans) == 2
         # Both should be step 0
         for ls in llm_spans:
-            assert ls.attributes["lfx.step.index"] == 0
+            assert ls.attributes["clawloop.step.index"] == 0
 
 
 # ---------------------------------------------------------------------------
@@ -850,7 +850,7 @@ class TestOpenInferenceFallback:
         # Import the module directly to check constants
         import importlib
 
-        import lfx.exporters.otel as otel_mod
+        import clawloop.exporters.otel as otel_mod
 
         original_span_kind = otel_mod._SPAN_KIND_ATTR
         original_kind_agent = otel_mod._KIND_AGENT
@@ -878,7 +878,7 @@ class TestOpenInferenceFallback:
 
     def test_fallback_values_match_spec(self) -> None:
         """Even if openinference IS installed, fallback strings must match the spec."""
-        from lfx.exporters.otel import (
+        from clawloop.exporters.otel import (
             _KIND_AGENT,
             _KIND_LLM,
             _KIND_TOOL,

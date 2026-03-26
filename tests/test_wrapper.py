@@ -1,14 +1,14 @@
-"""Tests for lfx.wrap() — SDK wrapper for live mode."""
+"""Tests for clawloop.wrap() — SDK wrapper for live mode."""
 
 import time
 import uuid
 
-from lfx.collector import EpisodeCollector
-from lfx.core.loop import AgentState
-from lfx.core.reward import RewardPipeline
-from lfx.learner import AsyncLearner
-from lfx.llm import MockLLMClient
-from lfx.wrapper import wrap
+from clawloop.collector import EpisodeCollector
+from clawloop.core.loop import AgentState
+from clawloop.core.reward import RewardPipeline
+from clawloop.learner import AsyncLearner
+from clawloop.llm import MockLLMClient
+from clawloop.wrapper import wrap
 
 
 class TestWrap:
@@ -97,7 +97,7 @@ class TestWrapTaskIdAndSessionId:
 class TestCollectorStateIdProvider:
     def test_default_state_id(self) -> None:
         collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
-        from lfx.core.episode import Message
+        from clawloop.core.episode import Message
         ep = collector.ingest(
             [Message(role="user", content="hi")],
             task_id="t1", session_id="s1",
@@ -108,7 +108,7 @@ class TestCollectorStateIdProvider:
         collector = EpisodeCollector(
             pipeline=RewardPipeline([]), batch_size=100, state_id="custom-v1",
         )
-        from lfx.core.episode import Message
+        from clawloop.core.episode import Message
         ep = collector.ingest(
             [Message(role="user", content="hi")],
             task_id="t1", session_id="s1",
@@ -124,7 +124,7 @@ class TestCollectorStateIdProvider:
         collector = EpisodeCollector(
             pipeline=RewardPipeline([]), batch_size=100, state_id=state_provider,
         )
-        from lfx.core.episode import Message
+        from clawloop.core.episode import Message
         ep1 = collector.ingest(
             [Message(role="user", content="hi")],
             task_id="t1", session_id="s1",
@@ -137,8 +137,8 @@ class TestCollectorStateIdProvider:
         assert ep2.state_id == "state-2"
 
 
-from lfx.completion import CompletionResult
-from lfx.core.episode import TokenLogProb, TokenUsage, ToolCall
+from clawloop.completion import CompletionResult
+from clawloop.core.episode import TokenLogProb, TokenUsage, ToolCall
 
 
 class TestRichWrapperCapture:

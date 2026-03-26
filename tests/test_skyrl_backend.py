@@ -1,4 +1,4 @@
-"""Tests for lfx.backends.skyrl — SkyRLWeightsBackend + SkyRLWeightsConfig.
+"""Tests for clawloop.backends.skyrl — SkyRLWeightsBackend + SkyRLWeightsConfig.
 
 Mock tests bypass __init__ (no real SkyRL/GPU needed).
 Real-type tests are conditional on SkyRL submodule availability.
@@ -11,10 +11,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from lfx.backends.base import BackendError
-from lfx.backends.skyrl import SkyRLWeightsBackend, SkyRLWeightsConfig
-from lfx.core.episode import Episode, EpisodeSummary, Message, StepMeta
-from lfx.core.types import Datum, SampleContext
+from clawloop.backends.base import BackendError
+from clawloop.backends.skyrl import SkyRLWeightsBackend, SkyRLWeightsConfig
+from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
+from clawloop.core.types import Datum, SampleContext
 
 
 # ---------------------------------------------------------------------------
@@ -40,7 +40,7 @@ def _make_episode(task_id: str = "t1", reward: float = 0.8) -> Episode:
 
 def _make_backend_with_mocks() -> SkyRLWeightsBackend:
     """Create a SkyRLWeightsBackend with mocked internals (no SkyRL needed)."""
-    from lfx.exporters.skyrl import SkyRLExporter
+    from clawloop.exporters.skyrl import SkyRLExporter
     from tests.test_skyrl_export import FakeTokenizer
 
     backend = SkyRLWeightsBackend.__new__(SkyRLWeightsBackend)
@@ -56,7 +56,7 @@ def _make_backend_with_mocks() -> SkyRLWeightsBackend:
         tokenizer_name="test",
     )
     backend._backend = MagicMock()
-    backend._model_id = "lfx-test-model"
+    backend._model_id = "clawloop-test-model"
     backend._adapter_refs: list[str] = []
     backend.inference_url = None
     backend._exporter = SkyRLExporter(tokenizer=FakeTokenizer())
@@ -65,7 +65,7 @@ def _make_backend_with_mocks() -> SkyRLWeightsBackend:
 
 def _skyrl_available() -> bool:
     try:
-        sys.path.insert(0, "lfx/skyrl")
+        sys.path.insert(0, "clawloop/skyrl")
         from skyrl.tinker.types import PreparedModelPassBatch  # noqa: F401
         return True
     except ImportError:
@@ -202,7 +202,7 @@ class TestForwardBackwardRealTypes:
         batch = backend._to_prepared_batch(gen_output)
 
         for mid in batch.all_model_ids:
-            assert mid == "lfx-test-model"
+            assert mid == "clawloop-test-model"
         for lfn in batch.all_loss_fns:
             assert lfn == "ppo"
 
@@ -214,7 +214,7 @@ class TestForwardBackwardRealTypes:
         assert len(batch.request_batch_slices) == len(gen_output["prompt_token_ids"])
         for req_id, model_id, start, end in batch.request_batch_slices:
             assert isinstance(req_id, str)
-            assert model_id == "lfx-test-model"
+            assert model_id == "clawloop-test-model"
             assert isinstance(start, int)
             assert isinstance(end, int)
 
@@ -279,7 +279,7 @@ class TestOptimStepRealTypes:
 
         # Verify the call received a real OptimStepInput
         call_args = backend._backend.optim_step.call_args
-        assert call_args[0][0] == "lfx-test-model"
+        assert call_args[0][0] == "clawloop-test-model"
         optim_input = call_args[0][1]
         assert isinstance(optim_input, OptimStepInput)
         assert optim_input.adam_params.learning_rate == 1e-5

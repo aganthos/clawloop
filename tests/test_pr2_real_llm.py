@@ -20,20 +20,20 @@ import urllib.error
 
 import hashlib
 
-from lfx.core.env import Sample, TaskEnvironment
-from lfx.core.episode import Episode, EpisodeSummary, Message, StepMeta
-from lfx.core.evolution import EvolverConfig, PromptEvolver
-from lfx.core.intensity import AdaptiveIntensity
-from lfx.core.loop import AgentState, learning_loop
-from lfx.core.reflector import Reflector, ReflectorConfig
-from lfx.layers.harness import Harness, PromptCandidate, ParetoFront
-from lfx.llm import LiteLLMClient
+from clawloop.core.env import Sample, TaskEnvironment
+from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
+from clawloop.core.evolution import EvolverConfig, PromptEvolver
+from clawloop.core.intensity import AdaptiveIntensity
+from clawloop.core.loop import AgentState, learning_loop
+from clawloop.core.reflector import Reflector, ReflectorConfig
+from clawloop.layers.harness import Harness, PromptCandidate, ParetoFront
+from clawloop.llm import LiteLLMClient
 
 log = logging.getLogger(__name__)
 
-_API_BASE = os.environ.get("LFX_API_BASE", "http://127.0.0.1:8317/v1")
-_API_KEY = os.environ.get("LFX_API_KEY", "your-api-key-1")
-_MODEL = os.environ.get("LFX_MODEL", "openai/claude-haiku-4-5-20251001")
+_API_BASE = os.environ.get("CLAWLOOP_API_BASE", "http://127.0.0.1:8317/v1")
+_API_KEY = os.environ.get("CLAWLOOP_API_KEY", "your-api-key-1")
+_MODEL = os.environ.get("CLAWLOOP_MODEL", "openai/claude-haiku-4-5-20251001")
 
 
 def _proxy_available() -> bool:
@@ -263,16 +263,16 @@ class TestFullyRealE2E:
     failures, real MathEnvironment scores answers. Nothing is canned."""
 
     def test_agent_learn_real_llm_real_env(self) -> None:
-        """LfXAgent.learn() with real LiteLLMClient for both task and
+        """ClawLoopAgent.learn() with real LiteLLMClient for both task and
         reflector, real MathEnvironment for scoring. Verifies the agent
         produces playbook entries and the system prompt grows."""
-        from lfx.agent import LfXAgent
-        from lfx.envs.math import MathEnvironment
+        from clawloop.agent import ClawLoopAgent
+        from clawloop.envs.math import MathEnvironment
 
         task_llm = LiteLLMClient(model=_MODEL, api_key=_API_KEY, api_base=_API_BASE)
         reflector_llm = LiteLLMClient(model=_MODEL, api_key=_API_KEY, api_base=_API_BASE)
 
-        agent = LfXAgent(
+        agent = ClawLoopAgent(
             task_client=task_llm,
             reflector_client=reflector_llm,
             bench="math",
@@ -361,7 +361,7 @@ class TestFullPipelineRealLLM:
     Zero mocks. Everything goes through the actual code paths."""
 
     def test_full_learning_loop_real_everything(self) -> None:
-        from lfx.envs.math import MathEnvironment
+        from clawloop.envs.math import MathEnvironment
 
         llm = LiteLLMClient(model=_MODEL, api_key=_API_KEY, api_base=_API_BASE)
         env = MathEnvironment()

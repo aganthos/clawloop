@@ -1,12 +1,12 @@
 """Tests for built-in reward extractors."""
 
-from lfx.core.env import EvalResult, Sample, StaticTaskEnvironment
-from lfx.core.episode import Episode, EpisodeSummary, Message, StepMeta
-from lfx.core.reward import RewardSignal
-from lfx.extractors.execution import ExecutionExtractor
-from lfx.extractors.formatting import FormattingFilter
-from lfx.extractors.outcome import OutcomeExtractor
-from lfx.extractors.user_feedback import UserFeedbackExtractor
+from clawloop.core.env import EvalResult, Sample, StaticTaskEnvironment
+from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
+from clawloop.core.reward import RewardSignal
+from clawloop.extractors.execution import ExecutionExtractor
+from clawloop.extractors.formatting import FormattingFilter
+from clawloop.extractors.outcome import OutcomeExtractor
+from clawloop.extractors.user_feedback import UserFeedbackExtractor
 
 
 def _make_episode(messages: list[Message]) -> Episode:

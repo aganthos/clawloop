@@ -1,6 +1,6 @@
 """Tests for source_episode_ids propagation in PlaybookEntry."""
 
-from lfx.layers.harness import Harness, Insight, Playbook, PlaybookEntry
+from clawloop.layers.harness import Harness, Insight, Playbook, PlaybookEntry
 
 
 class TestPlaybookEntrySourceEpisodeIds:

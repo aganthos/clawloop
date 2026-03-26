@@ -6,9 +6,9 @@ All layers now receive all episodes. These tests verify the current behavior.
 
 import pytest
 
-from lfx.core.episode import Episode, EpisodeSummary, Message, StepMeta
-from lfx.core.loop import AgentState, learning_loop
-from lfx.core.types import Datum, FBResult, Future
+from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
+from clawloop.core.loop import AgentState, learning_loop
+from clawloop.core.types import Datum, FBResult, Future
 
 
 # ---------------------------------------------------------------------------

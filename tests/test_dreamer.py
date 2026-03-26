@@ -2,10 +2,10 @@
 
 import json
 
-from lfx.core.background import BackgroundState, EpisodeDreamer
-from lfx.core.episode import Episode, EpisodeSummary, Message, StepMeta
-from lfx.layers.harness import Playbook, PlaybookEntry
-from lfx.llm import MockLLMClient
+from clawloop.core.background import BackgroundState, EpisodeDreamer
+from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
+from clawloop.layers.harness import Playbook, PlaybookEntry
+from clawloop.llm import MockLLMClient
 
 
 def _make_episode(task_id="t1", reward=0.5):

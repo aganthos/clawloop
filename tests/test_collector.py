@@ -2,10 +2,10 @@
 
 import threading
 
-from lfx.collector import EpisodeCollector
-from lfx.core.episode import Message
-from lfx.core.reward import RewardPipeline
-from lfx.extractors.formatting import FormattingFilter
+from clawloop.collector import EpisodeCollector
+from clawloop.core.episode import Message
+from clawloop.core.reward import RewardPipeline
+from clawloop.extractors.formatting import FormattingFilter
 
 
 class _TrackingCallback:
@@ -139,7 +139,7 @@ class TestEpisodeCollector:
         assert m["feedback_missed"] == 1
 
 
-from lfx.core.episode import TokenUsage, Timing, TokenLogProb, ToolCall
+from clawloop.core.episode import TokenUsage, Timing, TokenLogProb, ToolCall
 
 
 class TestCollectorRichMetadata:
@@ -314,7 +314,7 @@ class TestIngestExternal:
         assert ep.steps == []
 
     def test_external_episodes_get_reward_pipeline(self) -> None:
-        from lfx.extractors.execution import ExecutionExtractor
+        from clawloop.extractors.execution import ExecutionExtractor
         collector = EpisodeCollector(
             pipeline=RewardPipeline([ExecutionExtractor()]),
             batch_size=100,

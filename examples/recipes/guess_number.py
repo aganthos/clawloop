@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""LfX recipe: Guess the Number (multi-turn RL).
+"""ClawLoop recipe: Guess the Number (multi-turn RL).
 
 Mirrors Tinker cookbook multiplayer_rl/guess_number — LLM guesses an integer
 0-1024 via binary search. Gets "Too high"/"Too low"/"Correct" feedback.
@@ -7,7 +7,7 @@ Max 10 turns per episode.
 
 Tinker-compatible: uses the same forward_backward/optim_step protocol.
 
-LfX addition: flip --mode to switch between weight training (SkyRL GRPO)
+ClawLoop addition: flip --mode to switch between weight training (SkyRL GRPO)
 and harness learning (prompt optimization via reflector LLM).
 
     # Harness learning (no GPU):
@@ -28,17 +28,17 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
-from lfx.core.episode import Episode, EpisodeSummary, Message, StepMeta
-from lfx.core.intensity import AdaptiveIntensity
-from lfx.core.loop import AgentState, learning_loop
-from lfx.core.reward import RewardSignal
-from lfx.core.types import SampleContext
-from lfx.layers.harness import Harness
-from lfx.layers.router import Router
-from lfx.layers.weights import Weights
-from lfx.train import MODE_LAYERS
+from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
+from clawloop.core.intensity import AdaptiveIntensity
+from clawloop.core.loop import AgentState, learning_loop
+from clawloop.core.reward import RewardSignal
+from clawloop.core.types import SampleContext
+from clawloop.layers.harness import Harness
+from clawloop.layers.router import Router
+from clawloop.layers.weights import Weights
+from clawloop.train import MODE_LAYERS
 
-log = logging.getLogger("lfx.recipe.guess_number")
+log = logging.getLogger("clawloop.recipe.guess_number")
 
 MAX_TURNS = 10
 MAX_VAL = 1024
@@ -180,14 +180,14 @@ class GuessNumberAdapter:
 # ---------------------------------------------------------------------------
 
 def parse_args():
-    p = argparse.ArgumentParser(description="LfX Guess the Number (Tinker-compatible)")
+    p = argparse.ArgumentParser(description="ClawLoop Guess the Number (Tinker-compatible)")
     p.add_argument("--mode", choices=["weight", "harness_learning"], default="harness_learning")
     p.add_argument("--model", default="Qwen/Qwen2.5-0.5B-Instruct")
     p.add_argument("--iterations", type=int, default=5)
     p.add_argument("--episodes", type=int, default=8)
     p.add_argument("--lora-rank", type=int, default=8)
-    p.add_argument("--api-base", default=os.environ.get("LFX_API_BASE", "http://127.0.0.1:8317/v1"))
-    p.add_argument("--api-key", default=os.environ.get("LFX_API_KEY", ""))
+    p.add_argument("--api-base", default=os.environ.get("CLAWLOOP_API_BASE", "http://127.0.0.1:8317/v1"))
+    p.add_argument("--api-key", default=os.environ.get("CLAWLOOP_API_KEY", ""))
     p.add_argument("--task-model", default="openai/claude-haiku-4-5-20251001")
     p.add_argument("--reflector-model", default="openai/claude-sonnet-4-5-20250929")
     return p.parse_args()
@@ -208,8 +208,8 @@ def main():
         ),
     })
     if "harness" in layers:
-        from lfx.core.reflector import Reflector
-        from lfx.llm import LiteLLMClient
+        from clawloop.core.reflector import Reflector
+        from clawloop.llm import LiteLLMClient
         harness.reflector = Reflector(client=LiteLLMClient(
             model=args.reflector_model, api_key=args.api_key, api_base=args.api_base,
         ))
@@ -217,7 +217,7 @@ def main():
     # 2. Weights — SkyRL backend (Tinker-compatible)
     backend = None
     if "weights" in layers:
-        from lfx.backends.skyrl import SkyRLWeightsBackend, SkyRLWeightsConfig
+        from clawloop.backends.skyrl import SkyRLWeightsBackend, SkyRLWeightsConfig
         backend = SkyRLWeightsBackend(SkyRLWeightsConfig(
             base_model=args.model,
             backend_type="skyrl_train",
@@ -245,7 +245,7 @@ def main():
         weights = Weights()
 
     # 3. Task LLM + environment
-    from lfx.llm import LiteLLMClient
+    from clawloop.llm import LiteLLMClient
     task_client = LiteLLMClient(model=args.task_model, api_key=args.api_key, api_base=args.api_base)
     adapter = GuessNumberAdapter(client=task_client)
 

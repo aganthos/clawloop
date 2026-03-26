@@ -1,13 +1,13 @@
-"""Tests for lfx.backends — BackendError, SkyRLBackendInitError, LfXBackend protocol."""
+"""Tests for clawloop.backends — BackendError, SkyRLBackendInitError, ClawLoopBackend protocol."""
 
 from __future__ import annotations
 
 import pytest
 
-from lfx.backends import BackendError, LfXBackend, SkyRLBackendInitError, HarnessLearningBackend, HarnessLearningConfig
-from lfx.core.episode import Episode, EpisodeSummary, Message, StepMeta
-from lfx.core.types import Datum, SampleContext
-from lfx.layers.harness import Harness
+from clawloop.backends import BackendError, ClawLoopBackend, SkyRLBackendInitError, HarnessLearningBackend, HarnessLearningConfig
+from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
+from clawloop.core.types import Datum, SampleContext
+from clawloop.layers.harness import Harness
 
 
 def _make_episode(reward: float = 0.8) -> Episode:
@@ -154,11 +154,11 @@ class TestSkyRLBackendInitError:
 
 
 # ---------------------------------------------------------------------------
-# LfXBackend protocol — Harness satisfies it
+# ClawLoopBackend protocol — Harness satisfies it
 # ---------------------------------------------------------------------------
 
-class TestLfXBackendProtocol:
-    def test_harness_satisfies_lfx_backend(self) -> None:
+class TestClawLoopBackendProtocol:
+    def test_harness_satisfies_clawloop_backend(self) -> None:
         harness = Harness()
         # All required methods must exist
         assert hasattr(harness, "forward_backward")
@@ -170,9 +170,9 @@ class TestLfXBackendProtocol:
         assert hasattr(harness, "to_dict")
 
     def test_protocol_runtime_checkable(self) -> None:
-        # LfXBackend should be a Protocol that's runtime-checkable
+        # ClawLoopBackend should be a Protocol that's runtime-checkable
         harness = Harness()
-        assert isinstance(harness, LfXBackend)
+        assert isinstance(harness, ClawLoopBackend)
 
 
 # ---------------------------------------------------------------------------
@@ -232,6 +232,6 @@ class TestHarnessLearningBackend:
         backend = HarnessLearningBackend(Harness(), config=cfg)
         assert backend._config.reflector_enabled is False
 
-    def test_satisfies_lfx_backend_protocol(self) -> None:
+    def test_satisfies_clawloop_backend_protocol(self) -> None:
         backend = self._backend()
-        assert isinstance(backend, LfXBackend)
+        assert isinstance(backend, ClawLoopBackend)

@@ -1,6 +1,6 @@
-# LfX Recipes — Tinker-Compatible
+# ClawLoop Recipes — Tinker-Compatible
 
-LfX wraps [SkyRL/Tinker](https://github.com/NovaSky-AI/SkyRL) and adds a
+ClawLoop wraps [SkyRL/Tinker](https://github.com/NovaSky-AI/SkyRL) and adds a
 harness layer for prompt optimization. Same recipe, two learning modes:
 
 | `--mode` | What trains | Infrastructure |
@@ -20,7 +20,7 @@ python examples/recipes/arithmetic_dataset.py --output_dir ~/data/arithmetic
 # 2a. Weight training (GPU) — real Tinker, model generates own rollouts
 python examples/recipes/arithmetic.py --mode weight
 
-# 2b. Harness learning (no GPU) — LfX prompt optimization
+# 2b. Harness learning (no GPU) — ClawLoop prompt optimization
 python examples/recipes/arithmetic.py --mode harness_learning
 ```
 
@@ -28,7 +28,7 @@ python examples/recipes/arithmetic.py --mode harness_learning
 model being trained, `ArithmeticEnv` (SkyRL gym) scores them, GRPO computes
 advantages, FSDP2 does the backward pass, NCCL syncs weights back to vLLM.
 
-**Harness mode** uses LfX's learning loop: an external LLM generates responses,
+**Harness mode** uses ClawLoop's learning loop: an external LLM generates responses,
 the same scoring function evaluates them, the reflector LLM analyzes failures
 and adds playbook entries that improve the system prompt.
 
@@ -60,7 +60,7 @@ function calling accuracy.
 ## A2A CRMArena (Entropic)
 
 Trains on [CRMArenaPro](https://github.com/salesforce/CRMArena) tasks via A2A
-protocol. A purple agent (LfX-controlled) interacts with a green evaluator
+protocol. A purple agent (ClawLoop-controlled) interacts with a green evaluator
 to solve CRM service requests. 7-dimension reward scoring.
 
 ```bash

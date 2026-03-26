@@ -1,9 +1,9 @@
 """Tests for PlaybookCurator.check_prompt_playbook_coherence()."""
 
-from lfx.core.curator import CuratorConfig, PlaybookCurator
-from lfx.core.embeddings import MockEmbedding
-from lfx.layers.harness import Playbook, PlaybookEntry
-from lfx.llm import MockLLMClient
+from clawloop.core.curator import CuratorConfig, PlaybookCurator
+from clawloop.core.embeddings import MockEmbedding
+from clawloop.layers.harness import Playbook, PlaybookEntry
+from clawloop.llm import MockLLMClient
 
 
 class TestCoherence:

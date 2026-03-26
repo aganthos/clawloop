@@ -4,7 +4,7 @@ import asyncio
 
 import pytest
 
-from lfx.utils.async_bridge import run_async
+from clawloop.utils.async_bridge import run_async
 
 
 async def _return_value(val):

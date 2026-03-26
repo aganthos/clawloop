@@ -9,9 +9,9 @@ import logging
 
 import pytest
 
-from lfx.core.episode import Episode, EpisodeSummary, Message, StepMeta
-from lfx.core.loop import AgentState, learning_loop
-from lfx.layers.harness import Harness
+from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
+from clawloop.core.loop import AgentState, learning_loop
+from clawloop.layers.harness import Harness
 
 
 def _make_episode(
@@ -159,7 +159,7 @@ class TestFlushLogsStaleCount:
         # Advance generation
         state.harness.playbook_generation = 1
 
-        with caplog.at_level(logging.INFO, logger="lfx.core.loop"):
+        with caplog.at_level(logging.INFO, logger="clawloop.core.loop"):
             state, _ = learning_loop(
                 adapter=adapter,
                 agent_state=state,

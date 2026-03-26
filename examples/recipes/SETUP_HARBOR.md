@@ -1,10 +1,10 @@
-# Harbor Setup for LfX Recipes
+# Harbor Setup for ClawLoop Recipes
 
 ## Prerequisites
 
 - Python >= 3.12
 - Docker running (`docker ps` should work)
-- For weight mode: GPU + SkyRL installed (`pip install -e lfx/skyrl[fsdp]`)
+- For weight mode: GPU + SkyRL installed (`pip install -e clawloop/skyrl[fsdp]`)
 - For harness mode: LLM API access (CLIProxyAPI or direct key)
 
 ## 1. Install Harbor

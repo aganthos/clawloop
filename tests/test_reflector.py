@@ -1,11 +1,11 @@
-"""Tests for lfx.core.reflector — LLM-based trace analysis."""
+"""Tests for clawloop.core.reflector — LLM-based trace analysis."""
 
 import json
 
-from lfx.core.episode import Episode, EpisodeSummary, Message, StepMeta
-from lfx.core.reflector import Reflector, ReflectorConfig
-from lfx.layers.harness import Insight, Playbook, PlaybookEntry
-from lfx.llm import MockLLMClient
+from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
+from clawloop.core.reflector import Reflector, ReflectorConfig
+from clawloop.layers.harness import Insight, Playbook, PlaybookEntry
+from clawloop.llm import MockLLMClient
 
 
 def _make_episode(

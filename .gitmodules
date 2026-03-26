@@ -1,5 +1,5 @@
-[submodule "lfx/skyrl"]
-	path = lfx/skyrl
+[submodule "clawloop/skyrl"]
+	path = clawloop/skyrl
 	url = https://github.com/NovaSky-AI/SkyRL
 [submodule "benchmarks/harbor"]
 	path = benchmarks/harbor

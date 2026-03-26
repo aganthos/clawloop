@@ -35,3 +35,9 @@ benchmarks/*/.env
 
 #runs
 /runs
+
+#strange stuff to plot the pitch slides
+/pitch/node_modules/
+
+#superpowers
+.superpowers/

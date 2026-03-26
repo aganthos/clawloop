@@ -9,27 +9,27 @@ import time
 
 import pytest
 
-from lfx.agent import LfXAgent
-from lfx.collector import EpisodeCollector
-from lfx.core.background import (
+from clawloop.agent import ClawLoopAgent
+from clawloop.collector import EpisodeCollector
+from clawloop.core.background import (
     BackgroundScheduler,
     BackgroundState,
     EpisodeDreamer,
     PlaybookConsolidation,
 )
-from lfx.core.curator import CuratorConfig, PlaybookCurator
-from lfx.core.embeddings import MockEmbedding
-from lfx.core.episode import Episode, EpisodeSummary, Message, StepMeta
-from lfx.core.evolution import EvolverConfig, PromptEvolver
-from lfx.core.intensity import AdaptiveIntensity
-from lfx.core.loop import AgentState, learning_loop
-from lfx.core.reflector import Reflector, ReflectorConfig
-from lfx.core.reward import RewardPipeline
-from lfx.core.types import Datum
-from lfx.envs.math import MathEnvironment
-from lfx.layers.harness import Harness, Playbook, PlaybookEntry, PromptCandidate, ParetoFront
-from lfx.llm import MockLLMClient
-from lfx.wrapper import WrappedClient, wrap
+from clawloop.core.curator import CuratorConfig, PlaybookCurator
+from clawloop.core.embeddings import MockEmbedding
+from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
+from clawloop.core.evolution import EvolverConfig, PromptEvolver
+from clawloop.core.intensity import AdaptiveIntensity
+from clawloop.core.loop import AgentState, learning_loop
+from clawloop.core.reflector import Reflector, ReflectorConfig
+from clawloop.core.reward import RewardPipeline
+from clawloop.core.types import Datum
+from clawloop.envs.math import MathEnvironment
+from clawloop.layers.harness import Harness, Playbook, PlaybookEntry, PromptCandidate, ParetoFront
+from clawloop.llm import MockLLMClient
+from clawloop.wrapper import WrappedClient, wrap
 
 
 # ---------------------------------------------------------------------------
@@ -438,11 +438,11 @@ class TestBackgroundSchedulerReal:
 
 
 # ---------------------------------------------------------------------------
-# 6. End-to-end: LfXAgent math learning with support-query under the hood
+# 6. End-to-end: ClawLoopAgent math learning with support-query under the hood
 # ---------------------------------------------------------------------------
 
-class TestLfXAgentMathE2E:
-    """Full LfXAgent.learn() with MathEnvironment — verifies the learning
+class TestClawLoopAgentMathE2E:
+    """Full ClawLoopAgent.learn() with MathEnvironment — verifies the learning
     pipeline works end-to-end including the support-query separation
     that now runs inside the Harness reflector path."""
 
@@ -461,7 +461,7 @@ class TestLfXAgentMathE2E:
         ]
         reflector_client = MockLLMClient(responses=reflector_responses)
 
-        agent = LfXAgent(
+        agent = ClawLoopAgent(
             task_client=task_client,
             reflector_client=reflector_client,
             bench="math",

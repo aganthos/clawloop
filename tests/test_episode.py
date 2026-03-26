@@ -1,6 +1,6 @@
-"""Tests for lfx.core.episode."""
+"""Tests for clawloop.core.episode."""
 
-from lfx.core.episode import (
+from clawloop.core.episode import (
     MAX_LOGPROBS_PER_MESSAGE,
     Episode,
     EpisodeSummary,
