@@ -4,10 +4,20 @@ build-backend = "hatchling.build"
 
 [project]
 name = "clawloop"
-version = "0.1.0"
+version = "0.0.1"
 description = "ClawLoop — Learning from Experience unified learning API"
 requires-python = ">=3.11"
-license = "BSL-1.1"
+license = {file = "LICENSE"}
+authors = [{name = "Aganthos GmbH"}]
+readme = "README.md"
+keywords = ["ai", "agents", "learning", "llm", "reinforcement-learning"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
 dependencies = [
     "litellm>=1.0",
     "pydantic>=2.0",
@@ -30,7 +40,7 @@ otel = [
     "opentelemetry-exporter-otlp-proto-http>=1.20",
     "openinference-semantic-conventions>=0.1.6",
 ]
-n8n = [
+server = [
     "starlette>=0.27",
     "uvicorn>=0.20",
     "httpx>=0.24",
@@ -39,6 +49,31 @@ n8n = [
 
 [project.scripts]
 clawloop = "clawloop.cli:main"
+clawloop-server = "clawloop.server:main"
+
+[project.urls]
+Homepage = "https://github.com/aganthos/clawloop"
+Repository = "https://github.com/aganthos/clawloop"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "clawloop/",
+    "tests/",
+    "examples/",
+    "LICENSE",
+    "README.md",
+    "CONTRIBUTING.md",
+    "CHANGELOG.md",
+]
+exclude = [
+    "benchmarks/",
+    "enterprise_clawloop/",
+    "pitch/",
+    "configs/",
+    "ressources/",
+    "scripts/",
+    "docs/",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["clawloop"]
