@@ -1409,76 +1409,93 @@
             <path d="M700 450C700 588.071 588.071 700 450 700C311.929 700 200 588.071 200 450H700ZM450 0C509.095 0 567.611 11.6393 622.208 34.2539C676.804 56.8685 726.412 90.0155 768.198 131.802C809.985 173.588 843.131 223.196 865.746 277.792C888.361 332.389 900 390.905 900 450H700C700 311.929 588.071 200 450 200C311.929 200 200 311.929 200 450H0C0 390.905 11.6394 332.389 34.2539 277.793C56.8685 223.196 90.0154 173.588 131.802 131.802C173.588 90.0155 223.196 56.8685 277.792 34.2539C332.389 11.6393 390.905 0 450 0Z" fill="#E8E8E8" />
             <path d="M200 950C200 811.929 311.929 700 450 700C588.071 700 700 811.929 700 950H200ZM450 1400C390.905 1400 332.389 1388.36 277.792 1365.75C223.196 1343.13 173.588 1309.98 131.802 1268.2C90.0155 1226.41 56.8685 1176.8 34.2539 1122.21C11.6393 1067.61 0 1009.09 0 950H200C200 1088.07 311.929 1200 450 1200C588.071 1200 700 1088.07 700 950H900C900 1009.09 888.361 1067.61 865.746 1122.21C843.131 1176.8 809.985 1226.41 768.198 1268.2C726.412 1309.98 676.804 1343.13 622.208 1365.75C567.611 1388.36 509.095 1400 450 1400Z" fill="#E8E8E8" />
         </svg>
-        <div class="slide-content" style="gap: clamp(6px,1vh,14px);">
-            <div class="reveal" style="display:flex;align-items:center;gap:clamp(12px,2vw,24px);justify-content:center;">
-                <img src="clawloop.png" alt="ClawLoop" style="height:clamp(48px,8vh,90px);width:auto;">
+        <div class="slide-content" style="gap: clamp(4px,0.7vh,10px);">
+            <!-- Header: logo + name -->
+            <div class="reveal" style="display:flex;align-items:center;gap:clamp(10px,1.5vw,20px);justify-content:center;">
+                <img src="clawloop.png" alt="ClawLoop" style="height:clamp(40px,6vh,70px);width:auto;">
                 <h2 style="font-family:var(--font-display);font-size:var(--h2-size);"><span style="color:var(--accent-red);">Claw</span>Loop</h2>
             </div>
-            <p class="reveal" style="font-size:var(--small-size);color:var(--text-secondary);font-style:italic;">
-                Open-core Python library  -  non-commercial license  -  <span style="font-family:monospace;color:var(--accent-green);">pip install clawloop</span></p>
-            <!-- Architecture diagram: top = agents, center = ClawLoop core, bottom = data sources -->
-            <div class="reveal-scale" style="display:flex;flex-direction:column;gap:clamp(6px,0.8vh,12px);width:100%;max-width:min(95vw,1020px);">
-                <!-- TOP ROW: Agent frameworks that integrate -->
-                <div style="display:flex;gap:clamp(4px,0.5vw,8px);justify-content:center;">
-                    <div style="font-size:var(--label-size);font-weight:700;color:var(--text-secondary);display:flex;align-items:center;min-width:clamp(70px,8vw,110px);">Integrates with</div>
-                    <div style="display:flex;gap:clamp(4px,0.5vw,8px);flex-wrap:wrap;">
-                        <div style="background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:6px;padding:clamp(4px,0.5vh,8px) clamp(8px,1vw,14px);text-align:center;">
-                            <div style="font-weight:700;color:var(--text-primary);font-size:var(--label-size);">OpenClaw</div>
-                            <div style="font-size:clamp(0.4rem,0.55vw,0.6rem);color:var(--text-muted);">Claw agent family</div>
+            <!-- Main layout: editions | core diagram | editions -->
+            <div class="reveal-scale" style="display:flex;align-items:stretch;gap:clamp(8px,1vw,16px);width:100%;max-width:min(95vw,1060px);">
+                <!-- LEFT: Community Edition -->
+                <div style="flex:0 0 clamp(100px,12vw,160px);background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:8px;padding:clamp(8px,1vh,14px) clamp(6px,0.8vw,12px);display:flex;flex-direction:column;justify-content:center;text-align:center;">
+                    <div style="font-weight:700;color:var(--text-primary);font-size:var(--small-size);margin-bottom:clamp(2px,0.3vh,4px);">Community</div>
+                    <div style="font-family:monospace;font-size:var(--label-size);color:var(--text-secondary);margin-bottom:clamp(4px,0.5vh,6px);">pip install clawloop</div>
+                    <div style="font-size:clamp(0.4rem,0.55vw,0.6rem);color:var(--text-muted);line-height:1.5;">Free<br>Non-commercial license<br>Self-hosted<br>Full source</div>
+                </div>
+                <!-- CENTER: Architecture diagram -->
+                <div style="flex:1;display:flex;flex-direction:column;gap:clamp(4px,0.6vh,8px);">
+                    <!-- Ecosystem badges -->
+                    <div style="display:flex;gap:clamp(3px,0.4vw,6px);justify-content:center;flex-wrap:wrap;">
+                        <div style="display:flex;align-items:center;gap:clamp(3px,0.3vw,5px);background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:20px;padding:clamp(2px,0.3vh,4px) clamp(8px,1vw,14px);">
+                            <img src="../ressources/pictures/openclaw.svg" alt="" style="height:clamp(14px,1.8vh,22px);width:auto;">
+                            <span style="font-weight:700;font-size:var(--label-size);color:var(--text-primary);">OpenClaw</span>
                         </div>
-                        <div style="background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:6px;padding:clamp(4px,0.5vh,8px) clamp(8px,1vw,14px);text-align:center;">
-                            <div style="font-weight:700;color:var(--text-primary);font-size:var(--label-size);">n8n</div>
-                            <div style="font-size:clamp(0.4rem,0.55vw,0.6rem);color:var(--text-muted);">Community node</div>
+                        <div style="display:flex;align-items:center;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:20px;padding:clamp(2px,0.3vh,4px) clamp(8px,1vw,14px);">
+                            <span style="font-weight:800;font-size:clamp(0.65rem,1vw,0.9rem);color:#ea4b71;font-family:monospace;">n8n</span>
                         </div>
-                        <div style="background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:6px;padding:clamp(4px,0.5vh,8px) clamp(8px,1vw,14px);text-align:center;">
-                            <div style="font-weight:700;color:var(--text-primary);font-size:var(--label-size);">litellm</div>
-                            <div style="font-size:clamp(0.4rem,0.55vw,0.6rem);color:var(--text-muted);">Any LLM provider</div>
+                        <div style="display:flex;align-items:center;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:20px;padding:clamp(2px,0.3vh,4px) clamp(8px,1vw,14px);">
+                            <span style="font-weight:700;font-size:var(--label-size);color:#1ab7ea;font-family:monospace;">litellm</span>
                         </div>
-                        <div style="background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:6px;padding:clamp(4px,0.5vh,8px) clamp(8px,1vw,14px);text-align:center;">
-                            <div style="font-size:var(--label-size);color:var(--text-secondary);">CrewAI &bull; LangChain &bull; any client</div>
+                        <div style="display:flex;align-items:center;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:20px;padding:clamp(2px,0.3vh,4px) clamp(8px,1vw,14px);">
+                            <span style="font-size:clamp(0.55rem,0.7vw,0.8rem);">&#x1F99C;</span>
+                            <span style="font-weight:600;font-size:var(--label-size);color:var(--text-secondary);margin-left:2px;">LangChain</span>
+                        </div>
+                        <div style="display:flex;align-items:center;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:20px;padding:clamp(2px,0.3vh,4px) clamp(8px,1vw,14px);">
+                            <span style="font-weight:600;font-size:var(--label-size);color:var(--text-secondary);">CrewAI</span>
+                        </div>
+                    </div>
+                    <!-- Down arrow -->
+                    <div style="text-align:center;color:var(--text-muted);font-size:var(--label-size);">&#x25BC;</div>
+                    <!-- ClawLoop Core -->
+                    <div style="background:rgba(196,62,62,0.1);border:2px solid rgba(196,62,62,0.35);border-radius:10px;padding:clamp(8px,1vh,14px) clamp(12px,1.5vw,20px);text-align:center;">
+                        <div style="font-family:monospace;font-weight:800;font-size:var(--h3-size);color:var(--text-primary);letter-spacing:0.1em;margin-bottom:clamp(4px,0.5vh,8px);">client = clawloop.wrap(your_llm)</div>
+                        <div style="display:flex;gap:clamp(4px,0.5vw,8px);">
+                            <div style="flex:1;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:5px;padding:clamp(4px,0.5vh,8px) clamp(4px,0.5vw,8px);text-align:center;">
+                                <div style="font-weight:700;color:var(--text-primary);font-size:var(--label-size);">Harness</div>
+                                <div style="font-size:clamp(0.38rem,0.48vw,0.52rem);color:var(--text-muted);">Prompt &amp; playbook evolution</div>
+                            </div>
+                            <div style="flex:1;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:5px;padding:clamp(4px,0.5vh,8px) clamp(4px,0.5vw,8px);text-align:center;">
+                                <div style="font-weight:700;color:var(--text-primary);font-size:var(--label-size);">Router</div>
+                                <div style="font-size:clamp(0.38rem,0.48vw,0.52rem);color:var(--text-muted);">Model selection per query</div>
+                            </div>
+                            <div style="flex:1;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:5px;padding:clamp(4px,0.5vh,8px) clamp(4px,0.5vw,8px);text-align:center;">
+                                <div style="font-weight:700;color:var(--text-primary);font-size:var(--label-size);">Weights</div>
+                                <div style="font-size:clamp(0.38rem,0.48vw,0.52rem);color:var(--text-muted);">LoRA / GRPO fine-tuning</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Up arrow -->
+                    <div style="text-align:center;color:var(--text-muted);font-size:var(--label-size);">&#x25B2; learns from</div>
+                    <!-- Data sources with code snippets -->
+                    <div style="display:flex;gap:clamp(6px,0.8vw,12px);">
+                        <div style="flex:1;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:6px;padding:clamp(5px,0.6vh,8px) clamp(8px,1vw,14px);overflow:hidden;">
+                            <div style="font-weight:700;color:var(--text-primary);font-size:var(--label-size);margin-bottom:clamp(2px,0.3vh,4px);">Environment Replay</div>
+                            <div style="font-size:clamp(0.4rem,0.5vw,0.55rem);color:var(--text-secondary);margin-bottom:clamp(3px,0.4vh,6px);"><strong>SkyRL</strong> &bull; <strong>Harbor</strong> &mdash; RL fine-tuning from episodes</div>
+                            <div style="background:rgba(0,0,0,0.35);border-radius:4px;padding:clamp(4px,0.4vh,6px) clamp(6px,0.7vw,10px);font-family:'JetBrains Mono','Fira Code',monospace;font-size:clamp(0.38rem,0.5vw,0.58rem);line-height:1.55;">
+                                <div><span style="color:var(--text-primary);">learner</span> = clawloop.<span style="color:var(--accent-warm);">AsyncLearner</span>(</div>
+                                <div>&nbsp;&nbsp;layers=[<span style="color:#e8a87c;">"weights"</span>],</div>
+                                <div>&nbsp;&nbsp;backend=<span style="color:#e8a87c;">"harbor"</span>)</div>
+                                <div><span style="color:var(--text-primary);">learner</span>.<span style="color:var(--accent-warm);">start</span>() <span style="color:var(--text-muted);"># all Tinker scripts work</span></div>
+                            </div>
+                        </div>
+                        <div style="flex:1;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:6px;padding:clamp(5px,0.6vh,8px) clamp(8px,1vw,14px);overflow:hidden;">
+                            <div style="font-weight:700;color:var(--text-primary);font-size:var(--label-size);margin-bottom:clamp(2px,0.3vh,4px);">Production Traces</div>
+                            <div style="font-size:clamp(0.4rem,0.5vw,0.55rem);color:var(--text-secondary);margin-bottom:clamp(3px,0.4vh,6px);"><strong>OpenTelemetry</strong> &bull; <strong>OpenInference</strong> &bull; <strong>Langfuse</strong></div>
+                            <div style="background:rgba(0,0,0,0.35);border-radius:4px;padding:clamp(4px,0.4vh,6px) clamp(6px,0.7vw,10px);font-family:'JetBrains Mono','Fira Code',monospace;font-size:clamp(0.38rem,0.5vw,0.58rem);line-height:1.55;">
+                                <div><span style="color:var(--text-primary);">learner</span> = clawloop.<span style="color:var(--accent-warm);">AsyncLearner</span>(</div>
+                                <div>&nbsp;&nbsp;layers=[<span style="color:#e8a87c;">"harness"</span>],</div>
+                                <div>&nbsp;&nbsp;collector=<span style="color:var(--text-primary);">otel_collector</span>)</div>
+                                <div><span style="color:var(--text-primary);">learner</span>.<span style="color:var(--accent-warm);">start</span>() <span style="color:var(--text-muted);"># learns live in background</span></div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <!-- DOWN ARROW -->
-                <div style="text-align:center;color:var(--text-muted);font-size:var(--label-size);">&#x25BC;</div>
-                <!-- CENTER: ClawLoop Core -->
-                <div style="background:rgba(196,62,62,0.1);border:2px solid rgba(196,62,62,0.35);border-radius:10px;padding:clamp(10px,1.2vh,18px) clamp(14px,1.8vw,24px);text-align:center;">
-                    <div style="font-family:monospace;font-weight:800;font-size:var(--h3-size);color:var(--text-primary);letter-spacing:0.1em;margin-bottom:clamp(4px,0.6vh,10px);">clawloop.wrap(client)</div>
-                    <div style="display:flex;gap:clamp(4px,0.6vw,10px);">
-                        <div style="flex:1;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:5px;padding:clamp(6px,0.8vh,12px) clamp(4px,0.5vw,8px);">
-                            <div style="font-weight:700;color:var(--text-primary);font-size:var(--label-size);">Harness</div>
-                            <div style="font-size:clamp(0.4rem,0.55vw,0.6rem);color:var(--text-muted);">Prompt &amp; playbook evolution</div>
-                        </div>
-                        <div style="flex:1;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:5px;padding:clamp(6px,0.8vh,12px) clamp(4px,0.5vw,8px);">
-                            <div style="font-weight:700;color:var(--text-primary);font-size:var(--label-size);">Router</div>
-                            <div style="font-size:clamp(0.4rem,0.55vw,0.6rem);color:var(--text-muted);">Model selection per query</div>
-                        </div>
-                        <div style="flex:1;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:5px;padding:clamp(6px,0.8vh,12px) clamp(4px,0.5vw,8px);">
-                            <div style="font-weight:700;color:var(--text-primary);font-size:var(--label-size);">Weights</div>
-                            <div style="font-size:clamp(0.4rem,0.55vw,0.6rem);color:var(--text-muted);">LoRA / GRPO fine-tuning</div>
-                        </div>
-                    </div>
-                </div>
-                <!-- UP ARROW -->
-                <div style="text-align:center;color:var(--text-muted);font-size:var(--label-size);">&#x25B2; learns from</div>
-                <!-- BOTTOM ROW: Two data sources side by side -->
-                <div style="display:flex;gap:clamp(8px,1vw,16px);">
-                    <!-- Environments -->
-                    <div style="flex:1;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:8px;padding:clamp(8px,1vh,14px) clamp(10px,1.2vw,18px);">
-                        <div style="font-weight:700;color:var(--text-primary);font-size:var(--small-size);margin-bottom:clamp(2px,0.3vh,4px);">Environments</div>
-                        <div style="font-size:var(--label-size);color:var(--text-secondary);line-height:1.5;">
-                            <strong>SkyRL</strong> &bull; <strong>Harbor</strong>  -  cloud &amp; local RL training<br>
-                            Replay episodes, run reward extraction, fine-tune weights
-                        </div>
-                    </div>
-                    <!-- Streaming data -->
-                    <div style="flex:1;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:8px;padding:clamp(8px,1vh,14px) clamp(10px,1.2vw,18px);">
-                        <div style="font-weight:700;color:var(--text-primary);font-size:var(--small-size);margin-bottom:clamp(2px,0.3vh,4px);">Streaming Data</div>
-                        <div style="font-size:var(--label-size);color:var(--text-secondary);line-height:1.5;">
-                            <strong>OpenTelemetry</strong> &bull; <strong>OpenInference</strong> &bull; <strong>Langfuse</strong><br>
-                            Live traces, spans, reward signals from production
-                        </div>
-                    </div>
+                <!-- RIGHT: Enterprise Cloud -->
+                <div style="flex:0 0 clamp(100px,12vw,160px);background:rgba(196,62,62,0.06);border:2px solid rgba(196,62,62,0.3);border-radius:8px;padding:clamp(8px,1vh,14px) clamp(6px,0.8vw,12px);display:flex;flex-direction:column;justify-content:center;text-align:center;">
+                    <div style="font-weight:700;color:var(--text-primary);font-size:var(--small-size);margin-bottom:clamp(2px,0.3vh,4px);">Enterprise</div>
+                    <div style="font-size:var(--label-size);color:var(--text-secondary);margin-bottom:clamp(4px,0.5vh,6px);">Managed Cloud</div>
+                    <div style="font-size:clamp(0.4rem,0.55vw,0.6rem);color:var(--text-muted);line-height:1.5;">Managed judge &amp; reflector<br>Regression gate<br>Outcome-based pricing<br>SLA &bull; on-prem option</div>
                 </div>
             </div>
         </div>
