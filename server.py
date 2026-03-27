@@ -27,7 +27,7 @@ log = logging.getLogger(__name__)
 VALID_ROLES = frozenset({"system", "user", "assistant", "tool"})
 
 
-class LfxServer:
+class ClawLoopServer:
     """State container for the clawloop-server."""
 
     def __init__(
@@ -231,7 +231,7 @@ def _validate_ingest(body: dict) -> str | None:
 
 
 async def ingest(request: Request) -> JSONResponse:
-    server: LfxServer = request.app.state.server
+    server: ClawLoopServer = request.app.state.server
     body = await request.json()
     error = _validate_ingest(body)
     if error:
@@ -280,7 +280,7 @@ async def ingest(request: Request) -> JSONResponse:
 
 
 async def feedback(request: Request) -> JSONResponse:
-    server: LfxServer = request.app.state.server
+    server: ClawLoopServer = request.app.state.server
     body = await request.json()
     episode_id = body.get("episode_id", "")
     score = body.get("score", 0.0)
@@ -309,7 +309,7 @@ async def feedback(request: Request) -> JSONResponse:
 
 async def episodes_list(request: Request) -> JSONResponse:
     """Return all episodes with full messages and feedback status."""
-    server: LfxServer = request.app.state.server
+    server: ClawLoopServer = request.app.state.server
     with server.collector._lock:
         eps = list(server.collector._episode_index.values())
 
@@ -336,18 +336,18 @@ async def episodes_list(request: Request) -> JSONResponse:
 
 
 async def state(request: Request) -> JSONResponse:
-    server: LfxServer = request.app.state.server
+    server: ClawLoopServer = request.app.state.server
     return JSONResponse(server.get_state_snapshot())
 
 
 async def reset_handler(request: Request) -> JSONResponse:
-    server: LfxServer = request.app.state.server
+    server: ClawLoopServer = request.app.state.server
     server.reset()
     return JSONResponse({"ok": True, "playbook_version": 0, "learning_status": "idle"})
 
 
 async def metrics(request: Request) -> JSONResponse:
-    server: LfxServer = request.app.state.server
+    server: ClawLoopServer = request.app.state.server
     cm = server.collector.metrics
     with server._state_lock:
         return JSONResponse({
@@ -363,7 +363,7 @@ async def metrics(request: Request) -> JSONResponse:
 
 
 async def events(request: Request) -> StreamingResponse:
-    server: LfxServer = request.app.state.server
+    server: ClawLoopServer = request.app.state.server
     loop = asyncio.get_running_loop()
     q = server.subscribe(loop)
 
@@ -425,7 +425,7 @@ def create_app(
             except Exception:
                 log.warning("Could not create Reflector — learning will not generate insights", exc_info=True)
 
-    server = LfxServer(
+    server = ClawLoopServer(
         seed_prompt=seed_prompt, bench=bench,
         batch_size=batch_size, reflector=reflector,
     )
