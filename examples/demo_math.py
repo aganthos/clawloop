@@ -4,11 +4,8 @@
 Run in dry-run mode (no API calls, finishes in seconds):
     python examples/demo_math.py --dry-run
 
-Run with real LLMs via CLIProxyAPI (no API keys needed):
-    python examples/demo_math.py
-
-Run with direct API keys:
-    ANTHROPIC_API_KEY=sk-... python examples/demo_math.py
+Run with real LLMs (requires GOOGLE_API_KEY or ANTHROPIC_API_KEY):
+    GOOGLE_API_KEY=... python examples/demo_math.py
 
 Environment variables:
     CLAWLOOP_TASK_MODEL       (default: claude-haiku-4-5-20251001)
