@@ -1,6 +1,6 @@
 """ClawLoop — Learning from Experience unified learning API."""
 
-__version__ = "0.1.0"
+__version__ = "0.0.1"
 
 from clawloop.agent import ClawLoopAgent
 from clawloop.callbacks.litellm_cb import ClawLoopCallback
