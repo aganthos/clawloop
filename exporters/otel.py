@@ -5,7 +5,7 @@ Produces a three-level span tree per episode:
                    → one TOOL span per tool call within that message
 
 Attributes follow the OpenInference semantic conventions where a matching
-constant exists; custom lfx.* attributes cover everything else.
+constant exists; custom clawloop.* attributes cover everything else.
 """
 
 from __future__ import annotations
@@ -102,7 +102,7 @@ class OTelExporter(TraceExporter):
         *,
         tracer: Any = None,
         endpoint: str = "http://localhost:4318",
-        service_name: str = "lfx",
+        service_name: str = "clawloop",
         resource_attributes: dict[str, Any] | None = None,
     ) -> None:
         # Lazy import — OTel is an optional dependency.
@@ -111,7 +111,7 @@ class OTelExporter(TraceExporter):
         except ImportError as exc:
             raise ImportError(
                 "opentelemetry-api and opentelemetry-sdk are required for OTelExporter. "
-                "Install with: pip install 'lfx[otel]'"
+                "Install with: pip install 'clawloop[otel]'"
             ) from exc
 
         from opentelemetry import trace
@@ -209,7 +209,7 @@ class OTelExporter(TraceExporter):
         # Compute root span timing
         # ----------------------------------------------------------------
         start_ns = _to_ns(ep.created_at) if ep.created_at else _to_ns(time.time())
-        # NB: truthiness check is intentional — 0.0 means "unknown" in lfx
+        # NB: truthiness check is intentional — 0.0 means "unknown" in clawloop
         # (collector.py sets timing=None when timing_ms is falsy).
         if summary.timing and summary.timing.total_ms:
             end_ns = start_ns + _ms_to_ns(summary.timing.total_ms)

@@ -1,5 +1,5 @@
-# lfx/adapters/_car_purple.py
-"""A2A purple agent server for CAR-bench with lfx harness injection."""
+# clawloop/adapters/_car_purple.py
+"""A2A purple agent server for CAR-bench with clawloop harness injection."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ log = logging.getLogger(__name__)
 
 
 class CarPurpleAgent:
-    """A2A-compliant purple agent that injects lfx harness state into LLM calls."""
+    """A2A-compliant purple agent that injects clawloop harness state into LLM calls."""
 
     def __init__(
         self,
@@ -256,8 +256,8 @@ def create_app(agent: CarPurpleAgent, port: int = 0) -> Starlette:
 
     async def agent_card(request: Request) -> JSONResponse:
         return JSONResponse({
-            "name": "lfx-purple-agent",
-            "description": "LfX harness-optimized agent under test",
+            "name": "clawloop-purple-agent",
+            "description": "ClawLoop harness-optimized agent under test",
             "url": f"http://127.0.0.1:{port}/",
             "version": "0.1.0",
             "protocol_version": "0.3.0",
