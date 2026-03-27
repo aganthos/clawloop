@@ -1,4 +1,4 @@
-"""lfx-server — HTTP layer for n8n integration."""
+"""clawloop-server — HTTP layer for n8n integration."""
 
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ VALID_ROLES = frozenset({"system", "user", "assistant", "tool"})
 
 
 class LfxServer:
-    """State container for the lfx-server."""
+    """State container for the clawloop-server."""
 
     def __init__(
         self,
@@ -463,7 +463,7 @@ def create_app(
 def main() -> None:
     import argparse
     import os
-    parser = argparse.ArgumentParser(description="lfx-server for n8n integration")
+    parser = argparse.ArgumentParser(description="clawloop-server for n8n integration")
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=8400)
     parser.add_argument("--seed-prompt", default="config/seed_prompt.txt")

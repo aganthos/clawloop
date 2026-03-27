@@ -282,7 +282,7 @@
 
 <!-- status bar -->
 <div id="status-bar">
-  <span class="logo">LFX</span>
+  <span class="logo">ClawLoop</span>
   <span id="conn-dot" title="connection status"></span>
   <span class="stat"><span class="label">status</span><span id="badge-wrap"><span id="learning-badge">—</span></span></span>
   <span class="stat"><span class="label">version</span><span class="value" id="sb-version">—</span></span>
@@ -615,7 +615,7 @@ async function loadMetrics() {
 
 // ── reset ─────────────────────────────────────────────────────────────────────
 async function doReset() {
-  if (!confirm('Reset lfx server? All episodes and playbook will be cleared.')) return;
+  if (!confirm('Reset ClawLoop server? All episodes and playbook will be cleared.')) return;
   try {
     await fetch('/reset', { method: 'POST' });
     episodes.length = 0;

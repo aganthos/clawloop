@@ -45,7 +45,7 @@ class WrappedClient:
         if self._intensity is not None:
             self._intensity.record_user_activity()
 
-        # Extract lfx-specific kwargs before forwarding to the client
+        # Extract clawloop-specific kwargs before forwarding to the client
         task_id = kwargs.pop("task_id", uuid4().hex)
 
         _span = None
@@ -174,10 +174,10 @@ def wrap(
 
     Usage::
 
-        wrapped = lfx.wrap(my_client, collector=collector)
+        wrapped = clawloop.wrap(my_client, collector=collector)
         result = wrapped.complete(messages)  # works exactly like before
 
         # With OTel tracing:
-        wrapped = lfx.wrap(my_client, collector=collector, tracer=my_tracer)
+        wrapped = clawloop.wrap(my_client, collector=collector, tracer=my_tracer)
     """
     return WrappedClient(client, collector, tracer=tracer, intensity=intensity)

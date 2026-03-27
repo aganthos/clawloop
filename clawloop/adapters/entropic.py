@@ -1,13 +1,13 @@
-# lfx/adapters/entropic.py
-"""Entropic CRMArenaPro adapter — orchestrates the green agent with lfx harness.
+# clawloop/adapters/entropic.py
+"""Entropic CRMArenaPro adapter — orchestrates the green agent with clawloop harness.
 
-Starts the entropic green agent as a long-running A2A server, starts an lfx
+Starts the entropic green agent as a long-running A2A server, starts a clawloop
 purple agent with harness injection in a background thread, then uses
 ``lfx_runner.py`` (inside the benchmark repo) to send the EvalRequest and
 collect results.
 
 Architecture follows the same pattern as the CAR-bench adapter:
-  green agent (evaluator, subprocess server) ↔ purple agent (lfx, in-process)
+  green agent (evaluator, subprocess server) ↔ purple agent (clawloop, in-process)
 """
 
 from __future__ import annotations
@@ -141,7 +141,7 @@ class EntropicAdapter(EnvAdapter):
         1. Start the purple agent in a background thread (harness-injected).
         2. Start the green agent as a subprocess server.
         3. Wait for the green agent to be healthy.
-        4. Run lfx_runner.py to send EvalRequest and save results.
+        4. Run lfx_runner.py (external script) to send EvalRequest and save results.
         5. Parse results into Episodes.
         6. Terminate the green agent.
         """
@@ -427,7 +427,7 @@ class EntropicAdapter(EnvAdapter):
         return False
 
     def _map_to_episode(self, task_result: dict) -> Episode:
-        """Map an entropic task result to an lfx Episode."""
+        """Map an entropic task result to a clawloop Episode."""
         raw_task_id = str(task_result.get("task_idx", "unknown"))
         task_id = f"entropic:{raw_task_id}"
 
