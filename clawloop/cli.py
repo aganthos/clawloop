@@ -36,7 +36,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     run_p.add_argument("--config", type=str, default=None, help="Config JSON file")
     run_p.add_argument("--model", type=str, default=None, help="LLM model (litellm format)")
-    run_p.add_argument("--api-base", type=str, default=None, help="LLM API base URL (e.g. CLIProxyAPI)")
+    run_p.add_argument("--api-base", type=str, default=None, help="LLM API base URL (OpenAI-compatible endpoint)")
     run_p.add_argument("--task-type", type=str, default="base",
                        help="Task type: base, hallucination, disambiguation")
     run_p.add_argument("--task-split", type=str, default="test",

@@ -47,6 +47,6 @@ See [recipes/README.md](recipes/README.md) for details.
 
 | Env | harness_learning | weight |
 |-----|:---:|:---:|
-| Math | Local Mac (CLIProxyAPI) | Lambda A10 (Gemini + SkyRL) |
+| Math | Local Mac (Gemini) | Lambda A10 (Gemini + SkyRL) |
 | Harbor BFCL | Lambda (Gemini + Docker) | Lambda (Oracle + Docker + SkyRL) |
-| Entropic A2A | Local Mac (CLIProxyAPI) | Lambda A10 (Gemini + SkyRL) |
+| Entropic A2A | Local Mac (Gemini) | Lambda A10 (Gemini + SkyRL) |

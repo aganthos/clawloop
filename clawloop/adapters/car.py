@@ -91,7 +91,7 @@ class CARAdapter(EnvAdapter):
         scenario_path.write_text(scenario)
         results_path = iter_dir / "results.json"
 
-        # Build env with API credentials for purple agent (CLIProxyAPI)
+        # Build env with API credentials for purple agent
         env = dict(os.environ)
         if self._api_base:
             env["OPENAI_API_BASE"] = self._api_base
