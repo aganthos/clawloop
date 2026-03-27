@@ -194,7 +194,7 @@ def main():
     p.add_argument("--episodes", type=int, default=5)
     p.add_argument("--lora-rank", type=int, default=32)
     p.add_argument("--data-dir", default="~/data/arithmetic")
-    p.add_argument("--api-base", default=os.environ.get("CLAWLOOP_API_BASE", "http://127.0.0.1:8317/v1"))
+    p.add_argument("--api-base", default=os.environ.get("CLAWLOOP_API_BASE", "http://localhost:11434/v1"))
     p.add_argument("--api-key", default=os.environ.get("CLAWLOOP_API_KEY", ""))
     p.add_argument("--task-model", default="openai/claude-haiku-4-5-20251001")
     p.add_argument("--reflector-model", default="openai/claude-sonnet-4-5-20250929")

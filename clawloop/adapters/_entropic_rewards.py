@@ -1,5 +1,5 @@
-# lfx/adapters/_entropic_rewards.py
-"""Entropic CRMArenaPro reward mapping — 7-dimension scores to lfx RewardSignals."""
+# clawloop/adapters/_entropic_rewards.py
+"""Entropic CRMArenaPro reward mapping — 7-dimension scores to clawloop RewardSignals."""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ def map_entropic_scores(
     task_reward: float,
     weights: dict[str, float] = DEFAULT_ENTROPIC_WEIGHTS,
 ) -> tuple[dict[str, RewardSignal], dict[str, Any]]:
-    """Map Entropic CRMArenaPro 7-dimension scores to lfx RewardSignals.
+    """Map Entropic CRMArenaPro 7-dimension scores to clawloop RewardSignals.
 
     Parameters
     ----------

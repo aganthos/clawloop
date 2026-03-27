@@ -1,6 +1,6 @@
 """SkyRLWeightsBackend — wraps SkyRL's AbstractBackend for LoRA/GRPO training.
 
-All SkyRL config passes through as dicts — LfX does not interpret SkyRL's
+All SkyRL config passes through as dicts — ClawLoop does not interpret SkyRL's
 configuration knobs.
 
 The AbstractBackend.forward_backward takes PreparedModelPassBatch which
@@ -39,7 +39,7 @@ class SkyRLWeightsConfig:
     """Configuration for the SkyRL weights backend.
 
     All SkyRL-specific knobs live inside ``backend_config``, ``lora_config``,
-    and ``training_config`` as opaque dicts — LfX passes them through without
+    and ``training_config`` as opaque dicts — ClawLoop passes them through without
     interpretation.
     """
 

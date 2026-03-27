@@ -1,4 +1,4 @@
-"""Harbor environment adapter — runs Harbor trials, produces LfX Episodes."""
+"""Harbor environment adapter — runs Harbor trials, produces ClawLoop Episodes."""
 from __future__ import annotations
 
 import asyncio
@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 
 
 class HarborTaskEnvironment:
-    """Runs Harbor trials and produces LfX Episodes. Harbor is optional."""
+    """Runs Harbor trials and produces ClawLoop Episodes. Harbor is optional."""
 
     def __init__(self, task_dir: Path, trial_config: dict,
                  reward_transform: Callable[[float], float] | None = None,
@@ -31,7 +31,7 @@ class HarborTaskEnvironment:
         except ImportError as exc:
             raise ImportError(
                 "Harbor is required for HarborTaskEnvironment. "
-                "Install it with: pip install lfx[harbor]"
+                "Install it with: pip install harbor"
             ) from exc
         self._Trial = Trial
         self._TrialConfig = TrialConfig

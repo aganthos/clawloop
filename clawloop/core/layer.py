@@ -1,6 +1,6 @@
 """Layer protocol — the unified interface for every learning layer.
 
-Every layer in LfX implements this two-phase contract:
+Every layer in ClawLoop implements this two-phase contract:
 
 1. **Accumulate phase** — ``forward_backward(data)`` computes gradients /
    diffs / proposals from a batch of episodes and stores them internally.
@@ -36,7 +36,7 @@ from clawloop.core.types import (
 
 
 class Layer(Protocol):
-    """Unified protocol for every learning layer in LfX.
+    """Unified protocol for every learning layer in ClawLoop.
 
     Implementers must provide the six methods below.  The two-phase
     contract (``forward_backward`` then ``optim_step``) ensures that

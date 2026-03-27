@@ -5,7 +5,7 @@
 - Python >= 3.12
 - Docker running (`docker ps` should work)
 - For weight mode: GPU + SkyRL installed (`pip install -e clawloop/skyrl[fsdp]`)
-- For harness mode: LLM API access (CLIProxyAPI or direct key)
+- For harness mode: LLM API access (Gemini, OpenAI, or any litellm-supported provider)
 
 ## 1. Install Harbor
 
@@ -60,7 +60,7 @@ python examples/recipes/harbor_bfcl.py \
     --iterations 5 --episodes 10
 ```
 
-Requires: Docker + LLM API (CLIProxyAPI at localhost:8317 or direct key).
+Requires: Docker + LLM API key (Gemini, OpenAI, or any litellm-supported provider).
 
 ### Weight training (GPU)
 

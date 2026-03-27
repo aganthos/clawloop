@@ -7,7 +7,7 @@ SkyRLBackendInitError is a real Exception that wraps a BackendError and
 is raised when a SkyRL backend cannot be initialised.
 
 ClawLoopBackend is a runtime-checkable Protocol identical to the existing Layer
-protocol in lfx/core/layer.py — backends ARE layers.
+protocol in clawloop/core/layer.py — backends ARE layers.
 """
 
 from __future__ import annotations
@@ -102,7 +102,7 @@ class SkyRLBackendInitError(Exception):
 
 @runtime_checkable
 class ClawLoopBackend(Protocol):
-    """Unified protocol for every LfX backend.
+    """Unified protocol for every ClawLoop backend.
 
     Intentionally identical to the existing ``Layer`` protocol in
     ``clawloop.core.layer`` — backends ARE layers and must satisfy the same
