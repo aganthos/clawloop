@@ -35,7 +35,7 @@ REWARD_METRICS = list(DEFAULT_ENTROPIC_WEIGHTS.keys())
 # Runner script generated into each iteration dir.  Runs with the benchmark's
 # venv python (which has a2a-sdk installed) and speaks A2A to the green server.
 _RUNNER_SCRIPT = '''\
-"""Auto-generated LfX runner — sends EvalRequest to the entropic green agent."""
+"""Auto-generated ClawLoop runner — sends EvalRequest to the entropic green agent."""
 import asyncio, json, sys, argparse, logging
 from pathlib import Path
 from uuid import uuid4

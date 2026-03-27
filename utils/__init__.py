@@ -1,1 +1,1 @@
-"""LfX utility helpers."""
+"""ClawLoop utility helpers."""

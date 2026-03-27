@@ -1,4 +1,4 @@
-"""Episode data structures — the spine of the LfX system.
+"""Episode data structures — the spine of the ClawLoop system.
 
 An Episode records one complete agent interaction: a sequence of
 state->action->reward transitions within a single trajectory.  Messages are

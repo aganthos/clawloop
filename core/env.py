@@ -1,7 +1,7 @@
 """Task environment — the interface for plugging in benchmarks.
 
 Users provide tasks (``Sample`` instances) and a scoring function;
-LfX handles everything else.  ``TaskEnvironment`` is the Protocol that
+ClawLoop handles everything else.  ``TaskEnvironment`` is the Protocol that
 custom environments implement, and ``StaticTaskEnvironment`` is a
 ready-made dataclass for the common case of a fixed task list with
 an external evaluate function.
