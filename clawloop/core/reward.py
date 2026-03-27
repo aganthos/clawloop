@@ -1,4 +1,4 @@
-"""Composable reward signals for the LfX learning system.
+"""Composable reward signals for the ClawLoop learning system.
 
 Signals live in [-1.0, 1.0] with an associated confidence in [0.0, 1.0].
 Convention: -1 = definitively bad, 0 = neutral/unknown, +1 = definitively good.

@@ -1,4 +1,4 @@
-"""LfX CLI — entry point for run, eval, compare, and gate commands."""
+"""ClawLoop CLI — entry point for run, eval, compare, and gate commands."""
 
 from __future__ import annotations
 
