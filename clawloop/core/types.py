@@ -1,4 +1,4 @@
-"""Core types for the LfX Layer protocol.
+"""Core types for the ClawLoop Layer protocol.
 
 Provides ``Future[T]`` for async results, ``Datum`` as the standard input
 bundle, and lightweight result dataclasses returned by each Layer verb.

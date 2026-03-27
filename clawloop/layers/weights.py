@@ -2,7 +2,7 @@
 
 This layer owns the model reference, LoRA adapters, and GRPO training config.
 It delegates the actual training to SkyRL's ``RayPPOTrainer`` by converting
-LfX Episodes into ``GeneratorOutput`` via the SkyRL exporter.
+ClawLoop Episodes into ``GeneratorOutput`` via the SkyRL exporter.
 
 The training loop:
   1. Collect episodes via the learning loop.

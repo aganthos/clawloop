@@ -22,7 +22,7 @@ class Tau2Adapter(EnvAdapter):
     """Adapter for tau2-bench (stub).
 
     Intended to subclass ``tau2.agent.base.LocalAgent`` and map
-    ``SimulationRun`` objects to LfX ``Episode`` instances.
+    ``SimulationRun`` objects to ClawLoop ``Episode`` instances.
     """
 
     def setup(self, config: dict[str, Any]) -> None:

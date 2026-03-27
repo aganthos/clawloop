@@ -26,7 +26,7 @@ class LiteLLMClient:
     """Production LLM client backed by litellm.completion().
 
     Supports 100+ providers via LiteLLM's unified API.
-    Pass api_base to route through a proxy (e.g. CLIProxyAPI).
+    Pass api_base to route through a custom OpenAI-compatible endpoint.
     Automatically requests logprobs unless caller opts out.
     """
 

@@ -1,5 +1,5 @@
-# lfx/adapters/_car_rewards.py
-"""CAR-bench reward mapping — converts CAR metrics to lfx RewardSignals."""
+# clawloop/adapters/_car_rewards.py
+"""CAR-bench reward mapping — converts CAR metrics to clawloop RewardSignals."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ def map_car_scores(
     task_reward: float,
     weights: dict[str, float] = DEFAULT_CAR_WEIGHTS,
 ) -> tuple[dict[str, RewardSignal], dict[str, Any]]:
-    """Map CAR-bench metrics to lfx RewardSignals.
+    """Map CAR-bench metrics to clawloop RewardSignals.
 
     Parameters
     ----------

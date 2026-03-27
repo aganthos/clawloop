@@ -4,17 +4,14 @@
 Run in dry-run mode (no API calls, finishes in seconds):
     python examples/demo_math.py --dry-run
 
-Run with real LLMs via CLIProxyAPI (no API keys needed):
-    python examples/demo_math.py
-
-Run with direct API keys:
-    ANTHROPIC_API_KEY=sk-... python examples/demo_math.py
+Run with real LLMs (requires GOOGLE_API_KEY or ANTHROPIC_API_KEY):
+    GOOGLE_API_KEY=... python examples/demo_math.py
 
 Environment variables:
     CLAWLOOP_TASK_MODEL       (default: claude-haiku-4-5-20251001)
     CLAWLOOP_REFLECTOR_MODEL  (default: claude-sonnet-4-5-20250929)
-    CLAWLOOP_API_BASE         (default: http://127.0.0.1:8317/v1)
-    CLAWLOOP_API_KEY          (default: kuhhandel-bench-key)
+    CLAWLOOP_API_BASE         (default: http://localhost:11434/v1)
+    CLAWLOOP_API_KEY          (default: your-api-key)
     CLAWLOOP_ITERATIONS       (default: 5)
     CLAWLOOP_EPISODES         (default: 5)
 """
@@ -214,8 +211,8 @@ def main() -> None:
     else:
         task_model = os.environ.get("CLAWLOOP_TASK_MODEL", "claude-haiku-4-5-20251001")
         reflector_model = os.environ.get("CLAWLOOP_REFLECTOR_MODEL", "claude-sonnet-4-5-20250929")
-        api_base = os.environ.get("CLAWLOOP_API_BASE", "http://127.0.0.1:8317/v1")
-        api_key = os.environ.get("CLAWLOOP_API_KEY", "kuhhandel-bench-key")
+        api_base = os.environ.get("CLAWLOOP_API_BASE", "http://localhost:11434/v1")
+        api_key = os.environ.get("CLAWLOOP_API_KEY", "your-api-key")
 
         log.info("=== REAL LLM MODE ===")
         log.info("  Task model:      %s", task_model)

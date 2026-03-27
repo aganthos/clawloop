@@ -9,7 +9,7 @@ The playbook is a list of reusable strategies injected into agent system prompts
 Best for narrow agents (n8n workflows, single-task agents) where the playbook stays small and all entries fit in context.
 
 ```python
-from lfx.core.curator import PlaybookCurator
+from clawloop.core.curator import PlaybookCurator
 
 # Option A: convenience constructor
 harness._curator = PlaybookCurator.lightweight(max_entries=50)
@@ -30,8 +30,8 @@ harness = Harness()  # all entries credited, no dedup
 Adds similarity-based dedup without LLM costs. Uses heuristic thresholds.
 
 ```python
-from lfx.core.embeddings import GeminiEmbedding
-from lfx.core.curator import PlaybookCurator
+from clawloop.core.embeddings import GeminiEmbedding
+from clawloop.core.curator import PlaybookCurator
 
 harness._curator = PlaybookCurator(
     embeddings=GeminiEmbedding(),  # or MockEmbedding() for tests
@@ -49,9 +49,9 @@ harness._curator = PlaybookCurator(
 Complete retrieve-classify-revise pipeline with LLM for ambiguous classification and conflict resolution.
 
 ```python
-from lfx.core.embeddings import GeminiEmbedding
-from lfx.core.curator import PlaybookCurator
-from lfx.llm import LiteLLMClient
+from clawloop.core.embeddings import GeminiEmbedding
+from clawloop.core.curator import PlaybookCurator
+from clawloop.llm import LiteLLMClient
 
 harness._curator = PlaybookCurator(
     embeddings=GeminiEmbedding(),
@@ -71,7 +71,7 @@ harness._curator = PlaybookCurator(
 The `batch_size` on `EpisodeCollector` determines how often the playbook gets updated. It controls how many episodes are collected before triggering a learning cycle (forward_backward → optim_step).
 
 ```python
-from lfx.collector import EpisodeCollector
+from clawloop.collector import EpisodeCollector
 
 collector = EpisodeCollector(
     pipeline=reward_pipeline,
@@ -130,11 +130,11 @@ User request → LLM call → Episode collected
 
 ```python
 # Gemini (recommended — batch API, rate-limit friendly)
-from lfx.core.embeddings import GeminiEmbedding
+from clawloop.core.embeddings import GeminiEmbedding
 emb = GeminiEmbedding(model="gemini-embedding-001")
 
 # OpenAI via litellm
-from lfx.core.embeddings import LiteLLMEmbedding
+from clawloop.core.embeddings import LiteLLMEmbedding
 emb = LiteLLMEmbedding(model="text-embedding-3-small", api_key="sk-...")
 ```
 

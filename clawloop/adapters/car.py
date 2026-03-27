@@ -1,5 +1,5 @@
-# lfx/adapters/car.py
-"""CAR-bench adapter — orchestrates agentbeats-run with lfx harness injection.
+# clawloop/adapters/car.py
+"""CAR-bench adapter — orchestrates agentbeats-run with clawloop harness injection.
 
 Writes harness prompt to a JSON file, generates a scenario.toml that spawns
 lfx_server.py (which reads the file and injects the prompt into the system
@@ -65,14 +65,14 @@ class CARAdapter(EnvAdapter):
     def run_batch(
         self, agent_state: "AgentState", task_ids: list[Any]
     ) -> list[Episode]:
-        """Run a batch of tasks via agentbeats-run with lfx harness injection."""
+        """Run a batch of tasks via agentbeats-run with clawloop harness injection."""
         str_ids = [str(tid) for tid in task_ids]
         self._current_state_id = agent_state.state_id().combined_hash
 
         iter_dir = (self._output_dir / f"iter_{self._iteration_count}").resolve()
         iter_dir.mkdir(parents=True, exist_ok=True)
 
-        # Write harness prompt to file for lfx_server.py to read
+        # Write harness prompt to file for lfx_server.py to read (external script)
         harness_prompt = agent_state.harness.system_prompt("car")
         harness_file = iter_dir / "harness_prompt.json"
         harness_file.write_text(json.dumps({"prompt": harness_prompt}))
@@ -85,13 +85,13 @@ class CARAdapter(EnvAdapter):
         # Pick free ports for this iteration to avoid collisions
         green_port, purple_port = self._find_free_ports()
 
-        # Generate scenario pointing to lfx_server.py with harness file
+        # Generate scenario pointing to lfx_server.py (external script) with harness file
         scenario = self._generate_scenario(str_ids, str(harness_file), green_port, purple_port)
         scenario_path = iter_dir / "scenario.toml"
         scenario_path.write_text(scenario)
         results_path = iter_dir / "results.json"
 
-        # Build env with API credentials for purple agent (CLIProxyAPI)
+        # Build env with API credentials for purple agent
         env = dict(os.environ)
         if self._api_base:
             env["OPENAI_API_BASE"] = self._api_base
@@ -233,7 +233,7 @@ max_steps = 50
 """
 
     def _map_to_episode(self, task_result: dict) -> Episode:
-        """Map a CAR detailed result to an lfx Episode."""
+        """Map a CAR detailed result to a clawloop Episode."""
         car_task_id = task_result["task_id"]
         task_id = f"car:{car_task_id}"
 
@@ -242,7 +242,7 @@ max_steps = 50
             task_reward=task_result.get("reward", 0.0),
         )
 
-        # Convert trajectory to lfx Messages
+        # Convert trajectory to clawloop Messages
         messages = []
         for msg in task_result.get("trajectory", []):
             messages.append(
