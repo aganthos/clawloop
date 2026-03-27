@@ -1,0 +1,15 @@
+# Files and directories synced to aganthos/clawloop public repo.
+# Default = private. Only listed paths go public.
+# One path per line. Directories end with /. Comments start with #.
+
+clawloop/
+tests/
+examples/
+benchmarks/
+README.md
+LICENSE
+pyproject.toml
+CONTRIBUTING.md
+CHANGELOG.md
+.gitignore
+.gitmodules
