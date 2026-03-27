@@ -7,3 +7,28 @@ When working on slides, presentations, or pitch decks in this folder, use the `/
 - Logo SVG available at `../landingpage/logo.svg`
 - Website: aganthos.com
 - Tagline: "Learning from Experience Lab"
+
+## Public/Private Boundary
+
+This monorepo contains both public (community) and private (enterprise) code.
+
+### Directory classification
+- `clawloop/`, `tests/`, `examples/` → **PUBLIC** (synced to github.com/aganthos/clawloop)
+- `enterprise/` → **PRIVATE** (proprietary algorithms, never published)
+- Everything else (`docs/`, `pitch/`, `configs/`, `benchmarks/`, `ressources/`, `scripts/`) → **PRIVATE**
+
+### Rules for coding agents
+1. Code in `clawloop/` must NEVER import from `enterprise/`
+2. Code in `enterprise/` CAN import from `clawloop` (it extends community)
+3. Tests in `tests/` must NEVER import from `enterprise/`
+4. Enterprise tests live in `enterprise/tests/`
+5. New files in `clawloop/` automatically become public
+6. New files in `enterprise/` stay private
+7. The `.publicpaths` manifest is the source of truth for what gets synced
+
+### Architecture (future — interfaces defined when first backend exists)
+- `clawloop.core.layer.Layer` Protocol = what executes (community)
+- Enterprise will use an Evolver Protocol = what proposes improvements to what executes
+- Planned evolution backends: reflector → guided_mutation → dgm_h (hyperagent)
+- Cloud hook: `clawloop.wrap(client, cloud_url=..., cloud_api_key=...)` sends traces, pulls patches
+- See arxiv.org/abs/2603.19461 (HyperAgents) for the long-term hyperagent vision
