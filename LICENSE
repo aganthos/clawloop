@@ -2,32 +2,73 @@ Business Source License 1.1
 
 Parameters
 
-Licensor:             Aganthos GmbH
-Licensed Work:        ClawLoop 0.1.0
-                      The Licensed Work is (c) 2026 Aganthos GmbH.
-Additional Use Grant: You may make use of the Licensed Work, provided that
-                      you do not use the Licensed Work for a Production Use
-                      that meets both of the following conditions:
-                      (1) the Production Use is by or on behalf of an
-                          organization with annual revenue exceeding
-                          ten million US dollars (USD $10,000,000); AND
-                      (2) the organization has not obtained a commercial
-                          license from the Licensor.
+Licensor:             Aganthos Inc.
+Licensed Work:        ClawLoop
+                      The Licensed Work is (c) 2026 Aganthos Inc.
+
+Additional Use Grant: You may make Production Use of the Licensed Work,
+                      provided that:
+
+                      (1) such Production Use is not by or for the benefit
+                          of a Restricted Organization unless that
+                          Restricted Organization has obtained a commercial
+                          license from the Licensor; and
+
+                      (2) such Production Use does not constitute, and is
+                          not used to provide, a Competing Offering.
 
                       "Production Use" means any use of the Licensed Work
-                      in a live environment serving end users or processing
-                      real data, excluding internal evaluation, development,
-                      testing, and academic research.
+                      in a live or other operational environment other than
+                      solely for bona fide development, testing, security
+                      review, or academic research, including use to serve
+                      users, support internal business operations, or
+                      process, analyze, monitor, evaluate, route, optimize,
+                      train, fine-tune, or improve models, agents,
+                      workflows, or other systems using non-test data.
 
-                      Regardless of revenue, you may NOT use the Licensed
-                      Work to provide a hosted or managed service that
-                      competes with the Licensor's commercial offerings.
+                      "Restricted Organization" means any person or entity
+                      that, together with its Affiliates, had more than
+                      US$10,000,000 in consolidated gross revenue or
+                      annual operating budget during the prior fiscal year
+                      or trailing twelve-month period.
 
-Change Date:          2030-03-26
+                      "Affiliate" means any entity that directly or
+                      indirectly Controls, is Controlled by, or is under
+                      common Control with another entity. "Control" means
+                      direct or indirect ownership of more than fifty
+                      percent (50%) of the voting interests or the power
+                      to direct management and policies.
+
+                      "Competing Offering" means any product, service,
+                      feature, or offering made available to a third party,
+                      whether directly or indirectly, on a hosted, managed,
+                      service bureau, outsourcing, white-label, embedded,
+                      or similar basis, whether for a fee, as part of a
+                      paid support arrangement, or as part of a broader
+                      paid product or service, whose primary purpose or
+                      material functionality is to improve, optimize,
+                      evaluate, monitor, route, train, fine-tune, or
+                      operate models, agents, workflows, or similar
+                      systems from traces, logs, feedback, telemetry, tool
+                      calls, execution data, or other operational data in
+                      a manner that substantially overlaps with or
+                      substitutes for the Licensor's paid products or
+                      services.
+
+                      A product or service is not a Competing Offering
+                      solely because the provider uses the Licensed Work
+                      internally to improve or operate the provider's own
+                      products or services, provided that third parties do
+                      not receive access to the Licensed Work itself or to
+                      a separately identifiable agent-improvement,
+                      model-optimization, or similar service substantially
+                      enabled by the Licensed Work.
+
+Change Date:          2030-04-01
 Change License:       Apache License, Version 2.0
 
 For information about alternative licensing arrangements for the Licensed
-Work, please contact licensing@aganthos.com.
+Work, please contact info@aganthos.com.
 
 Notice
 
