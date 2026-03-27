@@ -1,4 +1,4 @@
-"""ClawLoopAgent — high-level convenience wrapper for the LfX learning loop.
+"""ClawLoopAgent — high-level convenience wrapper for the ClawLoop learning loop.
 
 Bundles the learning loop into a simple, user-facing API with three levels
 of usage:
@@ -44,7 +44,7 @@ def _sanitize_input(text: str) -> str:
 
 @dataclass
 class ClawLoopAgent:
-    """High-level wrapper that bundles the LfX learning loop into a simple API.
+    """High-level wrapper that bundles the ClawLoop learning loop into a simple API.
 
     Parameters
     ----------

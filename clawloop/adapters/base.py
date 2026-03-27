@@ -1,6 +1,6 @@
 """EnvAdapter ABC — the interface every benchmark adapter must implement.
 
-An adapter bridges a specific benchmark environment and the LfX learning loop.
+An adapter bridges a specific benchmark environment and the ClawLoop learning loop.
 It is responsible for:
   1. Setting up the environment (loading tasks, connecting to servers, etc.).
   2. Running one episode and returning an ``Episode`` object.

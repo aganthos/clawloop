@@ -102,7 +102,7 @@ class SkyRLBackendInitError(Exception):
 
 @runtime_checkable
 class ClawLoopBackend(Protocol):
-    """Unified protocol for every LfX backend.
+    """Unified protocol for every ClawLoop backend.
 
     Intentionally identical to the existing ``Layer`` protocol in
     ``clawloop.core.layer`` — backends ARE layers and must satisfy the same

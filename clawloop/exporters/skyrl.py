@@ -1,6 +1,6 @@
 """SkyRL exporter — Episode -> GeneratorOutput serialization.
 
-This is the Weights layer training interface.  It converts LfX Episodes into the
+This is the Weights layer training interface.  It converts ClawLoop Episodes into the
 ``GeneratorOutput`` TypedDict consumed by SkyRL's GRPO trainer.
 
 The conversion requires:
