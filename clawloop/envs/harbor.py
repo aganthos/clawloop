@@ -31,7 +31,7 @@ class HarborTaskEnvironment:
         except ImportError as exc:
             raise ImportError(
                 "Harbor is required for HarborTaskEnvironment. "
-                "Install it with: pip install lfx[harbor]"
+                "Install it with: pip install harbor"
             ) from exc
         self._Trial = Trial
         self._TrialConfig = TrialConfig

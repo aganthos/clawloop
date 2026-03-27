@@ -11,13 +11,13 @@ from typing import Any
 
 from clawloop.core.loop import AgentState, learning_loop
 
-log = logging.getLogger("lfx")
+log = logging.getLogger("clawloop")
 
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="lfx",
-        description="LfX — Learning from Experience unified learning API",
+        prog="clawloop",
+        description="ClawLoop — Learning from Experience unified learning API",
     )
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="Enable debug logging"
@@ -289,8 +289,8 @@ def cmd_setup_bench(args: argparse.Namespace) -> None:
         print(f"Installing dependencies in {bench_dir}...")
         subprocess.run(uv_cmd, cwd=str(bench_dir), check=True)
 
-    # Also sync lfx extras for this bench
-    print(f"Syncing lfx extras: --extra {bench}")
+    # Also sync clawloop extras for this bench
+    print(f"Syncing clawloop extras: --extra {bench}")
     subprocess.run(["uv", "sync", "--extra", bench, "--extra", "dev"], check=True)
 
     print(f"Setup complete for {bench}")

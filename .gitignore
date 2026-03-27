@@ -4,6 +4,9 @@
 *.xlsx
 swiss_genai_price/
 
+# Secrets
+.env
+
 # Python
 __pycache__/
 *.pyc

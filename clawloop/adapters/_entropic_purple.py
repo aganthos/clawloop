@@ -1,9 +1,9 @@
-# lfx/adapters/_entropic_purple.py
-"""A2A purple agent server for Entropic CRMArenaPro with lfx harness injection.
+# clawloop/adapters/_entropic_purple.py
+"""A2A purple agent server for Entropic CRMArenaPro with clawloop harness injection.
 
 The entropic green agent sends CRM task prompts as plain text via A2A
 ``message/send``.  This purple agent:
-  1. Injects the lfx harness system prompt.
+  1. Injects the clawloop harness system prompt.
   2. Forwards the task to the configured LLM.
   3. Returns the answer as an A2A text response.
 
@@ -33,7 +33,7 @@ log = logging.getLogger(__name__)
 
 
 class EntropicPurpleAgent:
-    """A2A-compliant purple agent for CRM tasks with lfx harness injection."""
+    """A2A-compliant purple agent for CRM tasks with clawloop harness injection."""
 
     def __init__(
         self,
@@ -293,8 +293,8 @@ def create_app(agent: EntropicPurpleAgent, port: int = 0) -> Starlette:
 
     async def agent_card(request: Request) -> JSONResponse:
         return JSONResponse({
-            "name": "lfx-entropic-purple-agent",
-            "description": "LfX harness-optimized CRM agent under test",
+            "name": "clawloop-entropic-purple-agent",
+            "description": "ClawLoop harness-optimized CRM agent under test",
             "url": f"http://127.0.0.1:{port}/",
             "version": "0.1.0",
             "protocol_version": "0.3.0",

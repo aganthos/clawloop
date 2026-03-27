@@ -1,7 +1,7 @@
 """ClawLoopCallback — litellm custom logger for Mode B trajectory capture.
 
 Registers as a litellm callback to automatically capture all LLM calls
-and feed them into the lfx learning pipeline.
+and feed them into the clawloop learning pipeline.
 
 Usage::
 

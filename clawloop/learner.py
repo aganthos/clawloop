@@ -52,7 +52,7 @@ class AsyncLearner:
             return
         self._stop_event.clear()
         self._worker = threading.Thread(
-            target=self._run, daemon=True, name="lfx-learner",
+            target=self._run, daemon=True, name="clawloop-learner",
         )
         self._worker.start()
 
