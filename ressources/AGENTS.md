@@ -14,16 +14,16 @@ This monorepo contains both public (community) and private (enterprise) code.
 
 ### Directory classification
 - `clawloop/`, `tests/`, `examples/` → **PUBLIC** (synced to github.com/aganthos/clawloop)
-- `enterprise/` → **PRIVATE** (proprietary algorithms, never published)
+- `enterprise_clawloop/` → **PRIVATE** (proprietary algorithms, never published)
 - Everything else (`docs/`, `pitch/`, `configs/`, `benchmarks/`, `ressources/`, `scripts/`) → **PRIVATE**
 
 ### Rules for coding agents
-1. Code in `clawloop/` must NEVER import from `enterprise/`
-2. Code in `enterprise/` CAN import from `clawloop` (it extends community)
-3. Tests in `tests/` must NEVER import from `enterprise/`
-4. Enterprise tests live in `enterprise/tests/`
+1. Code in `clawloop/` must NEVER import from `enterprise_clawloop/`
+2. Code in `enterprise_clawloop/` CAN import from `clawloop` (it extends community)
+3. Tests in `tests/` must NEVER import from `enterprise_clawloop/`
+4. Enterprise tests live in `enterprise_clawloop/tests/`
 5. New files in `clawloop/` automatically become public
-6. New files in `enterprise/` stay private
+6. New files in `enterprise_clawloop/` stay private
 7. The `.publicpaths` manifest is the source of truth for what gets synced
 
 ### Architecture (future — interfaces defined when first backend exists)

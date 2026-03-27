@@ -1,7 +1,7 @@
 """Enterprise test configuration.
 
-Enterprise tests CAN import from both clawloop and enterprise.
-Community tests (tests/) must NEVER import from enterprise.
+Enterprise tests CAN import from both clawloop and enterprise_clawloop.
+Community tests (tests/) must NEVER import from enterprise_clawloop.
 """
 
 import pytest
