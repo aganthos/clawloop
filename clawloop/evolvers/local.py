@@ -48,14 +48,15 @@ class LocalEvolver:
         paradigm_shift = False
         deprecation_targets: list[str] = []
 
+        # Shared across mechanisms — computed once
+        playbook = self._rebuild_playbook(harness_state)
+        base_prompt = next(iter(harness_state.system_prompts.values()), None)
+
         # --- 1. Reflector: playbook insights ---
         # Pass the base system prompt so the Reflector can avoid
         # adding playbook entries that duplicate the static prompt.
         if self.reflector is not None and episodes:
             try:
-                playbook = self._rebuild_playbook(harness_state)
-                # Pick the first bench's prompt as representative base prompt
-                base_prompt = next(iter(harness_state.system_prompts.values()), None)
                 batch_sz = self.reflector.config.reflection_batch_size
                 for i in range(0, len(episodes), batch_sz):
                     batch = episodes[i : i + batch_sz]
@@ -85,7 +86,6 @@ class LocalEvolver:
         # --- 3. Paradigm breakthrough on stagnation ---
         if self.paradigm is not None and context.is_stagnating:
             try:
-                playbook = self._rebuild_playbook(harness_state)
                 paradigm_insights = self.paradigm.generate(
                     playbook=playbook,
                     reward_history=context.reward_history,
