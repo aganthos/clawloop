@@ -157,11 +157,17 @@ def main():
     # ── LEARNING ─────────────────────────────────────────────────────
 
     banner("LEARNING: Reflector analyses traces")
-    print("  Calling LLM to extract reusable strategies...\n")
 
+    # Show reward signals from the pipeline (ExecutionExtractor + UserFeedback)
     for ep in episodes:
-        ep.summary = EpisodeSummary(total_reward=0.5)
-        ep.steps = [StepMeta(t=0, reward=0.5, done=True, timing_ms=100.0)]
+        signals = {k: f"{v.value:+.1f}" for k, v in ep.summary.signals.items()} if ep.summary.signals else {}
+        reward = ep.summary.effective_reward()
+        print(f"  [{ep.task_id}] reward={reward:+.2f}  signals={signals or '(none — no tool/user feedback)'}")
+        # Ensure steps exist for forward_backward
+        if not ep.steps:
+            ep.steps = [StepMeta(t=0, reward=reward, done=True, timing_ms=100.0)]
+
+    print("\n  Calling LLM to extract reusable strategies...\n")
 
     if not episodes:
         print("  No episodes captured. Check proxy/upstream connection.")
