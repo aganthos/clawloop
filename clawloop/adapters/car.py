@@ -2,7 +2,7 @@
 """CAR-bench adapter — orchestrates agentbeats-run with clawloop harness injection.
 
 Writes harness prompt to a JSON file, generates a scenario.toml that spawns
-lfx_server.py (which reads the file and injects the prompt into the system
+the purple agent server (which reads the file and injects the prompt into the system
 message), then runs agentbeats-run and parses results.
 """
 
@@ -72,7 +72,7 @@ class CARAdapter(EnvAdapter):
         iter_dir = (self._output_dir / f"iter_{self._iteration_count}").resolve()
         iter_dir.mkdir(parents=True, exist_ok=True)
 
-        # Write harness prompt to file for lfx_server.py to read (external script)
+        # Write harness prompt to file for the purple agent server to read
         harness_prompt = agent_state.harness.system_prompt("car")
         harness_file = iter_dir / "harness_prompt.json"
         harness_file.write_text(json.dumps({"prompt": harness_prompt}))
@@ -85,7 +85,7 @@ class CARAdapter(EnvAdapter):
         # Pick free ports for this iteration to avoid collisions
         green_port, purple_port = self._find_free_ports()
 
-        # Generate scenario pointing to lfx_server.py (external script) with harness file
+        # Generate scenario pointing to the purple agent server with harness file
         scenario = self._generate_scenario(str_ids, str(harness_file), green_port, purple_port)
         scenario_path = iter_dir / "scenario.toml"
         scenario_path.write_text(scenario)
@@ -210,6 +210,7 @@ class CARAdapter(EnvAdapter):
         pp = purple_port
         car_dir = self._car_bench_path.resolve()
         green_server = car_dir / "src" / "green_car_bench_agent" / "server.py"
+        # Legacy filename in external car-bench repo (not controlled by us)
         lfx_server = car_dir / "src" / "purple_car_bench_agent" / "lfx_server.py"
         # Derive python from agentbeats_cmd's venv (e.g. .../bin/agentbeats-run → .../bin/python)
         agentbeats_bin = Path(self._agentbeats_cmd).parent

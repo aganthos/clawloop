@@ -1,5 +1,10 @@
 def pytest_collection_modifyitems(session, config, items):
-    """Guard: community tests must never import from enterprise."""
+    """Guard: community tests must never import from enterprise.
+
+    Note: This AST-based check catches static imports only. Dynamic imports
+    via importlib.import_module() or __import__() are not detected here.
+    The audit script (scripts/audit_public.sh) provides additional coverage.
+    """
     import ast
     from pathlib import Path
 
