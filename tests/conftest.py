@@ -10,8 +10,8 @@ def pytest_collection_modifyitems(session, config, items):
 
     for item in items:
         fpath = Path(item.fspath)
-        # Only check tests/ (not enterprise_clawloop/tests/)
-        if "enterprise" in str(fpath):
+        # Only skip the enterprise_clawloop directory itself
+        if str(fpath).startswith("enterprise_clawloop/") or "/enterprise_clawloop/" in str(fpath):
             continue
         try:
             tree = ast.parse(fpath.read_text())
