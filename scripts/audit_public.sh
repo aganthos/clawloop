@@ -47,7 +47,36 @@ if [[ -n "$MATCHES" ]]; then
     ERRORS=$((ERRORS + 1))
 fi
 
-# 5. No symlinks pointing outside public tree
+# 5. AST-based enterprise import scan (catches multi-line imports)
+#    Scans clawloop/, tests/, examples/ for any static import from enterprise.
+python3 -c "
+import ast, sys
+from pathlib import Path
+
+errors = []
+for d in ['clawloop', 'tests', 'examples']:
+    for f in Path(d).rglob('*.py'):
+        if 'enterprise' in str(f) or '.claude' in str(f):
+            continue
+        try:
+            tree = ast.parse(f.read_text())
+        except Exception:
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and node.module and node.module.startswith('enterprise'):
+                errors.append(f'{f}:{node.lineno}: from {node.module} import ...')
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    if alias.name.startswith('enterprise'):
+                        errors.append(f'{f}:{node.lineno}: import {alias.name}')
+if errors:
+    for e in errors:
+        print(f'BOUNDARY VIOLATION: {e}')
+    sys.exit(1)
+print('AST import scan: clean')
+" || { echo "FAIL: AST-based import scan found enterprise imports"; ERRORS=$((ERRORS + 1)); }
+
+# 6. No symlinks pointing outside public tree
 while IFS= read -r link; do
     target="$(readlink "$link")"
     if [[ "$target" == *enterprise* || "$target" == *docs/* || "$target" == *pitch/* ]]; then
@@ -56,7 +85,7 @@ while IFS= read -r link; do
     fi
 done < <(find clawloop tests examples -type l 2>/dev/null || true)
 
-# 6. Build and inspect package for leaks
+# 7. Build and inspect package for leaks
 rm -rf dist/
 python -m build --sdist --wheel 2>/dev/null
 python3 -c "
