@@ -52,15 +52,16 @@ Agent ──► ClawLoop Proxy ──► Upstream LLM
 
 The agent requires **zero code changes** — just point `base_url` at the proxy.
 
+Requires Node.js and an OpenAI-compatible API (OpenAI, Anthropic via proxy,
+vLLM, etc.). Note: Gemini's OpenAI-compatible endpoint has SSE format
+differences that cause empty responses with pi-mono.
+
 ```bash
 # Install pi-mono runner (one time)
 cd scripts/openclaw_runner && npm install && cd ../..
 
-# Run the demo (requires OPENAI_API_KEY in env)
-PYTHONPATH=. python examples/openclaw_proxy_demo.py
-
-# Or with any OpenAI-compatible upstream:
-UPSTREAM_URL=https://your-api.com/v1 UPSTREAM_KEY=sk-... MODEL=gpt-4o-mini \
+# Run the demo
+UPSTREAM_URL=https://api.openai.com/v1 UPSTREAM_KEY=$OPENAI_API_KEY \
     PYTHONPATH=. python examples/openclaw_proxy_demo.py
 ```
 

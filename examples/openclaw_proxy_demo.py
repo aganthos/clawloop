@@ -12,10 +12,23 @@ This demo shows the FULL value loop:
 This is the core ClawLoop loop: observe → learn → inject → improve.
 The agent requires ZERO code changes — just point base_url at the proxy.
 
+Requires:
+    - Node.js (for the pi-mono agent runner)
+    - An OpenAI-compatible LLM API (OpenAI, Anthropic via proxy, vLLM, etc.)
+
+    Note: Google Gemini's OpenAI-compatible endpoint has SSE format
+    differences that cause empty responses with pi-mono. Use OpenAI
+    or an Anthropic-to-OpenAI proxy instead.
+
 Usage:
     cd scripts/openclaw_runner && npm install && cd ../..
 
+    # With OpenAI:
     UPSTREAM_URL=https://api.openai.com/v1 UPSTREAM_KEY=$OPENAI_API_KEY \\
+        PYTHONPATH=. python examples/openclaw_proxy_demo.py
+
+    # With any OpenAI-compatible endpoint:
+    UPSTREAM_URL=http://your-api/v1 UPSTREAM_KEY=your-key MODEL=model-name \\
         PYTHONPATH=. python examples/openclaw_proxy_demo.py
 """
 from __future__ import annotations
