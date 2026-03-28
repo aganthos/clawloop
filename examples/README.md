@@ -56,11 +56,11 @@ The agent requires **zero code changes** — just point `base_url` at the proxy.
 # Install pi-mono runner (one time)
 cd scripts/openclaw_runner && npm install && cd ../..
 
-# Run the demo (uses CLIProxyAPI → Haiku 4.5)
+# Run the demo (requires OPENAI_API_KEY in env)
 PYTHONPATH=. python examples/openclaw_proxy_demo.py
 
-# Or with your own upstream:
-UPSTREAM_URL=https://api.openai.com/v1 UPSTREAM_KEY=$OPENAI_API_KEY MODEL=gpt-4o-mini \
+# Or with any OpenAI-compatible upstream:
+UPSTREAM_URL=https://your-api.com/v1 UPSTREAM_KEY=sk-... MODEL=gpt-4o-mini \
     PYTHONPATH=. python examples/openclaw_proxy_demo.py
 ```
 
@@ -81,4 +81,4 @@ See [recipes/README.md](recipes/README.md) for details.
 | Math | Local Mac (Gemini) | Lambda A10 (Gemini + SkyRL) |
 | Harbor BFCL | Lambda (Gemini + Docker) | Lambda (Oracle + Docker + SkyRL) |
 | Entropic A2A | Local Mac (Gemini) | Lambda A10 (Gemini + SkyRL) |
-| OpenClaw Proxy | Local Mac (Haiku 4.5 via CLIProxy) | — |
+| OpenClaw Proxy | Local Mac (OpenAI / Anthropic) | — |

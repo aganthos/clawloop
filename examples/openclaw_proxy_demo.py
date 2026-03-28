@@ -13,11 +13,11 @@ Usage:
     # Install runner deps (one time)
     cd scripts/openclaw_runner && npm install && cd ../..
 
-    # Run the demo
+    # Run the demo (requires OPENAI_API_KEY in env)
     PYTHONPATH=. python examples/openclaw_proxy_demo.py
 
     # Or with a custom upstream:
-    UPSTREAM_URL=http://localhost:8317/v1 UPSTREAM_KEY=my-key MODEL=claude-haiku-4-5-20251001 \\
+    UPSTREAM_URL=https://your-api.com/v1 UPSTREAM_KEY=sk-... MODEL=gpt-4o-mini \\
         PYTHONPATH=. python examples/openclaw_proxy_demo.py
 
 Architecture:
@@ -79,9 +79,9 @@ def build_demo_harness() -> Harness:
 
 def main():
     # --- Config from env ---
-    upstream_url = os.environ.get("UPSTREAM_URL", "http://127.0.0.1:8317/v1")
-    upstream_key = os.environ.get("UPSTREAM_KEY", "kuhhandel-bench-key")
-    model = os.environ.get("MODEL", "claude-haiku-4-5-20251001")
+    upstream_url = os.environ.get("UPSTREAM_URL", "https://api.openai.com/v1")
+    upstream_key = os.environ.get("UPSTREAM_KEY", os.environ.get("OPENAI_API_KEY", ""))
+    model = os.environ.get("MODEL", "gpt-4o-mini")
     task_file = os.environ.get("TASKS", "examples/openclaw_tasks/base.jsonl")
 
     # --- Build components ---

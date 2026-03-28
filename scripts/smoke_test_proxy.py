@@ -1,10 +1,17 @@
 """Smoke test: run the ClawLoop proxy against a real LLM API.
 
-Usage:
-    PYTHONPATH=. python scripts/smoke_test_proxy.py
+PRIVATE — not synced to public clawloop repo (scripts/ not in .publicpaths).
 
-Requires OPENAI_API_KEY or GOOGLE_API_KEY in environment.
-NOT part of the public clawloop package — uses real API keys.
+Usage:
+    # Via CLIProxyAPI (preferred, free):
+    UPSTREAM_URL=http://127.0.0.1:8317/v1 UPSTREAM_KEY=kuhhandel-bench-key MODEL=claude-haiku-4-5-20251001 \
+        PYTHONPATH=. python scripts/smoke_test_proxy.py
+
+    # Via Gemini (free):
+    source .env && PYTHONPATH=. python scripts/smoke_test_proxy.py
+
+    # Via OpenAI:
+    PYTHONPATH=. python scripts/smoke_test_proxy.py
 """
 import json
 import os
@@ -25,19 +32,42 @@ from clawloop.proxy_config import ProxyConfig
 
 def _pick_upstream() -> tuple[str, str, str]:
     """Auto-detect which API to use from env vars."""
+    # Explicit override takes priority
+    if os.environ.get("UPSTREAM_URL"):
+        return (
+            os.environ["UPSTREAM_URL"],
+            os.environ.get("UPSTREAM_KEY", ""),
+            os.environ.get("MODEL", "gpt-4o-mini"),
+        )
+    # CLIProxyAPI (free, preferred for internal testing)
+    try:
+        import httpx
+        r = httpx.get("http://127.0.0.1:8317/v1/models",
+                       headers={"Authorization": "Bearer kuhhandel-bench-key"},
+                       timeout=2)
+        if r.status_code == 200:
+            return (
+                "http://127.0.0.1:8317/v1",
+                "kuhhandel-bench-key",
+                "claude-haiku-4-5-20251001",
+            )
+    except Exception:
+        pass
+    # Gemini (free)
+    if os.environ.get("GEMINI_API_KEY"):
+        return (
+            "https://generativelanguage.googleapis.com/v1beta/openai",
+            os.environ["GEMINI_API_KEY"],
+            "gemini-2.5-flash-lite",
+        )
+    # OpenAI
     if os.environ.get("OPENAI_API_KEY"):
         return (
             "https://api.openai.com/v1",
             os.environ["OPENAI_API_KEY"],
             "gpt-4o-mini",
         )
-    if os.environ.get("GOOGLE_API_KEY"):
-        return (
-            "https://generativelanguage.googleapis.com/v1beta/openai",
-            os.environ["GOOGLE_API_KEY"],
-            "gemini-2.0-flash-lite",
-        )
-    print("ERROR: Set OPENAI_API_KEY or GOOGLE_API_KEY")
+    print("ERROR: No API available. Start CLIProxyAPI, or set GEMINI_API_KEY or OPENAI_API_KEY")
     sys.exit(1)
 
 
