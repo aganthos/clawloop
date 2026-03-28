@@ -11,7 +11,9 @@ LICENSE
 pyproject.toml
 CONTRIBUTING.md
 CHANGELOG.md
-.gitignore
+
+# .gitignore is managed directly in the public repo (not synced).
+# The monorepo version contains private directory names.
 
 # benchmarks/ and .gitmodules are managed as submodules in the public repo,
 # not synced via rsync. Update them with: git submodule update --remote
