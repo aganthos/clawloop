@@ -141,6 +141,8 @@ def make_fb_info(
 
     Schema is versioned via info_version so clients can evolve.
     """
+    if status not in VALID_STATUSES:
+        raise ValueError(f"Invalid status {status!r}, must be one of {VALID_STATUSES}")
     info: dict[str, Any] = {
         "info_version": _INFO_VERSION,
         "status": status,
