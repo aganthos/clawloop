@@ -595,20 +595,6 @@ class Harness:
 
     # -- Layer protocol methods --
 
-    @staticmethod
-    def _extract_episode_tags(episodes: list[Any]) -> set[str]:
-        """Extract category/bench tags from episodes for insight tagging."""
-        tags: set[str] = set()
-        for ep in episodes:
-            if getattr(ep, "bench", None):
-                tags.add(ep.bench)
-            meta = getattr(ep, "metadata", None) or {}
-            for key in ("entropic_category", "car_category", "task_category"):
-                val = meta.get(key)
-                if val:
-                    tags.add(val)
-        return tags
-
     def _attribute_entries(self, episode: Any) -> list[PlaybookEntry]:
         """Return playbook entries relevant to this episode.
 
@@ -783,6 +769,9 @@ class Harness:
                 metrics.update(fb_info)
             except Exception:
                 log.exception("Evolver failed during forward_backward")
+            finally:
+                # Clear context to prevent stale reuse on next call
+                self._evolver_context = None
 
         return Future.immediate(FBResult(status="ok", metrics=metrics))
 
