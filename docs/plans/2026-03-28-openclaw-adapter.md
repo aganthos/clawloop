@@ -1,8 +1,8 @@
 # OpenClaw Adapter — LLM Proxy + pi-mono Integration
 
 **Date**: 2026-03-28
-**Status**: Draft
-**Codex review**: 2 rounds, approved with minor tweaks incorporated
+**Status**: Final
+**Codex review**: 3 rounds (NEEDS WORK → NEEDS WORK → NEEDS WORK, all issues addressed)
 
 ## Goal
 
@@ -25,35 +25,78 @@ integration layer.
 ## Architecture
 
 ```
-pi-mono Agent                ClawLoop Server              Upstream LLM
+pi-mono Agent                ClawLoop Proxy               Upstream LLM
     │                             │                            │
     ├─ POST /v1/chat/completions ─►│                            │
+    │   + X-ClawLoop-Run-Id header │                            │
     │                             ├─ inject skills into sysmsg ─┤
     │                             ├─ POST /v1/chat/completions ─►│
     │                             │◄─ SSE stream ───────────────┤
     │◄─ SSE stream (passthrough) ─┤                            │
-    │                             ├─ tee → EpisodeCollector     │
+    │                             ├─ store raw SSE events       │
     │                             │                            │
 ```
 
+## Deployment model
+
+- **Bench mode**: `ProxyApp` runs on `127.0.0.1` with an ephemeral port in a
+  background thread. Single process. No auth needed (localhost only).
+- **Live mode**: `ProxyApp` routes mounted on `clawloop-server` at `/v1`.
+  Auth (`proxy_key`) **required** in live mode. TLS termination handled by
+  reverse proxy (nginx/caddy) if exposed beyond localhost.
+
+Single-process deployment only (both modes). Multi-worker (gunicorn/uvicorn
+workers) is not supported in v1 — `turn_index` counters are in-process
+atomics. Document this constraint explicitly.
+
 ## Component 1: LLM Proxy (`clawloop/proxy.py`)
 
-Mounted at `/v1` on the existing `clawloop-server` Starlette app. Not a
-separate process.
+A reusable `ProxyApp` class that produces Starlette routes.
 
 ### Routes
 
 | Route | Purpose |
 |-------|---------|
-| `POST /v1/run/<run_id>/chat/completions` | Bench mode — adapter assigns run_id |
-| `POST /v1/chat/completions` | Live mode — session from header or `user` field |
-| `GET /v1/models` | Passthrough to upstream |
+| `POST /v1/chat/completions` | Proxy endpoint (both modes) |
+
+`GET /v1/models` deferred — not required by pi-mono for our use cases.
+
+### Session/episode correlation
+
+Precedence (first match wins):
+
+1. `X-ClawLoop-Run-Id` header (bench mode — set by Node runner)
+2. `X-ClawLoop-Session-Id` header (live mode — set by agent config)
+3. **Auto-generated session** (uuid4) if none of the above are present
+
+The OpenAI `user` field is **not** used for correlation — it is too coarse
+and unreliable across clients. It is stored as metadata only.
+
+The proxy never rejects for missing session ID. If no explicit ID is
+provided, a server-generated session is used and the turn is logged with
+`"attributed": false`. Unattributed turns are still trainable but cannot
+be correlated across requests — each gets its own single-turn Episode.
+
+This keeps the proxy truly drop-in for any OpenAI-compatible client.
+
+### Turn ordering
+
+Each proxied request gets a monotonic `turn_index` (per session/run_id,
+incremented via `threading.Lock` counter — single process only) assigned
+at **request arrival time**. A `timestamp_ns` (monotonic clock) is also
+stored. EpisodeCollector sorts turns by `(turn_index, timestamp_ns)` for
+deterministic sequencing even under concurrent requests.
+
+A "turn" is a single `/v1/chat/completions` request-response pair. Tool
+call loops (assistant → tool results → assistant) span multiple turns.
+The turn boundary is the HTTP request, not the logical conversation step.
 
 ### Skill injection
 
-Add a new leading system message (don't mutate the agent's system message):
+Prepend a new system message (don't mutate the agent's existing system
+message):
 
-```
+```json
 {"role": "system", "content": "<!-- clawloop-skills:v1 -->\n## Active Skills\n\n### backup-before-modify\n..."}
 ```
 
@@ -61,38 +104,97 @@ Add a new leading system message (don't mutate the agent's system message):
   on retries, don't duplicate).
 - New message, not mutation — preserves agent's original system prompt intact.
 - Skills retrieved from `agent_state.harness` using the configured bench name.
+- If no skills are active, no message is injected.
+
+**Training policy**: the injected skills message is **stripped** before
+ingestion into EpisodeCollector. The model should learn the agent's behavior,
+not the harness scaffolding. The harness layer manages skill content
+separately.
 
 ### Streaming
 
-Byte-for-byte SSE passthrough to the client. The proxy tees chunks into a
-buffer that reconstructs the final assistant message (including incremental
-tool call arguments). Buffer has a max size cap (default 512 KB per request)
-to prevent OOM on long streams. Truncated traces get a `"truncated": true`
-marker.
+Byte-for-byte SSE passthrough to the client. The proxy stores **raw SSE
+event bytes** into a per-request `bytearray` buffer. No inline
+reconstruction — that happens in a post-processing step after the stream
+ends.
 
-### Trace capture
+Buffer cap: 512 KB per request. If exceeded, remaining events are still
+passed through to the client but not stored. The turn is marked
+`"truncated": true`.
 
-When a response completes (SSE stream ends or non-streaming response returns):
+### Post-processing
 
-1. Reconstruct the full request messages + response message.
-2. Feed into `EpisodeCollector.ingest_external()` with:
-   - `bench`: configured bench name (e.g. `"openclaw"`)
-   - `session_id`: run_id (bench) or session header (live)
-   - `model`: from upstream response
-   - `usage`: from upstream response
-3. Multi-turn correlation: all requests sharing a run_id or session_id
-   accumulate into the same Episode. Episode is finalized when the process
-   exits (bench) or after a configurable idle timeout (live, default 5 min).
+Runs as a bounded `asyncio.Task` via `asyncio.Semaphore(max_post_process_tasks)`.
+When the semaphore is full, new tasks wait (bounded queue via the semaphore
+itself — no unbounded memory growth). If the post-processor crashes, the raw
+SSE buffer is persisted to disk as a `.sse.raw` file for later
+replay/debugging. The turn is marked `"post_process_failed": true` and
+treated as non-trainable.
 
-### Episode correlation
+**Raw file storage**: `runs/<bench>/<session_id>/` directory. Files named
+`<turn_index>_<timestamp>.sse.raw`. Max 10 MB per file (larger buffers
+truncated on write). Retention: cleaned up by adapter `teardown()` in bench
+mode; in live mode, retained until manual cleanup or configurable max age.
 
-| Mode | Identifier | Source |
-|------|-----------|--------|
-| Bench | `run_id` | URL path segment, assigned by adapter |
-| Live | `session_id` | `X-ClawLoop-Session-Id` header OR OpenAI `user` field |
+Steps:
+1. Apply `redaction_hook` (if configured) to request/response bodies before
+   any persistence — covers messages, tool args, error payloads.
+2. Parse raw SSE bytes into a complete assistant message (text content +
+   tool calls + usage).
+3. Strip the injected skills system message from the request messages.
+4. Feed into `EpisodeCollector.ingest_external()` with bench, session_id,
+   model, usage, turn_index.
 
-Live mode requires an explicit session identifier. No silent fallback to
-connection-based grouping — that breaks under concurrency.
+**Usage in streaming**: proxy adds `stream_options: {"include_usage": true}`
+to upstream requests only if `upstream_supports_stream_usage` config is true
+(default true, disable for non-OpenAI upstreams). If usage is missing from
+the response, the turn is ingested without token counts — not a blocker.
+
+### Cancellation and disconnect
+
+- **Client disconnects** mid-stream → cancel upstream request immediately
+  (close `httpx` response) to avoid burning tokens. Partially buffered trace
+  marked `"partial": true`.
+- **Upstream fails** (connection error, timeout, 5xx) → return error to
+  client transparently. No proxy-level retry. Partial traces discarded.
+
+### Upstream timeouts
+
+Connect timeout 10s, read timeout 120s (configurable via `ProxyConfig`).
+No proxy-level retry — client handles retries.
+
+### Do-not-train signal
+
+Clients can send `X-ClawLoop-No-Train: 1` header on any request. The turn
+is captured for observability but excluded from training. Use case: debug
+requests, sensitive data, manual testing.
+
+### Episode finalization
+
+| Mode | Trigger |
+|------|---------|
+| Bench | Adapter calls `collector.finalize_episode(run_id)` after subprocess exits |
+| Live | Idle timeout (configurable, default 5 min since last turn) |
+
+Bench finalization is explicit and deterministic — no timers, no races.
+
+### Trainability rules
+
+Non-trainable turn states: `truncated`, `partial`, `post_process_failed`,
+`no_train_header`. Enforced centrally in `EpisodeCollector`.
+
+**Trainable-prefix policy**: an Episode with non-trainable turns is not
+entirely discarded. Instead, the Episode is split at the first non-trainable
+turn. The prefix (all turns before the failure) is trainable if it contains
+at least one complete request-response pair (user messages + complete
+assistant response). The suffix is stored for observability only. This
+avoids throwing away good early turns when a late timeout or disconnect
+occurs.
+
+A "turn" for trainability purposes is a single `/v1/chat/completions`
+request-response pair — not a logical conversation step. Tool-call loops
+(assistant with tool_calls → tool results → assistant final) span multiple
+turns. The split point is always between complete request-response pairs.
 
 ### Config
 
@@ -101,20 +203,35 @@ class ProxyConfig(BaseModel):
     upstream_url: str           # e.g. "https://api.openai.com/v1"
     upstream_api_key: SecretStr
     bench: str = "openclaw"
-    port: int = 8400            # same as clawloop-server default
-    proxy_key: str = ""         # optional shared secret (CLAWLOOP_PROXY_KEY)
+    proxy_key: str = ""         # required in live mode, optional in bench
     max_tee_bytes: int = 524288 # 512 KB
     live_idle_timeout_s: int = 300
+    upstream_connect_timeout_s: float = 10.0
+    upstream_read_timeout_s: float = 120.0
+    upstream_supports_stream_usage: bool = True
+    max_post_process_tasks: int = 8
 ```
+
+No `port` field — bench mode uses ephemeral port (OS-assigned), live mode
+inherits from clawloop-server config.
 
 ### Security
 
-- Bind `127.0.0.1` only by default.
-- If `proxy_key` is set, enforce on all `/v1/*` routes via
-  `Authorization: Bearer <key>` check.
-- Redact `Authorization` headers and API keys from trace logs.
-- Skill content visible to the model — same trust boundary as any system
-  prompt. No secrets in playbook entries.
+- Bench mode: bind `127.0.0.1` only. `X-ClawLoop-Run-Id` required on all
+  requests (rejects without it) to prevent accidental cross-process
+  contamination on shared hosts.
+- Live mode: `proxy_key` **required** (enforced at startup). Auth via
+  `Authorization: Bearer <key>` on all `/v1/*` routes.
+- Redact `Authorization` headers and API keys from stored traces.
+- `upstream_url` validated at config time: must be https (or http localhost
+  for dev). No per-request override. Redirects disabled on upstream
+  httpx client. `HTTP_PROXY`/`HTTPS_PROXY` env vars ignored by the upstream
+  httpx client (explicit `trust_env=False`).
+- Truncated/partial traces excluded from training.
+- PII in messages/tool args: `redaction_hook` (optional callable) applied
+  to request/response bodies before any persistence. If not configured,
+  data is stored as-is (same trust boundary as existing clawloop-server
+  `/ingest`).
 
 ## Component 2: Environment Adapter (`clawloop/adapters/openclaw.py`)
 
@@ -124,19 +241,18 @@ class ProxyConfig(BaseModel):
 
 **`setup(config)`**
 - Validates config (upstream URL, runner script path, task file).
-- Starts a lightweight Starlette server with the proxy routes mounted.
-  In bench mode the adapter owns the server lifecycle (start in setup,
-  stop on teardown). In live mode the same proxy routes are mounted on
-  the existing clawloop-server instead.
+- Creates a `ProxyApp` instance and starts it on an ephemeral port in a
+  background thread. Stores the assigned port for runner base_url
+  construction.
 
 **`run_episode(task, agent_state)`**
-- Generates a unique `run_id`.
+- Generates a unique `run_id` (uuid4 hex).
 - Spawns the Node runner as a subprocess:
-  `node scripts/openclaw_runner.js --base-url http://127.0.0.1:PORT/v1/run/RUN_ID`
+  `node scripts/openclaw_runner.js --base-url http://127.0.0.1:PORT/v1 --run-id RUN_ID`
 - Writes task JSON to stdin, reads result JSON from stdout.
 - Hard timeout (configurable, default 120s). On timeout, kills the entire
-  process tree (`os.killpg`).
-- Collects the Episode from EpisodeCollector (keyed by run_id).
+  process group (`os.killpg` — Unix only, documented).
+- Calls `collector.finalize_episode(run_id)` to seal the Episode.
 - Returns Episode.
 
 **`list_tasks(split)`**
@@ -144,10 +260,13 @@ class ProxyConfig(BaseModel):
 - Split maps to file: `tasks/<split>.jsonl`.
 
 **`get_traces(episode)`**
-- Returns the raw proxy log entries for the episode's run_id.
+- Returns the raw SSE event log for the episode's run_id.
 
 **`run_batch(agent_state, task_ids)`**
 - Default sequential (inherited). Can override for parallel later if needed.
+
+**`teardown()`**
+- Stops the background proxy server.
 
 ### Config
 
@@ -161,7 +280,7 @@ class OpenClawAdapterConfig(BaseModel):
 
 ## Component 3: Node Runner (`scripts/openclaw_runner.js`)
 
-Thin script, our code, not a pi-mono fork. ~50 lines.
+Thin script, our code, not a pi-mono fork. ~60 lines.
 
 ```
 stdin  → {"task_id": "abc", "instruction": "Fix the login bug in auth.py"}
@@ -171,13 +290,22 @@ stderr → debug/error logs (captured by Python adapter)
 
 The runner:
 1. Reads task JSON from stdin.
-2. Creates a pi-mono `Agent` with `base_url` pointing at the proxy URL
-   (passed via `--base-url` CLI arg).
-3. Sets system prompt from task instruction.
-4. Calls `agent.prompt(task.instruction)`.
-5. Waits for completion (`agent.waitForIdle()`).
-6. Writes result JSON to stdout.
-7. Exits (code 0 on success, 1 on error).
+2. Parses `--base-url` and `--run-id` from CLI args.
+3. Creates a pi-mono `Agent` with the OpenAI provider pointed at the proxy
+   base_url. Adds `X-ClawLoop-Run-Id` as a default header on every request.
+4. Sets system prompt from task instruction.
+5. Calls `agent.prompt(task.instruction)`.
+6. Waits for completion (`agent.waitForIdle()`).
+7. Writes result JSON to stdout.
+8. Exits (code 0 on success, 1 on error).
+
+The `X-ClawLoop-Run-Id` header is set via pi-mono's `headers` option on the
+model config — no pi-mono source changes needed:
+```js
+const model = getModel("openai", "gpt-4o");
+model.baseUrl = baseUrl;
+model.headers = { "X-ClawLoop-Run-Id": runId };
+```
 
 Dependencies: `@mariozechner/pi-agent-core`, `@mariozechner/pi-ai`.
 Installed via `npm install` in the runner's directory.
@@ -186,10 +314,13 @@ Installed via `npm install` in the runner's directory.
 
 - No pi-mono TypeScript plugin or event listener (richer tool traces can be
   added later as an optional upgrade).
-- No Anthropic `/v1/messages` endpoint — pi-mono can use the OpenAI provider.
+- No Anthropic `/v1/messages` endpoint — pi-mono uses the OpenAI provider.
 - No hot LoRA swap in the proxy — the weights layer handles that separately.
-- No standalone proxy mode — it's mounted on clawloop-server.
-- No connection-based session fallback — require explicit IDs.
+- No standalone proxy CLI entrypoint — not needed yet.
+- No `GET /v1/models` — deferred, not needed for pi-mono integration.
+- No proxy-level retry — client handles retries.
+- No multi-worker deployment — single process only in v1.
+- No Windows support for subprocess kill (`os.killpg` is Unix-specific).
 
 ## Registration in train.py
 
@@ -207,9 +338,15 @@ ENV_BUILDERS = {
 ## Testing
 
 - Unit tests for proxy: skill injection, streaming passthrough, trace capture,
-  idempotent injection, session correlation.
+  idempotent injection, session correlation (all 4 precedence levels),
+  truncation exclusion, client disconnect cancellation, partial stream
+  handling, turn ordering, do-not-train header, auto-generated sessions.
 - Unit tests for adapter: subprocess lifecycle, timeout handling, JSONL
-  parsing, Episode collection.
+  parsing, Episode finalization.
+- Unit tests for SSE post-processor: reconstruct assistant message from raw
+  events, handle partial tool call deltas, handle missing usage,
+  post-processor crash → raw file persistence.
+- Unit tests for trainable-prefix splitting.
 - Integration test: proxy + mock upstream + adapter + runner script
   (end-to-end).
 - No real pi-mono dependency in unit tests — mock the Node subprocess.
