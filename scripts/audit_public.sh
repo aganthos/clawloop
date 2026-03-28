@@ -37,7 +37,18 @@ if [[ -n "$MATCHES" ]]; then
     ERRORS=$((ERRORS + 1))
 fi
 
-# 4. No symlinks pointing outside public tree
+# 4. No residual lfx branding in public Python code
+#    Allows: variable names referencing external scripts (e.g., lfx_server in car.py)
+MATCHES=$(grep -rn --include="*.py" -iw 'lfx' clawloop/ tests/ examples/ 2>/dev/null \
+    | grep -v '\.claude/' \
+    | grep -v 'Legacy filename in external' || true)
+if [[ -n "$MATCHES" ]]; then
+    echo "FAIL: Residual lfx branding found in public code"
+    echo "$MATCHES"
+    ERRORS=$((ERRORS + 1))
+fi
+
+# 5. No symlinks pointing outside public tree
 while IFS= read -r link; do
     target="$(readlink "$link")"
     if [[ "$target" == *enterprise* || "$target" == *docs/* || "$target" == *pitch/* ]]; then
@@ -46,7 +57,7 @@ while IFS= read -r link; do
     fi
 done < <(find clawloop tests examples -type l 2>/dev/null || true)
 
-# 5. Build and inspect package for leaks
+# 6. Build and inspect package for leaks
 rm -rf dist/
 python -m build --sdist --wheel 2>/dev/null
 python3 -c "

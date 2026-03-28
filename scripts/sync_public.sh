@@ -33,6 +33,8 @@ while IFS= read -r p; do
             --exclude "*.pyc" \
             --exclude ".git" \
             --exclude ".claude" \
+            --exclude ".env*" \
+            --exclude "*.lock" \
             --max-size=50M \
             "$REPO_ROOT/$p/" "$STAGING/$p/"
     elif [[ -f "$REPO_ROOT/$p" ]]; then
@@ -69,6 +71,7 @@ cd "$REPO_ROOT"
 rsync -a --delete \
     --exclude ".git" \
     --exclude ".github" \
+    --exclude ".gitignore" \
     --exclude ".gitmodules" \
     --exclude "benchmarks" \
     "$STAGING/" "$PUBLIC_REPO/"

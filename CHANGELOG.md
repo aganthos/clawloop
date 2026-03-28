@@ -10,4 +10,4 @@ Initial public release.
 - Benchmark adapters: CRM Arena, tau2-bench (stub), Harbor
 - SkyRL backend for LoRA/GRPO training
 - OTel/OpenInference export
-- n8n integration server
+- HTTP integration server
