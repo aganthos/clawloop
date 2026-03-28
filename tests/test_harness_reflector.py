@@ -5,6 +5,7 @@ import json
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
 from clawloop.core.reflector import Reflector
 from clawloop.core.types import Datum
+from clawloop.evolvers.local import LocalEvolver
 from clawloop.layers.harness import Harness, PlaybookEntry
 from clawloop.llm import MockLLMClient
 
@@ -38,10 +39,10 @@ def _valid_insight_json() -> str:
 
 class TestHarnessReflector:
     def test_forward_backward_with_reflector_accumulates_insights(self) -> None:
-        """Harness(reflector=reflector) + forward_backward -> _pending.insights has the insight."""
+        """Harness(evolver=...) + forward_backward -> _pending.insights has the insight."""
         client = MockLLMClient(responses=[_valid_insight_json()])
         reflector = Reflector(client=client)
-        h = Harness(reflector=reflector)
+        h = Harness(evolver=LocalEvolver(reflector=reflector))
 
         datum = Datum(episodes=[_make_episode()])
         result = h.forward_backward(datum).result()
@@ -55,7 +56,7 @@ class TestHarnessReflector:
         """forward_backward then optim_step -> playbook has the new entry."""
         client = MockLLMClient(responses=[_valid_insight_json()])
         reflector = Reflector(client=client)
-        h = Harness(reflector=reflector)
+        h = Harness(evolver=LocalEvolver(reflector=reflector))
 
         datum = Datum(episodes=[_make_episode()])
         h.forward_backward(datum)
@@ -72,7 +73,7 @@ class TestHarnessReflector:
         assert "verify input format" in h.playbook.entries[0].content
 
     def test_forward_backward_without_reflector_still_works(self) -> None:
-        """Harness() (no reflector) with existing playbook entry -> still counts signals."""
+        """Harness() (no evolver) with existing playbook entry -> still counts signals."""
         h = Harness()
         h.playbook.add(PlaybookEntry(id="s-1", content="Check arithmetic"))
 
@@ -86,12 +87,12 @@ class TestHarnessReflector:
         assert "insights_generated" not in result.metrics
 
     def test_forward_backward_no_mutation_with_reflector(self) -> None:
-        """to_dict() before and after forward_backward must be identical (the core contract)."""
+        """Harness state (to_dict()) before and after forward_backward must be identical (the core contract)."""
         client = MockLLMClient(responses=[_valid_insight_json()])
         reflector = Reflector(client=client)
         h = Harness(
             system_prompts={"math": "Solve problems"},
-            reflector=reflector,
+            evolver=LocalEvolver(reflector=reflector),
         )
         h.playbook.add(PlaybookEntry(id="s-1", content="Check work", helpful=2))
 
@@ -105,7 +106,7 @@ class TestHarnessReflector:
         """MockLLMClient returns invalid JSON -> forward_backward still returns ok, no insights."""
         client = MockLLMClient(responses=["INVALID JSON!!!"])
         reflector = Reflector(client=client)
-        h = Harness(reflector=reflector)
+        h = Harness(evolver=LocalEvolver(reflector=reflector))
 
         datum = Datum(episodes=[_make_episode()])
         result = h.forward_backward(datum).result()
@@ -121,7 +122,7 @@ class TestHarnessReflector:
         reflector = Reflector(client=client)
         h = Harness(
             system_prompts={"math": "Solve problems carefully."},
-            reflector=reflector,
+            evolver=LocalEvolver(reflector=reflector),
         )
 
         datum = Datum(episodes=[_make_episode()])

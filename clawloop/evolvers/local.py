@@ -56,6 +56,13 @@ class LocalEvolver:
                 for i in range(0, len(episodes), batch_sz):
                     batch = episodes[i : i + batch_sz]
                     batch_insights = self.reflector.reflect(batch, playbook)
+                    # Auto-tag insights with source episode metadata for
+                    # cleaner attribution when using per-sample reflection.
+                    if batch_sz <= 2 and batch_insights:
+                        ep_tags = self._extract_episode_tags(batch)
+                        for insight in batch_insights:
+                            existing = set(insight.tags) if insight.tags else set()
+                            insight.tags = list(existing | ep_tags)
                     insights.extend(batch_insights)
             except Exception:
                 log.exception("Reflector failed in LocalEvolver")
@@ -99,6 +106,20 @@ class LocalEvolver:
             run_id="",
             provenance=Provenance(backend="local"),
         )
+
+    @staticmethod
+    def _extract_episode_tags(episodes: list[Episode]) -> set[str]:
+        """Extract category/bench tags from episodes for insight tagging."""
+        tags: set[str] = set()
+        for ep in episodes:
+            if getattr(ep, "bench", None):
+                tags.add(ep.bench)
+            meta = getattr(ep, "metadata", None) or {}
+            for key in ("entropic_category", "car_category", "task_category"):
+                val = meta.get(key)
+                if val:
+                    tags.add(val)
+        return tags
 
     def _rebuild_playbook(self, state: HarnessSnapshot) -> Playbook:
         """Reconstruct a Playbook from snapshot entries for sub-components."""

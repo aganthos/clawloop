@@ -362,6 +362,7 @@ class _HarnessPending:
     insights: list[Insight] = field(default_factory=list)
     candidates: dict[str, list[PromptCandidate]] = field(default_factory=dict)
     activated_entries: set[str] = field(default_factory=set)  # entry IDs to update last_activated
+    deprecation_targets: list[str] = field(default_factory=list)  # entry IDs for paradigm decay
 
 
 # -- Harness layer --
@@ -401,11 +402,15 @@ class Harness:
     # Incremented on structural playbook changes (insights applied, not just score updates)
     playbook_generation: int = 0
 
-    # Optional Reflector for LLM-based trace analysis during forward_backward
-    reflector: Any | None = field(default=None, repr=False)
+    # Optional Evolver for unified optimization during forward_backward
+    # (replaces the old reflector= slot — wraps Reflector + GEPA + Paradigm)
+    evolver: Any | None = field(default=None, repr=False)
 
     # Optional PlaybookCurator for retrieve-classify-revise pipeline
     _curator: Any | None = field(default=None, repr=False)
+
+    # Evolver context set by the loop before forward_backward
+    _evolver_context: Any | None = field(default=None, repr=False)
 
     def system_prompt(self, bench: str, task_tags: set[str] | None = None) -> str:
         """Resolve the system prompt for a bench, including playbook.
@@ -668,6 +673,46 @@ class Harness:
         # Fallback: all active entries
         return active
 
+    # -- Evolver helpers --
+
+    def set_evolver_context(self, ctx: Any) -> None:
+        """Set the EvolverContext for the next forward_backward call."""
+        self._evolver_context = ctx
+
+    def _build_snapshot(self) -> Any:
+        """Build a HarnessSnapshot from current state for the Evolver."""
+        from clawloop.core.evolver import HarnessSnapshot
+
+        return HarnessSnapshot(
+            system_prompts=dict(self.system_prompts),
+            playbook_entries=[e.to_dict() for e in self.playbook.entries],
+            pareto_fronts={
+                bench: [c.to_dict() for c in front.candidates]
+                for bench, front in self.pareto_fronts.items()
+            },
+            playbook_generation=self.playbook_generation,
+            playbook_version=self.playbook_version,
+        )
+
+    # -- Management methods (stubs for local, rich for cloud) --
+
+    def evolution_summary(self, run_id: str = "") -> dict[str, Any]:
+        """Return summary of last/current evolution."""
+        return {"backend": self.evolver.name() if self.evolver else "none"}
+
+    def get_candidates(self, bench: str = "") -> list[dict[str, Any]]:
+        """Return current Pareto front candidates for inspection."""
+        if bench and bench in self.pareto_fronts:
+            return [
+                {"text": c.text, "scores": c.per_task_scores}
+                for c in self.pareto_fronts[bench].candidates
+            ]
+        return []
+
+    def cancel(self, run_id: str = "") -> bool:
+        """Cancel a running evolution. No-op for local evolvers."""
+        return False
+
     def forward_backward(self, data: Datum) -> Future[FBResult]:
         """Analyse episodes and accumulate signals without mutating observable state.
 
@@ -706,30 +751,38 @@ class Harness:
             "stale_skipped": stale_skipped,
         }
 
-        # Reflector: analyse traces and accumulate insights.
-        # Batch size controls the noise/signal tradeoff (TextGrad analogy):
-        #   batch=1  → per-sample reflection (Reflexion-style, clean gradients)
-        #   batch=N  → mini-batch reflection (TextGrad-style, lower variance)
-        if self.reflector is not None:
+        # Evolver: unified optimization (reflector + GEPA + paradigm).
+        if self.evolver is not None:
             try:
-                batch_sz = self.reflector.config.reflection_batch_size
-                episodes = data.episodes
-                total_insights: list[Any] = []
-                for i in range(0, len(episodes), batch_sz):
-                    batch = episodes[i : i + batch_sz]
-                    batch_insights = self.reflector.reflect(batch, self.playbook)
-                    # Auto-tag insights with source episode metadata for
-                    # cleaner attribution when using per-sample reflection.
-                    if batch_sz <= 2 and batch_insights:
-                        ep_tags = self._extract_episode_tags(batch)
-                        for insight in batch_insights:
-                            existing = set(insight.tags) if insight.tags else set()
-                            insight.tags = list(existing | ep_tags)
-                    total_insights.extend(batch_insights)
-                self._pending.insights.extend(total_insights)
-                metrics["insights_generated"] = len(total_insights)
+                from clawloop.core.evolver import EvolverContext, make_fb_info
+
+                snapshot = self._build_snapshot()
+                ctx = self._evolver_context or EvolverContext()
+                evolver_result = self.evolver.evolve(data.episodes, snapshot, ctx)
+
+                # Merge evolver results into pending
+                self._pending.insights.extend(evolver_result.insights)
+                for bench, cands in evolver_result.candidates.items():
+                    self._pending.candidates.setdefault(bench, []).extend(cands)
+                if evolver_result.deprecation_targets:
+                    self._pending.deprecation_targets.extend(evolver_result.deprecation_targets)
+
+                metrics["insights_generated"] = len(evolver_result.insights)
+                metrics["candidates_generated"] = sum(
+                    len(c) for c in evolver_result.candidates.values()
+                )
+                metrics["paradigm_shifted"] = evolver_result.paradigm_shift
+
+                fb_info = make_fb_info(
+                    status="ok",
+                    run_id=evolver_result.run_id,
+                    candidates_tested=metrics["candidates_generated"],
+                    paradigm_shifted=evolver_result.paradigm_shift,
+                    backend=evolver_result.provenance.backend,
+                )
+                metrics.update(fb_info)
             except Exception:
-                log.exception("Reflector failed during forward_backward")
+                log.exception("Evolver failed during forward_backward")
 
         return Future.immediate(FBResult(status="ok", metrics=metrics))
 
@@ -743,8 +796,9 @@ class Harness:
         has_signals = bool(pending.playbook_signals)
         has_insights = bool(pending.insights)
         has_candidates = bool(pending.candidates)
+        has_deprecation = bool(pending.deprecation_targets)
 
-        if not (has_signals or has_insights or has_candidates):
+        if not (has_signals or has_insights or has_candidates or has_deprecation):
             return Future.immediate(OptimResult(status="ok", updates_applied=0))
 
         # Snapshot for rollback
@@ -775,6 +829,15 @@ class Harness:
                 for candidate in candidates:
                     self.update_pareto(bench, candidate)
                     updates += 1
+
+            # Apply paradigm deprecation: increase decay on targeted entries
+            if pending.deprecation_targets:
+                deprecation_decay = 0.05
+                target_set = set(pending.deprecation_targets)
+                for entry in self.playbook.entries:
+                    if entry.id in target_set:
+                        entry.decay_rate = max(entry.decay_rate, deprecation_decay)
+                        updates += 1
 
             # Auto-prune entries with sustained negative score
             # Only prune entries that have enough signal (helpful+harmful >= 3)

@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 from clawloop.core.episode import Episode, EpisodeSummary, Message
 from clawloop.core.loop import AgentState
 from clawloop.core.reflector import Reflector, ReflectorConfig
+from clawloop.evolvers.local import LocalEvolver
 from clawloop.core.types import FBResult, Future, OptimResult
 from clawloop.layers.harness import Harness, Playbook, PlaybookEntry
 from clawloop.learner import AsyncLearner
@@ -269,7 +270,7 @@ class TestAsyncLearner:
         reflector = Reflector(client=client, config=ReflectorConfig())
         harness = Harness(
             system_prompts={"live": "You are helpful."},
-            reflector=reflector,
+            evolver=LocalEvolver(reflector=reflector),
         )
         state = AgentState(harness=harness)
         learner = AsyncLearner(
