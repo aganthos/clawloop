@@ -126,6 +126,15 @@ class OpenClawAdapter(EnvAdapter):
 
         log.info("Proxy started on port %d → %s", self._proxy_port, upstream_url)
 
+    def set_harness(self, harness: Any) -> None:
+        """Inject the harness for skill injection (called after setup).
+
+        In the training loop, the Harness is constructed after the adapter.
+        Call this before run_episode() to enable skill injection.
+        """
+        if self._proxy is not None:
+            self._proxy.harness = harness
+
     def run_episode(self, task: Any, agent_state: Any) -> Episode:
         run_id = uuid4().hex
         task_json = json.dumps(task).encode()
