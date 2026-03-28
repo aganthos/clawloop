@@ -103,11 +103,14 @@ def make_episode(
 def main() -> None:
     import os
 
-    # Connect to an LLM — uses CLIProxyAPI by default, override with env vars
+    # Connect to an LLM — configure via environment variables:
+    #   CLAWLOOP_MODEL    — litellm model string (e.g. "gemini/gemini-2.0-flash-lite")
+    #   CLAWLOOP_API_BASE — optional API base URL
+    #   CLAWLOOP_API_KEY  — optional API key (or use provider-specific env vars)
     llm = LiteLLMClient(
-        model=os.environ.get("CLAWLOOP_MODEL", "openai/claude-haiku-4-5-20251001"),
-        api_base=os.environ.get("CLAWLOOP_API_BASE", "http://127.0.0.1:8317/v1"),
-        api_key=os.environ.get("CLAWLOOP_API_KEY", ""),
+        model=os.environ.get("CLAWLOOP_MODEL", "gemini/gemini-2.0-flash-lite"),
+        api_base=os.environ.get("CLAWLOOP_API_BASE") or None,
+        api_key=os.environ.get("CLAWLOOP_API_KEY") or None,
     )
 
     # ┌─────────────────────────────────────────────────────────┐
