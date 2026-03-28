@@ -1,4 +1,4 @@
-# Ressources Folder
+# Resources Folder
 
 When working on slides, presentations, or pitch decks in this folder, use the `/frontend-slides` skill for creating or converting HTML presentations. This skill provides curated design presets, PowerPoint import, and animation-rich single-file HTML output.
 
@@ -15,7 +15,7 @@ This monorepo contains both public (community) and private (enterprise) code.
 ### Directory classification
 - `clawloop/`, `tests/`, `examples/` → **PUBLIC** (synced to github.com/aganthos/clawloop)
 - `enterprise_clawloop/` → **PRIVATE** (proprietary algorithms, never published)
-- Everything else (`docs/`, `pitch/`, `configs/`, `benchmarks/`, `ressources/`, `scripts/`) → **PRIVATE**
+- Everything else (`docs/`, `pitch/`, `configs/`, `benchmarks/`, `resources/`, `scripts/`) → **PRIVATE**
 
 ### Rules for coding agents
 1. Code in `clawloop/` must NEVER import from `enterprise_clawloop/`

@@ -1421,7 +1421,7 @@
                 <div style="flex:0 0 clamp(100px,12vw,160px);background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:8px;padding:clamp(8px,1vh,14px) clamp(6px,0.8vw,12px);display:flex;flex-direction:column;justify-content:center;text-align:center;">
                     <div style="font-weight:700;color:var(--text-primary);font-size:var(--small-size);margin-bottom:clamp(2px,0.3vh,4px);">Community</div>
                     <div style="font-family:monospace;font-size:var(--label-size);color:var(--text-secondary);margin-bottom:clamp(4px,0.5vh,6px);">pip install clawloop</div>
-                    <div style="font-size:clamp(0.4rem,0.55vw,0.6rem);color:var(--text-muted);line-height:1.5;">Free<br>Non-commercial license<br>Self-hosted<br>Full source</div>
+                    <div style="font-size:clamp(0.4rem,0.55vw,0.6rem);color:var(--text-muted);line-height:1.6;">Free &amp; open-source<br>Non-commercial license<br>All three layers<br>Self-hosted</div>
                 </div>
                 <!-- CENTER: Architecture diagram -->
                 <div style="flex:1;display:flex;flex-direction:column;gap:clamp(4px,0.6vh,8px);">
@@ -1438,11 +1438,10 @@
                             <span style="font-weight:700;font-size:var(--label-size);color:#1ab7ea;font-family:monospace;">litellm</span>
                         </div>
                         <div style="display:flex;align-items:center;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:20px;padding:clamp(2px,0.3vh,4px) clamp(8px,1vw,14px);">
-                            <span style="font-size:clamp(0.55rem,0.7vw,0.8rem);">&#x1F99C;</span>
-                            <span style="font-weight:600;font-size:var(--label-size);color:var(--text-secondary);margin-left:2px;">LangChain</span>
+                            <span style="font-weight:600;font-size:var(--label-size);color:var(--text-secondary);">CrewAI</span>
                         </div>
                         <div style="display:flex;align-items:center;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:20px;padding:clamp(2px,0.3vh,4px) clamp(8px,1vw,14px);">
-                            <span style="font-weight:600;font-size:var(--label-size);color:var(--text-secondary);">CrewAI</span>
+                            <span style="font-weight:600;font-size:var(--label-size);color:var(--text-secondary);">any LLM client</span>
                         </div>
                     </div>
                     <!-- Down arrow -->
@@ -1453,7 +1452,7 @@
                         <div style="display:flex;gap:clamp(4px,0.5vw,8px);">
                             <div style="flex:1;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:5px;padding:clamp(4px,0.5vh,8px) clamp(4px,0.5vw,8px);text-align:center;">
                                 <div style="font-weight:700;color:var(--text-primary);font-size:var(--label-size);">Harness</div>
-                                <div style="font-size:clamp(0.38rem,0.48vw,0.52rem);color:var(--text-muted);">Prompt &amp; playbook evolution</div>
+                                <div style="font-size:clamp(0.38rem,0.48vw,0.52rem);color:var(--text-muted);">Prompt &amp; memory evolution</div>
                             </div>
                             <div style="flex:1;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:5px;padding:clamp(4px,0.5vh,8px) clamp(4px,0.5vw,8px);text-align:center;">
                                 <div style="font-weight:700;color:var(--text-primary);font-size:var(--label-size);">Router</div>
@@ -1461,7 +1460,7 @@
                             </div>
                             <div style="flex:1;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:5px;padding:clamp(4px,0.5vh,8px) clamp(4px,0.5vw,8px);text-align:center;">
                                 <div style="font-weight:700;color:var(--text-primary);font-size:var(--label-size);">Weights</div>
-                                <div style="font-size:clamp(0.38rem,0.48vw,0.52rem);color:var(--text-muted);">LoRA / GRPO fine-tuning</div>
+                                <div style="font-size:clamp(0.38rem,0.48vw,0.52rem);color:var(--text-muted);">Fine-tuning via SkyRL</div>
                             </div>
                         </div>
                     </div>
@@ -1470,23 +1469,23 @@
                     <!-- Data sources with code snippets -->
                     <div style="display:flex;gap:clamp(6px,0.8vw,12px);">
                         <div style="flex:1;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:6px;padding:clamp(5px,0.6vh,8px) clamp(8px,1vw,14px);overflow:hidden;">
-                            <div style="font-weight:700;color:var(--text-primary);font-size:var(--label-size);margin-bottom:clamp(2px,0.3vh,4px);">Environment Replay</div>
-                            <div style="font-size:clamp(0.4rem,0.5vw,0.55rem);color:var(--text-secondary);margin-bottom:clamp(3px,0.4vh,6px);"><strong>SkyRL</strong> &bull; <strong>Harbor</strong> &mdash; RL fine-tuning from episodes</div>
+                            <div style="font-weight:700;color:var(--text-primary);font-size:var(--label-size);margin-bottom:clamp(2px,0.3vh,4px);">Environments</div>
+                            <div style="font-size:clamp(0.4rem,0.5vw,0.55rem);color:var(--text-secondary);margin-bottom:clamp(3px,0.4vh,6px);">Agent interacts with a sandbox, gets reward signals, learns by exploring</div>
                             <div style="background:rgba(0,0,0,0.35);border-radius:4px;padding:clamp(4px,0.4vh,6px) clamp(6px,0.7vw,10px);font-family:'JetBrains Mono','Fira Code',monospace;font-size:clamp(0.38rem,0.5vw,0.58rem);line-height:1.55;">
                                 <div><span style="color:var(--text-primary);">learner</span> = clawloop.<span style="color:var(--accent-warm);">AsyncLearner</span>(</div>
-                                <div>&nbsp;&nbsp;layers=[<span style="color:#e8a87c;">"weights"</span>],</div>
+                                <div>&nbsp;&nbsp;layers=[<span style="color:#e8a87c;">"weights"</span>, <span style="color:#e8a87c;">"harness"</span>],</div>
                                 <div>&nbsp;&nbsp;backend=<span style="color:#e8a87c;">"harbor"</span>)</div>
-                                <div><span style="color:var(--text-primary);">learner</span>.<span style="color:var(--accent-warm);">start</span>() <span style="color:var(--text-muted);"># all Tinker scripts work</span></div>
+                                <div><span style="color:var(--text-primary);">learner</span>.<span style="color:var(--accent-warm);">start</span>() <span style="color:var(--text-muted);"># Tinker-compatible</span></div>
                             </div>
                         </div>
                         <div style="flex:1;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:6px;padding:clamp(5px,0.6vh,8px) clamp(8px,1vw,14px);overflow:hidden;">
                             <div style="font-weight:700;color:var(--text-primary);font-size:var(--label-size);margin-bottom:clamp(2px,0.3vh,4px);">Production Traces</div>
-                            <div style="font-size:clamp(0.4rem,0.5vw,0.55rem);color:var(--text-secondary);margin-bottom:clamp(3px,0.4vh,6px);"><strong>OpenTelemetry</strong> &bull; <strong>OpenInference</strong> &bull; <strong>Langfuse</strong></div>
+                            <div style="font-size:clamp(0.4rem,0.5vw,0.55rem);color:var(--text-secondary);margin-bottom:clamp(3px,0.4vh,6px);">Learns from real outcomes and user feedback on live agents</div>
                             <div style="background:rgba(0,0,0,0.35);border-radius:4px;padding:clamp(4px,0.4vh,6px) clamp(6px,0.7vw,10px);font-family:'JetBrains Mono','Fira Code',monospace;font-size:clamp(0.38rem,0.5vw,0.58rem);line-height:1.55;">
                                 <div><span style="color:var(--text-primary);">learner</span> = clawloop.<span style="color:var(--accent-warm);">AsyncLearner</span>(</div>
                                 <div>&nbsp;&nbsp;layers=[<span style="color:#e8a87c;">"harness"</span>],</div>
                                 <div>&nbsp;&nbsp;collector=<span style="color:var(--text-primary);">otel_collector</span>)</div>
-                                <div><span style="color:var(--text-primary);">learner</span>.<span style="color:var(--accent-warm);">start</span>() <span style="color:var(--text-muted);"># learns live in background</span></div>
+                                <div><span style="color:var(--text-primary);">learner</span>.<span style="color:var(--accent-warm);">start</span>() <span style="color:var(--text-muted);"># learns in background</span></div>
                             </div>
                         </div>
                     </div>
@@ -1494,8 +1493,8 @@
                 <!-- RIGHT: Enterprise Cloud -->
                 <div style="flex:0 0 clamp(100px,12vw,160px);background:rgba(196,62,62,0.06);border:2px solid rgba(196,62,62,0.3);border-radius:8px;padding:clamp(8px,1vh,14px) clamp(6px,0.8vw,12px);display:flex;flex-direction:column;justify-content:center;text-align:center;">
                     <div style="font-weight:700;color:var(--text-primary);font-size:var(--small-size);margin-bottom:clamp(2px,0.3vh,4px);">Enterprise</div>
-                    <div style="font-size:var(--label-size);color:var(--text-secondary);margin-bottom:clamp(4px,0.5vh,6px);">Managed Cloud</div>
-                    <div style="font-size:clamp(0.4rem,0.55vw,0.6rem);color:var(--text-muted);line-height:1.5;">Managed judge &amp; reflector<br>Regression gate<br>Outcome-based pricing<br>SLA &bull; on-prem option</div>
+                    <div style="font-size:var(--label-size);color:var(--text-secondary);margin-bottom:clamp(4px,0.5vh,6px);">We run the loop for you</div>
+                    <div style="font-size:clamp(0.4rem,0.55vw,0.6rem);color:var(--text-muted);line-height:1.6;">Commercial license<br>Managed infrastructure<br>Reward design included<br>Regression-gated deploys</div>
                 </div>
             </div>
         </div>
@@ -1542,43 +1541,32 @@
         </svg>
         <div class="slide-content" style="gap: var(--element-gap);">
             <h2 class="reveal">How We Make Money</h2>
-            <p class="reveal" style="font-size:var(--small-size);color:var(--text-secondary);font-style:italic;">
-                Setup fee to integrate  -  recurring revenue that grows with every agent we improve</p>
-            <div class="card-row reveal-scale" style="grid-template-columns: 1fr 1fr 1fr; max-width:min(92vw,960px);">
-                <div class="card reveal-scale" style="text-align:center;border-color:var(--border-subtle);">
-                    <h3>Setup &amp; Training</h3>
-                    <p class="tech">One-time per workflow</p>
-                    <ul>
-                        <li>Integration + reward design</li>
-                        <li>Baseline measurement</li>
-                        <li>First improvement cycle</li>
-                        <li style="color:var(--text-muted);font-style:italic;">Services margin</li>
-                    </ul>
+            <!-- Horizontal flow: setup → recurring, with expansion below -->
+            <div class="reveal-scale" style="display:flex;align-items:stretch;gap:clamp(8px,1vw,16px);width:100%;max-width:min(92vw,920px);">
+                <!-- Setup -->
+                <div style="flex:0 0 clamp(160px,22vw,260px);background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:8px;padding:clamp(12px,1.5vh,20px) clamp(12px,1.5vw,20px);">
+                    <h3 style="margin-bottom:clamp(4px,0.5vh,8px);">Setup</h3>
+                    <p style="font-size:var(--label-size);color:var(--text-secondary);line-height:1.6;">
+                        One-time per workflow.<br>
+                        Integration, reward design, baseline measurement, first improvement cycle.
+                    </p>
                 </div>
-                <div class="card reveal-scale" style="text-align:center;border-color:var(--border-subtle);">
-                    <h3>Platform + Usage</h3>
-                    <p class="tech">Fixed monthly + per learning cycle</p>
-                    <ul>
-                        <li>Managed Reflector, Judge, Gate</li>
-                        <li>Fixed fee: predictable base</li>
-                        <li>Usage fee: scales with fleet</li>
-                        <li style="color:var(--text-muted);font-style:italic;">Software margin</li>
-                    </ul>
-                </div>
-                <div class="card reveal-scale" style="text-align:center;border-color:var(--border-subtle);">
-                    <h3>Outcome Kicker</h3>
-                    <p class="tech">Tied to measurable improvement</p>
-                    <ul>
-                        <li>Share of demonstrated savings</li>
-                        <li>Aligns incentives with customer</li>
-                        <li>Signals product conviction</li>
-                        <li style="color:var(--text-muted);font-style:italic;">Pure upside</li>
-                    </ul>
+                <!-- Arrow -->
+                <div style="display:flex;align-items:center;color:var(--text-muted);font-size:clamp(1rem,1.8vw,1.5rem);">&#x2192;</div>
+                <!-- Recurring (bigger, this is the business) -->
+                <div style="flex:1;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:8px;padding:clamp(12px,1.5vh,20px) clamp(12px,1.5vw,20px);">
+                    <h3 style="margin-bottom:clamp(4px,0.5vh,8px);">Recurring</h3>
+                    <p style="font-size:var(--label-size);color:var(--text-secondary);line-height:1.6;">
+                        Fixed monthly platform fee plus usage per learning cycle.<br>
+                        Managed learning infrastructure, validation, and safe deployment.<br>
+                        Optional outcome-based component tied to measurable improvement.
+                    </p>
                 </div>
             </div>
-            <div class="highlight-box reveal" style="max-width:min(85vw,800px);margin:0 auto;margin-top:var(--element-gap);">
-                <p style="text-align:center;font-size:var(--small-size);">
-                    <strong style="color:var(--accent-warm);">Expansion mechanic:</strong> Each customer runs multiple agent workflows. We start with one, expand across the fleet  -  every new workflow adds recurring revenue.
+            <!-- Expansion mechanic -->
+            <div class="reveal" style="max-width:min(92vw,920px);margin-top:clamp(6px,1vh,14px);">
+                <p style="font-size:var(--small-size);color:var(--text-secondary);text-align:center;">
+                    Each customer runs multiple agent workflows. We start with one, prove value, expand across the fleet.
                 </p>
             </div>
         </div>
@@ -1722,6 +1710,16 @@
         </svg>
         <div class="slide-content" style="gap: var(--content-gap);">
             <h2 class="reveal">Traction &amp; Status</h2>
+            <!-- NVIDIA Inception badge -->
+            <div class="reveal" style="display:flex;justify-content:center;margin-bottom:clamp(2px,0.3vh,4px);">
+                <div style="display:inline-flex;align-items:center;gap:clamp(6px,0.8vw,12px);background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:6px;padding:clamp(4px,0.5vh,8px) clamp(12px,1.5vw,20px);">
+                    <!-- NVIDIA wordmark -->
+                    <svg viewBox="0 0 120 22" style="height:clamp(14px,2vh,22px);width:auto;" fill="none">
+                        <text x="0" y="17" font-family="var(--font-display)" font-size="18" font-weight="800" fill="#76b900" letter-spacing="0.5">NVIDIA</text>
+                    </svg>
+                    <span style="font-size:var(--label-size);color:var(--text-secondary);">Inception Program Member</span>
+                </div>
+            </div>
             <div class="timeline">
                 <div class="tl-row reveal">
                     <div class="tl-period">Q4 2025</div>
