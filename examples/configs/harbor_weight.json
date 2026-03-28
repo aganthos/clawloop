@@ -1,0 +1,52 @@
+{
+    "mode": "weight",
+    "env_type": "harbor",
+    "system_prompt": "You are a capable coding assistant. Use tools precisely.",
+    "harbor": {
+        "task_dirs": [
+            "/data/harbor/tasks/task-001",
+            "/data/harbor/tasks/task-002"
+        ],
+        "trial_config": {
+            "agent": {
+                "name": "terminus-2",
+                "kwargs": {
+                    "max_turns": 16
+                }
+            }
+        }
+    },
+    "skyrl": {
+        "base_model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "backend_type": "skyrl_train",
+        "backend_config": {
+            "strategy": "fsdp2",
+            "trainer.placement.colocate_all": true,
+            "trainer.placement.policy_num_gpus_per_node": 1,
+            "trainer.placement.ref_num_gpus_per_node": 1,
+            "generator.inference_engine.num_engines": 1,
+            "generator.inference_engine.tensor_parallel_size": 1,
+            "generator.inference_engine.enable_http_endpoint": true,
+            "trainer.train_batch_size": 16,
+            "trainer.policy_mini_batch_size": 8,
+            "trainer.micro_forward_batch_size_per_gpu": 4,
+            "trainer.micro_train_batch_size_per_gpu": 4,
+            "trainer.max_prompt_length": 4096,
+            "generator.sampling_params.max_generate_length": 4096,
+            "generator.inference_engine.gpu_memory_utilization": 0.5,
+            "trainer.use_sample_packing": false
+        },
+        "lora_config": {
+            "rank": 32,
+            "alpha": 32.0
+        },
+        "training_config": {
+            "loss_fn": "cross_entropy",
+            "adam_params": {
+                "learning_rate": 3e-05
+            }
+        }
+    },
+    "n_iterations": 100,
+    "episodes_per_iter": 10
+}

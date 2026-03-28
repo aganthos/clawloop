@@ -1,0 +1,49 @@
+.DS_Store
+*.pptx
+*.pdf
+*.xlsx
+swiss_genai_price/
+
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+
+# Planning docs
+docs/
+
+#coding agent repos
+.kd
+.claude
+
+# un-ignore ressources folder (intentionally tracked)
+!ressources/*.pptx
+!ressources/*.pdf
+!ressources/*.png
+!ressources/*.jpeg
+
+# ignore LaTeX build artifacts in ressources
+ressources/*.aux
+ressources/*.log
+ressources/*.xdv
+
+# Benchmark artifacts
+benchmarks/*/output/
+benchmarks/*/.venv/
+benchmarks/*/.env
+
+#runs
+/runs
+
+#strange stuff to plot the pitch slides
+/pitch/node_modules/
+
+#superpowers
+.superpowers/
+# Enterprise code must never exist in public repo
+/enterprise/
+/enterprise_clawloop/
