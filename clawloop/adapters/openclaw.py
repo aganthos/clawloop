@@ -14,7 +14,6 @@ as captured by the proxy — not just the runner's stdout summary.
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import os
@@ -22,11 +21,11 @@ import signal
 import socket
 import subprocess
 import threading
-import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
+import httpx
 import uvicorn
 from pydantic import SecretStr
 
@@ -59,7 +58,12 @@ class OpenClawAdapter(EnvAdapter):
         self._proxy_server: uvicorn.Server | None = None
         self._proxy_thread: threading.Thread | None = None
         self._collector: EpisodeCollector | None = None
+
+        # Thread-safe episode storage: proxy worker threads write,
+        # main thread reads in run_episode. Protected by lock + event.
         self._episodes: list[Episode] = []
+        self._episodes_lock = threading.Lock()
+        self._episode_events: dict[str, threading.Event] = {}
 
     def setup(self, config: dict[str, Any]) -> None:
         self._task_dir = config.get("task_dir", self._task_dir)
@@ -82,7 +86,7 @@ class OpenClawAdapter(EnvAdapter):
         # Collector captures episodes from proxy traces
         self._collector = EpisodeCollector(
             pipeline=RewardPipeline.with_defaults(),
-            on_batch=lambda eps: self._episodes.extend(eps),
+            on_batch=self._on_batch,
             batch_size=1,
         )
 
@@ -93,9 +97,7 @@ class OpenClawAdapter(EnvAdapter):
             bench=config.get("bench", "openclaw"),
         )
 
-        # Get harness from config if provided (for skill injection)
         harness = config.get("harness")
-
         self._proxy = ProxyApp(
             proxy_config,
             collector=self._collector,
@@ -118,26 +120,26 @@ class OpenClawAdapter(EnvAdapter):
         # Wait for proxy to accept connections
         for _ in range(50):
             try:
-                import httpx
                 httpx.get(f"http://127.0.0.1:{self._proxy_port}/", timeout=1)
                 break
             except Exception:
+                import time
                 time.sleep(0.1)
 
         log.info("Proxy started on port %d → %s", self._proxy_port, upstream_url)
 
     def set_harness(self, harness: Any) -> None:
-        """Inject the harness for skill injection (called after setup).
-
-        In the training loop, the Harness is constructed after the adapter.
-        Call this before run_episode() to enable skill injection.
-        """
+        """Inject the harness for skill injection (called after setup)."""
         if self._proxy is not None:
             self._proxy.harness = harness
 
     def run_episode(self, task: Any, agent_state: Any) -> Episode:
         run_id = uuid4().hex
         task_json = json.dumps(task).encode()
+
+        # Pre-register an event so the batch callback can signal us
+        event = threading.Event()
+        self._episode_events[run_id] = event
 
         cmd = [self._node_bin, self._runner_script]
         if not self._skip_proxy and self._proxy_port:
@@ -165,6 +167,7 @@ class OpenClawAdapter(EnvAdapter):
                 pass
             proc.wait()
             log.error("Runner timed out after %ds (run_id=%s)", self._timeout_s, run_id)
+            self._episode_events.pop(run_id, None)
             return self._make_failed_episode(task, run_id, "timeout")
 
         if stderr:
@@ -175,6 +178,7 @@ class OpenClawAdapter(EnvAdapter):
                 "Runner exited %d (run_id=%s): %s",
                 proc.returncode, run_id, stderr.decode(errors="replace")[:500],
             )
+            self._episode_events.pop(run_id, None)
             return self._make_failed_episode(task, run_id, "runner_error")
 
         # Parse runner stdout for status
@@ -182,15 +186,16 @@ class OpenClawAdapter(EnvAdapter):
             result = json.loads(stdout.decode())
         except (json.JSONDecodeError, UnicodeDecodeError) as e:
             log.error("Failed to parse runner output (run_id=%s): %s", run_id, e)
+            self._episode_events.pop(run_id, None)
             return self._make_failed_episode(task, run_id, "parse_error")
 
-        # Wait a beat for proxy post-processing to complete
-        time.sleep(0.5)
+        # Wait for proxy post-processing with proper synchronization
+        event.wait(timeout=5.0)
+        self._episode_events.pop(run_id, None)
 
         # Try to find the proxy-captured episode (richer than stdout)
         proxy_episode = self._pop_episode_by_session(run_id)
         if proxy_episode is not None:
-            # Enrich with task metadata
             proxy_episode.task_id = (
                 task.get("task_id", run_id) if isinstance(task, dict) else run_id
             )
@@ -224,10 +229,11 @@ class OpenClawAdapter(EnvAdapter):
         if not task_file.exists():
             return []
         tasks = []
-        for line in task_file.read_text().splitlines():
-            line = line.strip()
-            if line:
-                tasks.append(json.loads(line))
+        with task_file.open("r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    tasks.append(json.loads(line))
         return tasks
 
     def get_traces(self, episode: Episode) -> dict[str, Any]:
@@ -241,11 +247,22 @@ class OpenClawAdapter(EnvAdapter):
 
     # -- Internal helpers --------------------------------------------------
 
+    def _on_batch(self, eps: list[Episode]) -> None:
+        """Callback from EpisodeCollector — called from proxy worker thread."""
+        with self._episodes_lock:
+            self._episodes.extend(eps)
+        # Signal any waiting run_episode calls
+        for ep in eps:
+            event = self._episode_events.get(ep.session_id)
+            if event is not None:
+                event.set()
+
     def _pop_episode_by_session(self, session_id: str) -> Episode | None:
         """Find and remove the episode captured by the proxy for this run."""
-        for i, ep in enumerate(self._episodes):
-            if ep.session_id == session_id:
-                return self._episodes.pop(i)
+        with self._episodes_lock:
+            for i, ep in enumerate(self._episodes):
+                if ep.session_id == session_id:
+                    return self._episodes.pop(i)
         return None
 
     @staticmethod
