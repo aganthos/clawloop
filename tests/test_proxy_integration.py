@@ -153,12 +153,27 @@ def mock_error_upstream():
 
 
 def _wait_for_ingestion(ingested: list, *, count: int = 1, timeout: float = 5.0) -> None:
-    """Busy-wait until *ingested* has at least *count* items."""
+    """Poll until *ingested* has at least *count* items (up to *timeout* seconds)."""
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         if len(ingested) >= count:
             return
         time.sleep(0.1)
+
+
+def _assert_no_ingestion(ingested: list, *, settle: float = 0.3, polls: int = 5) -> None:
+    """Assert that nothing was ingested after giving the queue time to settle.
+
+    Polls *polls* times over *settle* seconds, asserting zero ingestion each
+    time.  This avoids the race in a single ``time.sleep`` — if a bug caused
+    ingestion it would almost certainly appear within the polling window.
+    """
+    interval = settle / polls
+    for _ in range(polls):
+        time.sleep(interval)
+        assert len(ingested) == 0, (
+            f"Expected no ingestion but got {len(ingested)} item(s)"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -356,8 +371,8 @@ class TestEndToEnd:
             assert resp.status_code == 200
             assert resp.json()["choices"][0]["message"]["content"] == "mock reply"
 
-            # Give workers time to (not) ingest
-            time.sleep(1.0)
+            # Deterministic: poll briefly to confirm nothing was ingested
+            _assert_no_ingestion(ingested)
 
         assert len(ingested) == 0, "No-train request should not be ingested"
 
@@ -513,7 +528,7 @@ class TestEndToEnd:
             assert resp.status_code == 200
             assert resp.json()["choices"][0]["message"]["content"] == "mock reply"
 
-            # Give workers time to (not) ingest
-            time.sleep(1.0)
+            # Deterministic: poll briefly to confirm nothing was ingested
+            _assert_no_ingestion(ingested)
 
         assert len(ingested) == 0, "Truncated traces should not be ingested"
