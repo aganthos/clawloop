@@ -30,6 +30,8 @@ class ProxyApp:
         config: ProxyConfig
         collector: optional EpisodeCollector
         harness: optional Harness (provides playbook.render())
+        mount_prefix: prefix for standalone mode (default "/v1"); set to ""
+            when the app is mounted under an external Mount("/v1", ...).
     """
 
     def __init__(
@@ -37,6 +39,7 @@ class ProxyApp:
         config: ProxyConfig,
         collector: Any | None = None,
         harness: Any | None = None,
+        mount_prefix: str = "/v1",
     ) -> None:
         self.config = config
         self.collector = collector
@@ -49,23 +52,39 @@ class ProxyApp:
         self._queue: asyncio.Queue | None = None
         self._workers: list[asyncio.Task] = []
 
+        # The route is always "/chat/completions" (no /v1 prefix).
+        # In standalone mode (default), mount_prefix="/v1" wraps it in a
+        # Mount so the full path /v1/chat/completions works.
+        # When mounted externally (server.py), mount_prefix="" skips the
+        # wrapper so the external Mount("/v1", ...) can supply the prefix.
+        from starlette.routing import Mount
+
+        chat_route = Route(
+            "/chat/completions",
+            self._handle_chat_completions,
+            methods=["POST"],
+        )
+
+        if mount_prefix:
+            routes = [Mount(mount_prefix, routes=[chat_route])]
+        else:
+            routes = [chat_route]
+
         self.asgi_app = Starlette(
-            routes=[
-                Route(
-                    "/v1/chat/completions",
-                    self._handle_chat_completions,
-                    methods=["POST"],
-                ),
-            ],
+            routes=routes,
             lifespan=self._lifespan,
         )
 
     # ------------------------------------------------------------------
-    # Lifespan
+    # Lifespan — startup / shutdown can be called externally when the
+    # proxy is mounted as a sub-app (server.py) or internally via the
+    # Starlette lifespan context manager (standalone mode).
     # ------------------------------------------------------------------
 
-    @asynccontextmanager
-    async def _lifespan(self, app: Starlette):
+    async def startup(self) -> None:
+        """Initialise HTTP client and background workers."""
+        if self._http_client is not None:
+            return  # already started (guard against double-start)
         self._check_single_worker()
 
         self._http_client = httpx.AsyncClient(
@@ -85,9 +104,13 @@ class ProxyApp:
             for i in range(self.config.max_post_process_tasks)
         ]
 
-        yield
+    async def shutdown(self) -> None:
+        """Drain workers and close HTTP client."""
+        if self._http_client is None:
+            return  # not started or already shut down
 
-        # Shutdown: send poison pills
+        # Send poison pills
+        assert self._queue is not None
         for _ in self._workers:
             await self._queue.put(None)
 
@@ -102,6 +125,12 @@ class ProxyApp:
 
         await self._http_client.aclose()
         self._http_client = None
+
+    @asynccontextmanager
+    async def _lifespan(self, app: Starlette):
+        await self.startup()
+        yield
+        await self.shutdown()
 
     # ------------------------------------------------------------------
     # Single-worker guard
@@ -192,18 +221,6 @@ class ProxyApp:
         upstream_url = f"{cfg.upstream_url}/chat/completions"
 
         assert self._http_client is not None
-        try:
-            upstream_resp = await self._http_client.post(
-                upstream_url,
-                content=json.dumps(body).encode(),
-                headers=forward_headers,
-            )
-        except httpx.HTTPError as exc:
-            log.error("upstream request failed: %s", exc)
-            return JSONResponse(
-                {"error": "upstream_error", "detail": str(exc)},
-                status_code=502,
-            )
 
         # 9. Tee response
         truncated = False
@@ -211,28 +228,47 @@ class ProxyApp:
         max_tee = cfg.max_tee_bytes
 
         if is_streaming:
-            # Streaming: async iterate bytes, yield to client, buffer
+            # Use send(stream=True) so bytes flow through without buffering
+            # the full response in memory.  The finally block ensures the
+            # upstream connection is closed even if the client disconnects.
+            req = self._http_client.build_request(
+                "POST", upstream_url,
+                content=json.dumps(body).encode(),
+                headers=forward_headers,
+            )
+            try:
+                upstream_resp = await self._http_client.send(req, stream=True)
+            except httpx.HTTPError as exc:
+                log.error("upstream request failed: %s", exc)
+                return JSONResponse(
+                    {"error": "upstream_error", "detail": str(exc)},
+                    status_code=502,
+                )
+
             async def _stream_and_tee():
                 nonlocal truncated
-                async for chunk in upstream_resp.aiter_bytes():
-                    yield chunk
-                    if not truncated:
-                        if len(tee_buffer) + len(chunk) <= max_tee:
-                            tee_buffer.extend(chunk)
-                        else:
-                            truncated = True
+                try:
+                    async for chunk in upstream_resp.aiter_bytes():
+                        yield chunk
+                        if not truncated:
+                            if len(tee_buffer) + len(chunk) <= max_tee:
+                                tee_buffer.extend(chunk)
+                            else:
+                                truncated = True
 
-                # Enqueue after stream completes
-                await self._enqueue_post_process(
-                    body=body,
-                    tee_bytes=bytes(tee_buffer),
-                    truncated=truncated,
-                    no_train=no_train,
-                    session_id=session_id,
-                    turn_idx=turn_idx,
-                    t_start=t_start,
-                    is_streaming=True,
-                )
+                    # Enqueue after stream completes
+                    await self._enqueue_post_process(
+                        body=body,
+                        tee_bytes=bytes(tee_buffer),
+                        truncated=truncated,
+                        no_train=no_train,
+                        session_id=session_id,
+                        turn_idx=turn_idx,
+                        t_start=t_start,
+                        is_streaming=True,
+                    )
+                finally:
+                    await upstream_resp.aclose()
 
             resp_headers = {}
             ct = upstream_resp.headers.get("content-type")
@@ -246,7 +282,20 @@ class ProxyApp:
             )
 
         else:
-            # Non-streaming: read full content
+            # Non-streaming: eagerly read full response
+            try:
+                upstream_resp = await self._http_client.post(
+                    upstream_url,
+                    content=json.dumps(body).encode(),
+                    headers=forward_headers,
+                )
+            except httpx.HTTPError as exc:
+                log.error("upstream request failed: %s", exc)
+                return JSONResponse(
+                    {"error": "upstream_error", "detail": str(exc)},
+                    status_code=502,
+                )
+
             content = upstream_resp.content
             if len(content) <= max_tee:
                 tee_buffer.extend(content)
@@ -347,6 +396,19 @@ class ProxyApp:
         tee_bytes: bytes = item["tee_bytes"]
         body: dict = item["body"]
         session_id: str = item["session_id"]
+
+        # Apply redaction hook before any parsing / persistence
+        if self.config.redaction_hook is not None:
+            try:
+                body = self.config.redaction_hook(body)
+                item["body"] = body
+            except Exception:
+                log.error(
+                    "redaction_hook failed for session=%s, dropping item",
+                    session_id,
+                    exc_info=True,
+                )
+                return
 
         # Parse response
         if item["is_streaming"]:

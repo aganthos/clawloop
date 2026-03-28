@@ -25,6 +25,7 @@ from clawloop.layers.harness import Harness
 from clawloop.learner import AsyncLearner
 
 if TYPE_CHECKING:
+    from clawloop.proxy import ProxyApp
     from clawloop.proxy_config import ProxyConfig
 
 log = logging.getLogger(__name__)
@@ -448,21 +449,27 @@ def create_app(
         Route("/episodes", episodes_list, methods=["GET"]),
     ]
 
+    proxy_app: "ProxyApp | None" = None
     if proxy_config is not None:
         from clawloop.proxy import ProxyApp
         from starlette.routing import Mount
 
-        proxy = ProxyApp(
+        proxy_app = ProxyApp(
             proxy_config,
             collector=server.collector,
             harness=server.harness,
+            mount_prefix="",  # server provides its own Mount("/v1")
         )
-        routes.append(Mount("/v1", app=proxy.asgi_app))
+        routes.append(Mount("/v1", app=proxy_app.asgi_app))
 
     @asynccontextmanager
     async def lifespan(app):
         server.start()
+        if proxy_app is not None:
+            await proxy_app.startup()
         yield
+        if proxy_app is not None:
+            await proxy_app.shutdown()
         server.stop()
 
     app = Starlette(routes=routes, lifespan=lifespan)
