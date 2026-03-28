@@ -108,7 +108,7 @@ def main() -> None:
     #   CLAWLOOP_API_BASE — optional API base URL
     #   CLAWLOOP_API_KEY  — optional API key (or use provider-specific env vars)
     llm = LiteLLMClient(
-        model=os.environ.get("CLAWLOOP_MODEL", "gemini/gemini-2.0-flash-lite"),
+        model=os.environ.get("CLAWLOOP_MODEL", "gemini/gemini-3.1-flash-lite-preview"),
         api_base=os.environ.get("CLAWLOOP_API_BASE") or None,
         api_key=os.environ.get("CLAWLOOP_API_KEY") or None,
     )
