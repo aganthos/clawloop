@@ -425,21 +425,28 @@ class Harness:
         self,
         bench: str,
         task_tags: set[str] | None = None,
-        query_text: str | None = None,
+        context: str | None = None,
     ) -> str:
         """Resolve the system prompt for a bench, including playbook.
 
-        Retrieval priority (when *query_text* is provided):
+        The playbook is a dynamic prompt section — which entries are
+        included depends on relevance to the current task.
+
+        When *context* is provided (e.g. the user's message or task
+        description), entries are selected by embedding similarity.
+        This keeps the prompt focused on what's relevant right now.
+
+        Retrieval priority (when *context* is provided):
           1. Embedding similarity (primary — semantic match)
           2. Tag filter (fallback — category match)
           3. Full playbook (final fallback — capped by effective score)
 
-        Without *query_text*, uses the existing tag-based path unchanged.
+        Without *context*, uses tag-based filtering (or all entries).
         """
         base = self.system_prompts.get(bench, "")
 
-        if query_text and query_text.strip() and self.embeddings is not None:
-            entries, reason = self._retrieve_entries(task_tags, query_text.strip())
+        if context and context.strip() and self.embeddings is not None:
+            entries, reason = self._retrieve_entries(task_tags, context.strip())
             pb = self._render_entries(entries, reason)
         else:
             pb = self.playbook.render(tags=task_tags)

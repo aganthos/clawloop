@@ -23,16 +23,16 @@ def _make_playbook() -> Playbook:
 
 
 class TestSystemPromptBackwardCompat:
-    """system_prompt() without query_text must behave exactly as before."""
+    """system_prompt() without context must behave exactly as before."""
 
-    def test_no_query_text_uses_tag_path(self):
+    def test_no_context_uses_tag_path(self):
         h = Harness(system_prompts={"test": "Base."}, _embeddings=MockEmbedding())
         h.playbook = _make_playbook()
         prompt = h.system_prompt("test", task_tags={"math"})
         assert "step-by-step" in prompt
         assert "validate input" not in prompt
 
-    def test_no_query_text_no_tags_returns_all(self):
+    def test_no_context_no_tags_returns_all(self):
         h = Harness(system_prompts={"test": "Base."})
         h.playbook = _make_playbook()
         prompt = h.system_prompt("test")
@@ -40,23 +40,23 @@ class TestSystemPromptBackwardCompat:
         assert "validate input" in prompt
         assert "active voice" in prompt
 
-    def test_empty_query_text_uses_tag_path(self):
+    def test_empty_context_uses_tag_path(self):
         h = Harness(system_prompts={"test": "Base."}, _embeddings=MockEmbedding())
         h.playbook = _make_playbook()
-        prompt = h.system_prompt("test", query_text="")
-        # Empty string should NOT trigger embedding path
+        prompt = h.system_prompt("test", context="")
+        # Empty context should NOT trigger embedding path
         assert "step-by-step" in prompt
         assert "validate input" in prompt
 
-    def test_whitespace_query_text_uses_tag_path(self):
+    def test_whitespace_context_uses_tag_path(self):
         h = Harness(system_prompts={"test": "Base."}, _embeddings=MockEmbedding())
         h.playbook = _make_playbook()
-        prompt = h.system_prompt("test", query_text="   ")
+        prompt = h.system_prompt("test", context="   ")
         assert "step-by-step" in prompt
 
 
 class TestEmbeddingRetrieval:
-    """Embedding-first retrieval when query_text is provided."""
+    """Embedding-first retrieval when context is provided."""
 
     def test_embedding_retrieval_returns_semantic_matches(self):
         emb = MockEmbedding(dim=8)
@@ -68,7 +68,7 @@ class TestEmbeddingRetrieval:
         h.playbook = _make_playbook()
 
         # With threshold=0.0 and MockEmbedding, all entries with embeddings match
-        prompt = h.system_prompt("test", query_text="arithmetic calculation")
+        prompt = h.system_prompt("test", context="arithmetic calculation")
         assert "semantic match" in prompt
 
     def test_embedding_miss_falls_back_to_tags(self):
@@ -80,7 +80,7 @@ class TestEmbeddingRetrieval:
         )
         h.playbook = _make_playbook()
 
-        prompt = h.system_prompt("test", task_tags={"math"}, query_text="hello")
+        prompt = h.system_prompt("test", task_tags={"math"}, context="hello")
         # Should fall back to tags since embedding threshold is too high
         assert "step-by-step" in prompt
         assert "semantic match" not in prompt
@@ -94,7 +94,7 @@ class TestEmbeddingRetrieval:
         )
         h.playbook = _make_playbook()
 
-        prompt = h.system_prompt("test", query_text="something unrelated")
+        prompt = h.system_prompt("test", context="something unrelated")
         # No embedding match, no tags → full playbook
         assert "step-by-step" in prompt
         assert "validate input" in prompt
@@ -103,8 +103,8 @@ class TestEmbeddingRetrieval:
     def test_no_embeddings_provider_uses_tag_path(self):
         h = Harness(system_prompts={"test": "Base."})
         h.playbook = _make_playbook()
-        # No embeddings provider, but query_text provided → falls to tag path
-        prompt = h.system_prompt("test", task_tags={"coding"}, query_text="check types")
+        # No embeddings provider, but context provided → falls to tag path
+        prompt = h.system_prompt("test", task_tags={"coding"}, context="check types")
         assert "validate input" in prompt
         assert "step-by-step" not in prompt
 
@@ -125,7 +125,7 @@ class TestLazyEmbed:
         for e in h.playbook.entries:
             assert e.embedding is None
 
-        h.system_prompt("test", query_text="anything")
+        h.system_prompt("test", context="anything")
 
         # After retrieval, entries should have embeddings
         for e in h.playbook.entries:
@@ -142,11 +142,11 @@ class TestLazyEmbed:
         h.playbook = _make_playbook()
 
         # First call embeds
-        h.system_prompt("test", query_text="first")
+        h.system_prompt("test", context="first")
         original_embeddings = [e.embedding[:] for e in h.playbook.entries]
 
         # Second call should not change embeddings (model_id matches)
-        h.system_prompt("test", query_text="second")
+        h.system_prompt("test", context="second")
         for i, e in enumerate(h.playbook.entries):
             assert e.embedding == original_embeddings[i]
 
@@ -164,7 +164,7 @@ class TestLazyEmbed:
             e.embedding = [0.0] * 8
             e.embedding_model_id = "old-model"
 
-        h.system_prompt("test", query_text="refresh")
+        h.system_prompt("test", context="refresh")
 
         # Should be re-embedded with new model
         for e in h.playbook.entries:
@@ -173,9 +173,9 @@ class TestLazyEmbed:
 
 
 class TestQueryTextTruncation:
-    """Long query_text gets capped."""
+    """Long context gets capped."""
 
-    def test_long_query_text_truncated(self):
+    def test_long_context_truncated(self):
         emb = MockEmbedding(dim=8)
         h = Harness(
             system_prompts={"test": "Base."},
@@ -186,7 +186,7 @@ class TestQueryTextTruncation:
 
         # 1000-char query should not crash or cause issues
         long_query = "x" * 1000
-        prompt = h.system_prompt("test", query_text=long_query)
+        prompt = h.system_prompt("test", context=long_query)
         assert "PLAYBOOK" in prompt
 
 
