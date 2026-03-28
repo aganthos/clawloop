@@ -35,6 +35,7 @@ while IFS= read -r p; do
             --exclude ".claude" \
             --exclude ".env*" \
             --exclude "*.lock" \
+            --exclude "skyrl" \
             --max-size=50M \
             "$REPO_ROOT/$p/" "$STAGING/$p/"
     elif [[ -f "$REPO_ROOT/$p" ]]; then
@@ -65,15 +66,21 @@ cd "$REPO_ROOT"
 
 # Sync staging to public repo (--delete removes stale files).
 # Exclude paths managed directly in the public repo (not synced from monorepo):
-#   .github/     — CI workflows, issue templates
-#   .gitmodules  — submodule references (benchmarks)
-#   benchmarks/  — git submodules, managed via git submodule commands
+#   .github/      — CI workflows, issue templates
+#   .gitmodules   — submodule references (benchmarks, skyrl)
+#   benchmarks/   — git submodules
+#   clawloop/skyrl/ — git submodule (NovaSky SkyRL, Apache 2.0)
+#
+# WARNING: --delete removes any file not in staging or excluded here.
+# Contributor-added files (SECURITY.md, etc.) will be deleted on next sync
+# unless excluded below. Run with --dry-run first to preview changes.
 rsync -a --delete \
     --exclude ".git" \
     --exclude ".github" \
     --exclude ".gitignore" \
     --exclude ".gitmodules" \
     --exclude "benchmarks" \
+    --exclude "clawloop/skyrl" \
     "$STAGING/" "$PUBLIC_REPO/"
 
 echo "Synced to $PUBLIC_REPO ($(find "$STAGING" -type f | wc -l | tr -d ' ') files)"

@@ -40,8 +40,7 @@ fi
 # 4. No residual lfx branding in public Python code
 #    Allows: variable names referencing external scripts (e.g., lfx_server in car.py)
 MATCHES=$(grep -rn --include="*.py" -iw 'lfx' clawloop/ tests/ examples/ 2>/dev/null \
-    | grep -v '\.claude/' \
-    | grep -v 'Legacy filename in external' || true)
+    | grep -v '\.claude/' || true)
 if [[ -n "$MATCHES" ]]; then
     echo "FAIL: Residual lfx branding found in public code"
     echo "$MATCHES"
