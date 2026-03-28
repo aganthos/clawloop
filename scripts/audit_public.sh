@@ -94,7 +94,7 @@ done < <(find clawloop tests examples -type l 2>/dev/null || true)
 
 # 7. Build and inspect package for leaks
 rm -rf dist/
-python -m build --sdist --wheel 2>/dev/null
+python -m build --sdist --wheel
 python3 -c "
 import tarfile, zipfile, glob, sys, re
 
