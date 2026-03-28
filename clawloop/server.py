@@ -6,6 +6,7 @@ import asyncio
 import json
 import logging
 import threading
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -439,8 +440,6 @@ def create_app(
         Route("/events", events, methods=["GET"]),
         Route("/episodes", episodes_list, methods=["GET"]),
     ]
-
-    from contextlib import asynccontextmanager
 
     @asynccontextmanager
     async def lifespan(app):
