@@ -146,7 +146,7 @@ class ProxyApp:
             )
 
     # ------------------------------------------------------------------
-    # Route handler: POST /v1/chat/completions
+    # Route handler: POST /chat/completions (served at /v1 via mount prefix)
     # ------------------------------------------------------------------
 
     async def _handle_chat_completions(self, request: Request) -> Response:
