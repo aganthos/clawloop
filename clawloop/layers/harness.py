@@ -412,17 +412,142 @@ class Harness:
     # Evolver context set by the loop before forward_backward
     _evolver_context: Any | None = field(default=None, repr=False)
 
-    def system_prompt(self, bench: str, task_tags: set[str] | None = None) -> str:
+    # Optional embedding provider for semantic playbook retrieval
+    _embeddings: Any | None = field(default=None, repr=False)
+
+    # Cosine similarity threshold for embedding retrieval
+    _retrieval_threshold: float = 0.4
+
+    # Max entries returned in full-playbook fallback
+    _max_retrieval_entries: int = 50
+
+    def system_prompt(
+        self,
+        bench: str,
+        task_tags: set[str] | None = None,
+        query_text: str | None = None,
+    ) -> str:
         """Resolve the system prompt for a bench, including playbook.
 
-        When *task_tags* is provided, only playbook entries matching those
-        tags are included (selective retrieval, ACE/DC-RS style).
+        Retrieval priority (when *query_text* is provided):
+          1. Embedding similarity (primary — semantic match)
+          2. Tag filter (fallback — category match)
+          3. Full playbook (final fallback — capped by effective score)
+
+        Without *query_text*, uses the existing tag-based path unchanged.
         """
         base = self.system_prompts.get(bench, "")
-        pb = self.playbook.render(tags=task_tags)
+
+        if query_text and query_text.strip() and self.embeddings is not None:
+            entries, reason = self._retrieve_entries(task_tags, query_text.strip())
+            pb = self._render_entries(entries, reason)
+        else:
+            pb = self.playbook.render(tags=task_tags)
+
         if pb:
             return f"{base}\n\n{pb}" if base else pb
         return base
+
+    @property
+    def embeddings(self) -> Any | None:
+        """Return the embedding provider (explicit or from curator)."""
+        if self._embeddings is not None:
+            return self._embeddings
+        if self._curator is not None and hasattr(self._curator, "_embeddings"):
+            return self._curator._embeddings
+        return None
+
+    def _retrieve_entries(
+        self,
+        task_tags: set[str] | None,
+        query_text: str,
+    ) -> tuple[list[PlaybookEntry], str]:
+        """Embedding-first retrieval with tag and full-playbook fallbacks."""
+        active = self.playbook.active_entries()
+        if not active:
+            return [], "empty"
+
+        # 1. Embedding retrieval (primary)
+        hits = self._embed_and_find(query_text, active)
+        if hits:
+            # Cap results to prevent prompt bloat
+            return hits[: self._max_retrieval_entries], "embedding"
+
+        # 2. Tag filter (secondary fallback)
+        if task_tags:
+            tag_hits = [e for e in active if e.tags and set(e.tags) & task_tags]
+            if tag_hits:
+                return tag_hits, "tags"
+
+        # 3. Full playbook (final fallback, capped by effective score)
+        if len(active) > self._max_retrieval_entries:
+            active.sort(key=lambda e: e.effective_score(), reverse=True)
+            active = active[: self._max_retrieval_entries]
+        return active, "full"
+
+    def _embed_and_find(
+        self, query_text: str, entries: list[PlaybookEntry],
+    ) -> list[PlaybookEntry]:
+        """Embed query and find similar entries. Returns [] on any failure."""
+        provider = self.embeddings
+        if provider is None:
+            return []
+
+        from clawloop.core.embeddings import find_similar
+
+        # Lazy embed: entries missing or stale embeddings get refreshed
+        model_id = getattr(provider, "model", None)
+        if model_id:
+            needs = [e for e in entries if e.needs_reembed(model_id)]
+            if needs:
+                try:
+                    texts = [e.content for e in needs]
+                    vectors = provider.embed(texts)
+                    for entry, vec in zip(needs, vectors):
+                        entry.embedding = vec
+                        entry.embedding_model_id = model_id
+                        entry.embedding_updated_at = time.time()
+                except Exception:
+                    log.warning("Failed to embed playbook entries", exc_info=True)
+
+        # Embed query
+        query_text = query_text[:500]
+        try:
+            query_vec = provider.embed([query_text])[0]
+        except Exception:
+            log.warning("Failed to embed query text", exc_info=True)
+            return []
+
+        try:
+            results = find_similar(query_vec, entries, threshold=self._retrieval_threshold)
+            return [entry for entry, _score in results]
+        except Exception:
+            log.warning("find_similar failed", exc_info=True)
+            return []
+
+    @staticmethod
+    def _render_entries(entries: list[PlaybookEntry], reason: str) -> str:
+        """Render retrieved entries with a header indicating retrieval method."""
+        if not entries:
+            return ""
+        lines = []
+        if reason == "embedding":
+            lines.append("## PLAYBOOK (semantic match)")
+        elif reason == "tags":
+            lines.append("## PLAYBOOK")
+        else:
+            lines.append("## PLAYBOOK")
+        for e in entries:
+            if e.name and e.description:
+                lines.append(f"### {e.name}")
+                lines.append(f"**When**: {e.description}")
+                lines.append(e.content)
+                if e.anti_patterns:
+                    lines.append(f"**Anti-pattern**: {e.anti_patterns}")
+            else:
+                tag_str = f" [{', '.join(e.tags)}]" if e.tags else ""
+                lines.append(f"[{e.id}]{tag_str} :: {e.content}")
+        return "\n".join(lines)
 
     def apply_insights(self, insights: list[Insight]) -> int:
         """Curator step: apply reflector insights as playbook deltas.
