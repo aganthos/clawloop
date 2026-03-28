@@ -27,6 +27,11 @@ jobs:
           if grep -rn --include="*.py" -E '^\s*(from|import)\s+enterprise' clawloop/ tests/ examples/; then
             echo "FAIL: enterprise imports found" && exit 1
           fi
+      - name: Check no enterprise refs in docs
+        run: |
+          if grep -rl "enterprise/" README.md CONTRIBUTING.md examples/ 2>/dev/null; then
+            echo "FAIL: public docs reference enterprise/" && exit 1
+          fi
       - name: Check no internal keys
         run: |
           if grep -rl "kuhhandel-bench-key" clawloop/ tests/ examples/ README.md; then
@@ -34,7 +39,7 @@ jobs:
           fi
       - name: Check no residual lfx branding
         run: |
-          MATCHES=$(grep -rnw --include="*.py" -i 'lfx' clawloop/ tests/ examples/ | grep -v 'Legacy filename' || true)
+          MATCHES=$(grep -rnw --include="*.py" -i 'lfx' clawloop/ tests/ examples/ || true)
           if [[ -n "$MATCHES" ]]; then
             echo "FAIL: residual lfx branding"
             echo "$MATCHES"

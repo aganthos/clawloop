@@ -7,3 +7,6 @@
 [submodule "benchmarks/a2a/entropic-crmarenapro"]
 	path = benchmarks/a2a/entropic-crmarenapro
 	url = https://github.com/rkstu/entropic-crmarenapro.git
+[submodule "clawloop/skyrl"]
+	path = clawloop/skyrl
+	url = https://github.com/NovaSky-AI/SkyRL
