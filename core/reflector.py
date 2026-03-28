@@ -49,10 +49,18 @@ Return ONLY the JSON array.  No explanation, no markdown outside the JSON.
 """.strip()
 
 
-def _sanitize_str(text: str | None) -> str:
-    """Strip null bytes from a string (defense-in-depth)."""
+def _sanitize_str(text: str | list | None) -> str:
+    """Strip null bytes. Handles OpenAI content-block lists from proxy."""
     if text is None:
         return ""
+    if isinstance(text, list):
+        parts = []
+        for block in text:
+            if isinstance(block, dict) and block.get("type") == "text":
+                parts.append(block.get("text", ""))
+            elif isinstance(block, str):
+                parts.append(block)
+        return "".join(parts).replace("\x00", "")
     return text.replace("\x00", "")
 
 
