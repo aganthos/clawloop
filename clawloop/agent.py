@@ -163,8 +163,10 @@ class ClawLoopAgent:
     def ingest(self, episodes: list[Episode]) -> None:
         """Ingest externally-collected episodes into the learning system.
 
-        Runs forward_backward (which triggers the reflector) and then
-        optim_step to apply insights to the playbook.
+        Runs forward_backward (which triggers the evolver) and then
+        optim_step to apply insights to the playbook. Note: paradigm
+        breakthrough is not available through ingest() — use learn()
+        for full stagnation handling.
         """
         datum = Datum(episodes=episodes)
         self._harness.forward_backward(datum)
