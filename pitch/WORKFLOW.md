@@ -147,7 +147,7 @@ For a **timeline/roadmap slide** (like Siemens slide 2), use `bg-warm` and repla
 
 ## Viewing a variant in the browser
 
-Run from the **repo root**. Requires a local server (images use `../ressources/` paths):
+Run from the **repo root**. Requires a local server (images use `../resources/` paths):
 
 ```bash
 python3 -m http.server 8765

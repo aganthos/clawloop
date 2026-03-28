@@ -29,7 +29,7 @@ The **annotation below** (Agent = Model + Harness) is done in HTML, not SVG, so 
 
 - **Edit**: `webpage/index.html` — the inline SVG between `<!-- Robot + Globe SVG -->` and the closing `</svg>` (around line 215-271)
 - **Reference**: `pitch/deckv3.html` lines 1170-1338 — the good robot+globe SVG to adapt from
-- **Also reference**: `ressources/agent_environment_ppt.svg` — a simpler version of the same diagram
+- **Also reference**: `resources/agent_environment_ppt.svg` — a simpler version of the same diagram
 
 ## Brand colors
 

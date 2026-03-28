@@ -100,7 +100,7 @@ import tarfile, zipfile, glob, sys, re
 
 # Match top-level private dirs (after the package prefix like 'clawloop-0.0.1/')
 # These patterns match paths where the private dir is the first real directory.
-PRIVATE_DIRS = ('enterprise', 'enterprise_clawloop', 'pitch', 'configs', 'ressources')
+PRIVATE_DIRS = ('enterprise', 'enterprise_clawloop', 'pitch', 'configs', 'resources')
 
 def is_private(path):
     # Strip sdist prefix (e.g., 'clawloop-0.0.1/enterprise/...')
