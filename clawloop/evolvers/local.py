@@ -127,6 +127,17 @@ class LocalEvolver:
                     tags.add(val)
         return tags
 
+    @staticmethod
+    def _candidate_from_dict(d: dict) -> PromptCandidate:
+        """Reconstruct a PromptCandidate from a snapshot dict."""
+        return PromptCandidate(
+            id=d.get("id", PromptCandidate.new_id()),
+            text=d.get("text", ""),
+            per_task_scores=d.get("per_task_scores", {}),
+            generation=d.get("generation", 0),
+            parent_id=d.get("parent_id"),
+        )
+
     def _rebuild_playbook(self, state: HarnessSnapshot) -> Playbook:
         """Reconstruct a Playbook from snapshot entries for sub-components."""
         from clawloop.layers.harness import PlaybookEntry
@@ -169,18 +180,13 @@ class LocalEvolver:
             if not front_data:
                 continue
 
-            # Reconstruct best candidate from snapshot
             best_dict = max(
                 front_data,
                 key=lambda c: (
                     sum(c.get("per_task_scores", {}).values()) / max(len(c.get("per_task_scores", {})), 1)
                 ),
             )
-            best = PromptCandidate(
-                id=best_dict.get("id", PromptCandidate.new_id()),
-                text=best_dict.get("text", ""),
-                per_task_scores=best_dict.get("per_task_scores", {}),
-            )
+            best = self._candidate_from_dict(best_dict)
 
             bench_candidates: list[PromptCandidate] = []
 
@@ -201,17 +207,8 @@ class LocalEvolver:
 
             # Crossover
             if len(front_data) >= 2 and pe.config.max_crossovers_per_step > 0:
-                a_dict, b_dict = front_data[0], front_data[1]
-                a = PromptCandidate(
-                    id=a_dict.get("id", PromptCandidate.new_id()),
-                    text=a_dict.get("text", ""),
-                    per_task_scores=a_dict.get("per_task_scores", {}),
-                )
-                b = PromptCandidate(
-                    id=b_dict.get("id", PromptCandidate.new_id()),
-                    text=b_dict.get("text", ""),
-                    per_task_scores=b_dict.get("per_task_scores", {}),
-                )
+                a = self._candidate_from_dict(front_data[0])
+                b = self._candidate_from_dict(front_data[1])
                 for _ in range(pe.config.max_crossovers_per_step):
                     try:
                         child = pe.crossover(a, b, playbook_context=playbook_text)
