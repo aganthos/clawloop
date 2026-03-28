@@ -61,9 +61,16 @@ if git log --oneline HEAD..origin/main 2>/dev/null | grep -q .; then
 fi
 cd "$REPO_ROOT"
 
-# Sync staging to public repo (--delete removes stale files)
+# Sync staging to public repo (--delete removes stale files).
+# Exclude paths managed directly in the public repo (not synced from monorepo):
+#   .github/     — CI workflows, issue templates
+#   .gitmodules  — submodule references (benchmarks)
+#   benchmarks/  — git submodules, managed via git submodule commands
 rsync -a --delete \
     --exclude ".git" \
+    --exclude ".github" \
+    --exclude ".gitmodules" \
+    --exclude "benchmarks" \
     "$STAGING/" "$PUBLIC_REPO/"
 
 echo "Synced to $PUBLIC_REPO ($(find "$STAGING" -type f | wc -l | tr -d ' ') files)"

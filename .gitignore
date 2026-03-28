@@ -44,3 +44,7 @@ benchmarks/*/.env
 
 #superpowers
 .superpowers/
+
+# Enterprise code must never exist in public repo
+/enterprise/
+/enterprise_clawloop/
