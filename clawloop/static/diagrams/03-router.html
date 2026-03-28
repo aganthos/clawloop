@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ClawLoop — Router Layer Detail</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'IBM Plex Sans',sans-serif;background:#fafaf8;color:#1a1a1a;display:flex;justify-content:center;padding:40px 24px}
+.c{width:1000px;max-width:100%}
+h1{font-family:'Source Serif 4',serif;font-size:24px;margin-bottom:4px}
+h1 em{color:#7c3aed;font-style:italic}
+.sub{font-size:13px;color:#64748b;margin-bottom:28px}
+.mono{font-family:'IBM Plex Mono',monospace}
+
+.flow{display:flex;flex-direction:column;gap:0}
+.flow-step{display:grid;grid-template-columns:120px 1fr;border:1.5px solid #e2e8f0;border-bottom:none;background:#fff}
+.flow-step:last-child{border-bottom:1.5px solid #e2e8f0}
+.fs-label{padding:14px;border-right:1px solid #e2e8f0;display:flex;flex-direction:column;justify-content:center;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px}
+.fs-label .num{font-size:22px;font-weight:700;line-height:1;margin-bottom:2px;font-family:'Source Serif 4',serif}
+.fs-body{padding:14px 18px}
+.fs-body h3{font-size:14px;font-weight:600;margin-bottom:6px}
+.fs-body p{font-size:12px;color:#64748b;line-height:1.6}
+.fs-body code{font-family:'IBM Plex Mono',monospace;font-size:11px;background:#f1f5f9;padding:1px 4px;border-radius:2px}
+
+.s1 .fs-label{background:#f5f3ff;color:#7c3aed}
+.s2 .fs-label{background:#eff6ff;color:#2563eb}
+.s3 .fs-label{background:#ecfdf5;color:#16a34a}
+.s4 .fs-label{background:#fef3c7;color:#d97706}
+.arrow-between{text-align:center;padding:3px 0;font-size:14px;color:#cbd5e1}
+
+/* tier diagram */
+.tier-grid{margin-top:20px;display:grid;grid-template-columns:repeat(3,1fr);gap:0}
+.tier{border:1.5px solid #e2e8f0;padding:16px;text-align:center;background:#fff}
+.tier:not(:last-child){border-right:none}
+.tier h4{font-size:13px;font-weight:600;margin-bottom:6px}
+.tier .model{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:700;margin-bottom:4px}
+.tier .stats{font-size:11px;color:#64748b}
+.tier.active{background:#f5f3ff;border-color:#7c3aed}
+
+.side-note{margin-top:20px;padding:14px 18px;border:1.5px dashed #e2e8f0;background:#f8fafc;font-size:12px;color:#64748b;line-height:1.6}
+.side-note strong{color:#1a1a1a}
+</style>
+</head>
+<body>
+<div class="c">
+<h1><em>Router</em> Layer — Model Selection</h1>
+<p class="sub">Routes queries to the cheapest model that passes quality threshold · Learns from both successes and failures</p>
+
+<div class="flow">
+
+<div class="flow-step s1">
+  <div class="fs-label"><span class="num">1</span>Query</div>
+  <div class="fs-body">
+    <h3>Incoming Request → Feature Extraction</h3>
+    <p>Extract query features: estimated complexity, token count, domain tags, required capabilities (tool use, code, reasoning). These features determine which tier of models is appropriate.</p>
+  </div>
+</div>
+
+<div class="arrow-between">↓</div>
+
+<div class="flow-step s2">
+  <div class="fs-label"><span class="num">2</span>Route</div>
+  <div class="fs-body">
+    <h3>Tier Selection → Model Assignment</h3>
+    <p>Models organized in tiers by cost/capability. Router starts from cheapest tier that historically handles similar queries well. If a tier's quality score for this query type is below threshold → escalate to next tier. Fallback chains ensure reliability.</p>
+  </div>
+</div>
+
+<div class="arrow-between">↓</div>
+
+<div class="flow-step s3">
+  <div class="fs-label"><span class="num">3</span>Score</div>
+  <div class="fs-body">
+    <h3>Track Outcome → Update Per-Model Stats</h3>
+    <p>After episode completes, reward signal updates the model's quality score for this query type. Both successes and failures feed the Router (unlike Harness which only sees failures). Over time, the Router learns which model handles which query type best.</p>
+  </div>
+</div>
+
+<div class="arrow-between">↓</div>
+
+<div class="flow-step s4">
+  <div class="fs-label"><span class="num">4</span>Optimize</div>
+  <div class="fs-body">
+    <h3>optim_step → Adjust Routing Policy</h3>
+    <p>Periodically recalculate routing thresholds based on accumulated scores. Lower the tier for query types where cheaper models perform well. Raise the tier for query types that need stronger models. Net effect: cost goes down without quality regression.</p>
+  </div>
+</div>
+
+</div>
+
+<!-- EXAMPLE TIERS -->
+<div style="margin-top:24px">
+  <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#94a3b8;margin-bottom:8px">Example: 3-tier model routing</div>
+  <div class="tier-grid">
+    <div class="tier active">
+      <div class="model" style="color:#16a34a">Haiku</div>
+      <h4>Tier 1 — Fast & Cheap</h4>
+      <div class="stats">$0.25/M tokens · 80ms p50<br>Simple queries, FAQ, classification</div>
+    </div>
+    <div class="tier">
+      <div class="model" style="color:#2563eb">Sonnet</div>
+      <h4>Tier 2 — Balanced</h4>
+      <div class="stats">$3/M tokens · 400ms p50<br>Reasoning, multi-step, tool use</div>
+    </div>
+    <div class="tier">
+      <div class="model" style="color:#7c3aed">Opus</div>
+      <h4>Tier 3 — Maximum</h4>
+      <div class="stats">$15/M tokens · 1.2s p50<br>Complex analysis, code gen, edge cases</div>
+    </div>
+  </div>
+</div>
+
+<div class="side-note">
+  <strong>Cloud Pro advantage:</strong> Router cost optimization dashboard shows actual savings: "Routed 42% of queries to Haiku instead of Sonnet, saving $2,340 this month with no quality drop." Community edition tracks the same metrics locally but without the visual dashboard.
+</div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,26 @@
+{
+    "mode": "harness_learning",
+    "env_type": "entropic",
+    "system_prompt": "You are a CRM assistant. Help users with service requests accurately. Verify information before making changes.",
+    "llm_clients": {
+        "reflector": {
+            "model": "anthropic/claude-sonnet-4-5-20250929",
+            "api_base": ""
+        },
+        "task": {
+            "model": "anthropic/claude-haiku-4-5-20251001",
+            "api_base": ""
+        }
+    },
+    "env_config": {
+        "entropic_bench_path": "benchmarks/a2a/entropic-crmarenapro",
+        "task_ids": [
+            0,
+            1,
+            2
+        ],
+        "task_limit": 3
+    },
+    "n_iterations": 3,
+    "episodes_per_iter": 3
+}
