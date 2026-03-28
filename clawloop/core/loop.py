@@ -174,6 +174,7 @@ def learning_loop(
     layers = agent_state.get_layers(active_layers)
     exp_log = ExperimentLog(output_dir)
     evo_log = EvolutionLog(output_dir)
+    prev_avg_reward = 0.0
     log.info("Starting learning loop — initial state: %s", state_id.combined_hash[:12])
 
     for iteration in range(n_iterations):
@@ -370,9 +371,7 @@ def learning_loop(
                 state_hash_before=prev_hash,
                 state_hash_after=state_id.combined_hash,
                 actions=actions,
-                reward_before=avg_reward if iteration == 0 else (
-                    intensity._rewards[-2] if intensity and len(intensity._rewards) >= 2 else avg_reward
-                ),
+                reward_before=prev_avg_reward,
                 reward_after=avg_reward,
                 backend=(
                     agent_state.harness.evolver.name()
@@ -380,6 +379,8 @@ def learning_loop(
                     else "none"
                 ),
             ))
+
+        prev_avg_reward = avg_reward
 
     log.info("Loop complete — final state: %s", state_id.combined_hash[:12])
     return agent_state, state_id
