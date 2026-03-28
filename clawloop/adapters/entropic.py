@@ -3,7 +3,7 @@
 
 Starts the entropic green agent as a long-running A2A server, starts a clawloop
 purple agent with harness injection in a background thread, then uses
-``lfx_runner.py`` (inside the benchmark repo) to send the EvalRequest and
+``clawloop_runner.py`` (inside the benchmark repo) to send the EvalRequest and
 collect results.
 
 Architecture follows the same pattern as the CAR-bench adapter:
@@ -141,7 +141,7 @@ class EntropicAdapter(EnvAdapter):
         1. Start the purple agent in a background thread (harness-injected).
         2. Start the green agent as a subprocess server.
         3. Wait for the green agent to be healthy.
-        4. Run lfx_runner.py (external script) to send EvalRequest and save results.
+        4. Run clawloop_runner.py (external script) to send EvalRequest and save results.
         5. Parse results into Episodes.
         6. Terminate the green agent.
         """
@@ -250,8 +250,8 @@ class EntropicAdapter(EnvAdapter):
                 self._iteration_count += 1
                 return [self._make_failed_episode(tid, "green_start_failed") for tid in str_ids]
 
-            # --- Step 3: Run lfx_runner.py to send EvalRequest ---
-            runner = iter_dir / "lfx_runner.py"
+            # --- Step 3: Run clawloop_runner.py to send EvalRequest ---
+            runner = iter_dir / "clawloop_runner.py"
             runner.write_text(_RUNNER_SCRIPT)
             try:
                 result = subprocess.run(
@@ -271,11 +271,11 @@ class EntropicAdapter(EnvAdapter):
                     f"STDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
                 )
                 if result.returncode != 0:
-                    log.error("lfx_runner.py exited with code %d", result.returncode)
+                    log.error("clawloop_runner.py exited with code %d", result.returncode)
                     self._iteration_count += 1
                     return [self._make_failed_episode(tid, "runner_error") for tid in str_ids]
             except subprocess.TimeoutExpired:
-                log.error("lfx_runner.py timed out")
+                log.error("clawloop_runner.py timed out")
                 self._iteration_count += 1
                 return [self._make_failed_episode(tid, "timeout") for tid in str_ids]
 

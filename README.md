@@ -23,7 +23,7 @@ pip install -e clawloop/skyrl[fsdp]
 
 Set your API key:
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...
+export ANTHROPIC_API_KEY=your-api-key-here
 ```
 
 Run:
