@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from clawloop.core.episode import Episode
+from clawloop.core.evolution_log import EvolutionEntry, EvolutionLog
 from clawloop.core.intensity import AdaptiveIntensity
 from clawloop.core.state import StateID
 from clawloop.core.types import Datum, FBResult, Future, OptimResult
@@ -172,6 +173,7 @@ def learning_loop(
     state_id = agent_state.state_id()
     layers = agent_state.get_layers(active_layers)
     exp_log = ExperimentLog(output_dir)
+    evo_log = EvolutionLog(output_dir)
     log.info("Starting learning loop — initial state: %s", state_id.combined_hash[:12])
 
     for iteration in range(n_iterations):
@@ -348,8 +350,36 @@ def learning_loop(
         harness_ref = agent_state.harness if isinstance(agent_state.harness, Harness) else None
         exp_log.log_iteration(iteration, episodes, fb_results, harness_ref)
 
-        # 6. Recompute state identity
+        # 6. Recompute state identity and log evolution entry
+        prev_hash = state_id.combined_hash
         state_id = agent_state.state_id()
+
+        # Build actions list from fb results for evolution log
+        actions: list[str] = []
+        for name, result in fb_results.items():
+            if result.status == "ok":
+                if result.metrics.get("insights_generated"):
+                    actions.append("reflect")
+                if result.metrics.get("candidates_generated"):
+                    actions.append("mutate")
+                if result.metrics.get("paradigm_shifted"):
+                    actions.append("paradigm_shift")
+        if actions:
+            evo_log.append(EvolutionEntry(
+                iteration=iteration,
+                state_hash_before=prev_hash,
+                state_hash_after=state_id.combined_hash,
+                actions=actions,
+                reward_before=avg_reward if iteration == 0 else (
+                    intensity._rewards[-2] if intensity and len(intensity._rewards) >= 2 else avg_reward
+                ),
+                reward_after=avg_reward,
+                backend=(
+                    agent_state.harness.evolver.name()
+                    if isinstance(agent_state.harness, Harness) and agent_state.harness.evolver
+                    else "none"
+                ),
+            ))
 
     log.info("Loop complete — final state: %s", state_id.combined_hash[:12])
     return agent_state, state_id
