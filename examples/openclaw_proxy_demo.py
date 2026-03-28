@@ -1,34 +1,22 @@
-"""
-OpenClaw Proxy Demo — Improve any OpenAI-compatible agent with ClawLoop.
+"""OpenClaw Proxy + Learning Demo — improve a real agent through ClawLoop.
 
-This example shows how ClawLoop's LLM proxy sits between an agent and the
-upstream LLM, transparently:
-  1. Injecting playbook skills learned from past episodes
-  2. Capturing every conversation trace for training
-  3. Stripping the injected skills before storing (model learns behavior, not scaffolding)
+This demo shows the FULL value loop:
 
+  Round 1: Agent runs tasks through the proxy (no playbook yet)
+           → Proxy captures traces → Reflector analyses them
+           → Learns strategies → Creates playbook entries
+
+  Round 2: Same tasks, but now the proxy injects the learned playbook
+           → Agent gets better instructions → Better responses
+
+This is the core ClawLoop loop: observe → learn → inject → improve.
 The agent requires ZERO code changes — just point base_url at the proxy.
 
 Usage:
-    # Install runner deps (one time)
     cd scripts/openclaw_runner && npm install && cd ../..
 
-    # Run the demo (requires OPENAI_API_KEY in env)
-    PYTHONPATH=. python examples/openclaw_proxy_demo.py
-
-    # Or with a custom upstream:
-    UPSTREAM_URL=https://your-api.com/v1 UPSTREAM_KEY=sk-... MODEL=gpt-4o-mini \\
+    UPSTREAM_URL=https://api.openai.com/v1 UPSTREAM_KEY=$OPENAI_API_KEY \\
         PYTHONPATH=. python examples/openclaw_proxy_demo.py
-
-Architecture:
-    Agent  ──► ClawLoop Proxy ──► Upstream LLM
-                │                      │
-                ├─ inject skills       │
-                ├─ forward request ────┤
-                │◄─ SSE stream ────────┤
-                ├─ tee response        │
-                ├─ strip skills        │
-                └─ ingest Episode      │
 """
 from __future__ import annotations
 
@@ -37,6 +25,7 @@ import os
 import socket
 import subprocess
 import sys
+import textwrap
 import threading
 import time
 
@@ -44,147 +33,186 @@ import uvicorn
 from pydantic import SecretStr
 
 from clawloop.collector import EpisodeCollector
+from clawloop.core.episode import Episode, EpisodeSummary, StepMeta
+from clawloop.core.reflector import Reflector, ReflectorConfig
 from clawloop.core.reward import RewardPipeline
-from clawloop.layers.harness import Harness, Playbook, PlaybookEntry
+from clawloop.core.types import Datum
+from clawloop.evolvers.local import LocalEvolver
+from clawloop.layers.harness import Harness
+from clawloop.llm import LiteLLMClient
 from clawloop.proxy import ProxyApp
 from clawloop.proxy_config import ProxyConfig
 
 
-def build_demo_harness() -> Harness:
-    """Create a harness with example playbook skills."""
-    entries = {
-        "concise-answers": PlaybookEntry(
-            id="concise-answers",
-            name="concise-answers",
-            description="When answering questions",
-            content="Keep answers concise. Lead with the answer, then explain.",
-            anti_patterns="Don't write long preambles before getting to the point.",
-            category="communication",
-        ),
-        "code-examples": PlaybookEntry(
-            id="code-examples",
-            name="code-examples",
-            description="When explaining code concepts",
-            content="Always include a short code example. Show, don't just tell.",
-            category="coding",
-        ),
-    }
-    playbook = Playbook()
-    playbook._entries = entries
-    return Harness(
-        system_prompts={"openclaw": "You are a helpful coding assistant."},
-        playbook=playbook,
+def banner(text: str) -> None:
+    print(f"\n{'═' * 64}\n  {text}\n{'═' * 64}")
+
+
+def show_playbook(harness: Harness) -> None:
+    entries = harness.playbook.active_entries()
+    if not entries:
+        print("  (empty — no skills learned yet)")
+        return
+    for i, e in enumerate(entries, 1):
+        score = f"+{e.helpful}/-{e.harmful}"
+        print(f"  [{i}] {e.name or e.id}  ({score})")
+        if e.description:
+            print(f"      When: {e.description}")
+        wrapped = textwrap.fill(
+            e.content, width=60, initial_indent="      ", subsequent_indent="      "
+        )
+        print(wrapped)
+        print()
+
+
+def start_proxy(upstream_url, upstream_key, harness, collector, bench):
+    config = ProxyConfig(
+        upstream_url=upstream_url,
+        upstream_api_key=SecretStr(upstream_key),
+        bench_mode=True,
+        bench=bench,
     )
+    proxy = ProxyApp(config, collector=collector, harness=harness)
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        port = s.getsockname()[1]
+    server = uvicorn.Server(uvicorn.Config(
+        proxy.asgi_app, host="127.0.0.1", port=port, log_level="warning",
+    ))
+    threading.Thread(target=server.run, daemon=True).start()
+    time.sleep(2)
+    return port, server
+
+
+def run_task(task, port, model):
+    proc = subprocess.run(
+        [
+            "node", "scripts/openclaw_runner/runner.js",
+            "--base-url", f"http://127.0.0.1:{port}/v1",
+            "--run-id", f"run-{task['task_id']}",
+        ],
+        input=json.dumps({**task, "model": model}).encode(),
+        capture_output=True, timeout=60,
+    )
+    if proc.returncode != 0:
+        return {"task_id": task["task_id"], "status": "error", "output": proc.stderr.decode()[:200]}
+    return json.loads(proc.stdout.decode())
+
+
+def run_round(label, tasks, port, model):
+    banner(label)
+    for task in tasks:
+        print(f"  [{task['task_id']}] {task['instruction'][:60]}...")
+        result = run_task(task, port, model)
+        output = result.get("output", "")[:150]
+        print(f"    → {output}{'...' if len(result.get('output', '')) > 150 else ''}\n")
 
 
 def main():
-    # --- Config from env ---
-    upstream_url = os.environ.get("UPSTREAM_URL", "https://api.openai.com/v1")
-    upstream_key = os.environ.get("UPSTREAM_KEY", os.environ.get("OPENAI_API_KEY", ""))
+    upstream_url = os.environ.get("UPSTREAM_URL", "")
+    upstream_key = os.environ.get("UPSTREAM_KEY", "")
     model = os.environ.get("MODEL", "gpt-4o-mini")
-    task_file = os.environ.get("TASKS", "examples/openclaw_tasks/base.jsonl")
+    bench = "openclaw"
 
-    # --- Build components ---
-    harness = build_demo_harness()
-    episodes = []
+    if not upstream_url or not upstream_key:
+        print("Set UPSTREAM_URL and UPSTREAM_KEY. Example:")
+        print("  UPSTREAM_URL=https://api.openai.com/v1 UPSTREAM_KEY=$OPENAI_API_KEY \\")
+        print("      PYTHONPATH=. python examples/openclaw_proxy_demo.py")
+        sys.exit(1)
+
+    tasks = [
+        {"task_id": "explain-1", "instruction": "Explain what a Python decorator is."},
+        {"task_id": "debug-1", "instruction": "The user says: 'My script crashes with KeyError on response[\"data\"]'. Help them debug."},
+        {"task_id": "review-1", "instruction": "Review this code: `for i in range(len(lst)): print(lst[i])`"},
+    ]
+
+    # LLM for the Reflector (analyses traces, produces insights)
+    reflector_llm = LiteLLMClient(
+        model=f"openai/{model}", api_base=upstream_url, api_key=upstream_key,
+    )
+    reflector = Reflector(client=reflector_llm, config=ReflectorConfig())
+    evolver = LocalEvolver(reflector=reflector)
+    harness = Harness(
+        system_prompts={bench: "You are a helpful coding assistant."},
+        evolver=evolver,
+    )
+
+    # ── ROUND 1: Baseline (no skills) ────────────────────────────────
+
+    episodes: list[Episode] = []
     collector = EpisodeCollector(
         pipeline=RewardPipeline.with_defaults(),
         on_batch=lambda eps: episodes.extend(eps),
         batch_size=1,
     )
-    config = ProxyConfig(
-        upstream_url=upstream_url,
-        upstream_api_key=SecretStr(upstream_key),
-        bench_mode=True,
-        bench="openclaw",
-    )
-    proxy = ProxyApp(config, collector=collector, harness=harness)
+    port, server = start_proxy(upstream_url, upstream_key, harness, collector, bench)
+    print(f"\n  Proxy :{port} → {upstream_url} ({model})")
+    show_playbook(harness)
 
-    # --- Start proxy ---
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        port = s.getsockname()[1]
-
-    server = uvicorn.Server(uvicorn.Config(
-        proxy.asgi_app, host="127.0.0.1", port=port, log_level="warning",
-    ))
-    thread = threading.Thread(target=server.run, daemon=True)
-    thread.start()
+    run_round("ROUND 1: Baseline (no playbook)", tasks, port, model)
+    server.should_exit = True
     time.sleep(2)
+    print(f"  Traces captured: {len(episodes)}")
 
-    print(f"ClawLoop Proxy running on http://127.0.0.1:{port}/v1")
-    print(f"Upstream: {upstream_url}")
-    print(f"Model:    {model}")
-    print(f"Skills:   {len(harness.playbook.active_entries())} active playbook entries")
-    print()
+    # ── LEARNING ─────────────────────────────────────────────────────
 
-    # --- Load tasks ---
-    tasks = []
-    with open(task_file) as f:
-        for line in f:
-            if line.strip():
-                tasks.append(json.loads(line))
-
-    print(f"Running {len(tasks)} tasks through pi-mono agent...\n")
-    print("=" * 60)
-
-    # --- Run each task ---
-    for i, task in enumerate(tasks):
-        task["model"] = model
-        run_id = f"demo-{task['task_id']}"
-
-        print(f"\n[Task {i+1}/{len(tasks)}] {task['task_id']}")
-        print(f"  Instruction: {task['instruction'][:80]}")
-
-        proc = subprocess.run(
-            [
-                "node", "scripts/openclaw_runner/runner.js",
-                "--base-url", f"http://127.0.0.1:{port}/v1",
-                "--run-id", run_id,
-            ],
-            input=json.dumps(task).encode(),
-            capture_output=True,
-            timeout=30,
-        )
-
-        if proc.returncode != 0:
-            print(f"  FAILED (exit {proc.returncode})")
-            print(f"  {proc.stderr.decode()[:200]}")
-            continue
-
-        result = json.loads(proc.stdout.decode())
-        output = result.get("output", "")
-        preview = output[:150] + ("..." if len(output) > 150 else "")
-        print(f"  Response: {preview}")
-
-    # --- Show captured episodes ---
-    time.sleep(2)
-    print(f"\n{'=' * 60}")
-    print(f"\nEpisodes captured: {len(episodes)}")
+    banner("LEARNING: Reflector analyses traces")
+    print("  Calling LLM to extract reusable strategies...\n")
 
     for ep in episodes:
-        print(f"\n  [{ep.session_id}]")
-        for m in ep.messages:
-            c = m.content if isinstance(m.content, str) else str(m.content)
-            role_tag = f"[{m.role:>9s}]"
-            preview = c[:100] + ("..." if len(c) > 100 else "")
-            print(f"    {role_tag} {preview}")
+        ep.summary = EpisodeSummary(total_reward=0.5)
+        ep.steps = [StepMeta(t=0, reward=0.5, done=True, timing_ms=100.0)]
 
-        # Verify skills were stripped
-        has_sentinel = any(
-            "clawloop-skills" in (m.content if isinstance(m.content, str) else "")
-            for m in ep.messages
-        )
-        if has_sentinel:
-            print("    WARNING: skills sentinel found in stored episode!")
-        else:
-            print("    (skills stripped before storage)")
+    if not episodes:
+        print("  No episodes captured. Check proxy/upstream connection.")
+        sys.exit(1)
 
-    print(f"\nThese {len(episodes)} episodes are ready for harness learning.")
-    print("Run `python examples/train_runner.py examples/configs/openclaw_proxy.json`")
-    print("to optimize the playbook based on these traces.")
+    from clawloop.core.evolver import EvolverContext
+    harness.set_evolver_context(EvolverContext())
+    fb = harness.forward_backward(Datum(episodes=episodes)).result()
+    opt = harness.optim_step().result()
+    print(f"  Insights: {fb.metrics.get('insights_generated', 0)}")
+    print(f"  Updates:  {opt.updates_applied}")
 
-    server.should_exit = True
+    banner("LEARNED PLAYBOOK")
+    show_playbook(harness)
+
+    # ── ROUND 2: With learned skills ─────────────────────────────────
+
+    episodes2: list[Episode] = []
+    collector2 = EpisodeCollector(
+        pipeline=RewardPipeline.with_defaults(),
+        on_batch=lambda eps: episodes2.extend(eps),
+        batch_size=1,
+    )
+    port2, server2 = start_proxy(upstream_url, upstream_key, harness, collector2, bench)
+    n_skills = len(harness.playbook.active_entries())
+    print(f"\n  Injecting {n_skills} learned skills into every LLM call")
+
+    run_round("ROUND 2: With learned skills", tasks, port2, model)
+    server2.should_exit = True
+    time.sleep(2)
+
+    # ── VERIFICATION ─────────────────────────────────────────────────
+
+    banner("RESULT")
+    print(f"  Round 1 traces: {len(episodes)}")
+    print(f"  Round 2 traces: {len(episodes2)}")
+    skills_leaked = any(
+        "clawloop-skills" in (m.content if isinstance(m.content, str) else "")
+        for ep in episodes2 for m in ep.messages
+    )
+    print(f"  Skills stripped from stored traces: {'yes' if not skills_leaked else 'NO — BUG!'}")
+
+    prompt = harness.system_prompt(bench)
+    banner("SYSTEM PROMPT (what the agent sees in round 2)")
+    print(textwrap.indent(prompt[:600], "  "))
+    if len(prompt) > 600:
+        print(f"  ... ({len(prompt)} chars total)")
+
+    print(f"\n{'═' * 64}")
+    print("  observe → learn → inject → improve")
+    print(f"{'═' * 64}\n")
 
 
 if __name__ == "__main__":
