@@ -70,7 +70,7 @@ exclude = [
     "enterprise_clawloop/",
     "pitch/",
     "configs/",
-    "ressources/",
+    "resources/",
     "scripts/",
     "docs/",
 ]

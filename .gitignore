@@ -20,16 +20,16 @@ docs/
 .kd
 .claude
 
-# un-ignore ressources folder (intentionally tracked)
-!ressources/*.pptx
-!ressources/*.pdf
-!ressources/*.png
-!ressources/*.jpeg
+# un-ignore resources folder (intentionally tracked)
+!resources/*.pptx
+!resources/*.pdf
+!resources/*.png
+!resources/*.jpeg
 
-# ignore LaTeX build artifacts in ressources
-ressources/*.aux
-ressources/*.log
-ressources/*.xdv
+# ignore LaTeX build artifacts in resources
+resources/*.aux
+resources/*.log
+resources/*.xdv
 
 # Benchmark artifacts
 benchmarks/*/output/
