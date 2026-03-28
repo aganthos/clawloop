@@ -15,6 +15,8 @@ The agent requires ZERO code changes — just point base_url at the proxy.
 Requires:
     - Node.js (for the pi-mono agent runner)
     - An OpenAI-compatible LLM API (OpenAI, Anthropic via proxy, vLLM, etc.)
+    - Chat Completions support (`POST /v1/chat/completions`). The proxy does not
+      implement `/v1/completions`, `/v1/embeddings`, or `/v1/responses`.
 
     Note: Google Gemini's OpenAI-compatible endpoint has SSE format
     differences that cause empty responses with pi-mono. Use OpenAI
@@ -30,6 +32,12 @@ Usage:
     # With any OpenAI-compatible endpoint:
     UPSTREAM_URL=http://your-api/v1 UPSTREAM_KEY=your-key MODEL=model-name \\
         PYTHONPATH=. python examples/openclaw_proxy_demo.py
+
+Bench vs live mode:
+    This demo runs the proxy in `bench_mode=True`, which requires
+    `X-ClawLoop-Run-Id` for session correlation (the Node runner sets it). For a
+    deployed proxy, set `bench_mode=False` and configure `proxy_key` so requests
+    are authenticated via `Authorization: Bearer ...`.
 """
 from __future__ import annotations
 

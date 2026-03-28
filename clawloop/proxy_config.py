@@ -1,4 +1,13 @@
-"""ProxyConfig — configuration for the OpenClaw reverse-proxy adapter."""
+"""ProxyConfig — configuration for the OpenClaw reverse-proxy adapter.
+
+The proxy only serves the OpenAI **Chat Completions** endpoint
+(`POST /v1/chat/completions`). It does not implement `/v1/completions`,
+`/v1/embeddings`, `/v1/responses`, etc.
+
+bench_mode:
+    - True (default): local benchmark/training mode. Requires `X-ClawLoop-Run-Id`.
+    - False: live/deployed mode. Requires `proxy_key` and enforces Authorization.
+"""
 from __future__ import annotations
 
 from typing import Any, Callable, ClassVar
