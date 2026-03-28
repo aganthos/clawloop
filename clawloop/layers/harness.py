@@ -48,6 +48,9 @@ _INJECTION_PATTERNS = [
     re.compile(r"<\s*/?\s*system\s*>", re.IGNORECASE),
 ]
 
+# Decay rate applied to deprecated entries during paradigm shifts.
+_PARADIGM_DEPRECATION_DECAY = 0.05
+
 # Whitelist for insight tag characters (alphanumeric, hyphens, underscores).
 _TAG_RE = re.compile(r"^[a-zA-Z0-9\-_]+$")
 
@@ -362,6 +365,7 @@ class _HarnessPending:
     insights: list[Insight] = field(default_factory=list)
     candidates: dict[str, list[PromptCandidate]] = field(default_factory=dict)
     activated_entries: set[str] = field(default_factory=set)  # entry IDs to update last_activated
+    deprecation_targets: list[str] = field(default_factory=list)  # entry IDs for paradigm decay
 
 
 # -- Harness layer --
@@ -401,23 +405,153 @@ class Harness:
     # Incremented on structural playbook changes (insights applied, not just score updates)
     playbook_generation: int = 0
 
-    # Optional Reflector for LLM-based trace analysis during forward_backward
-    reflector: Any | None = field(default=None, repr=False)
+    # Optional Evolver for unified optimization during forward_backward
+    # (replaces the old reflector= slot — wraps Reflector + GEPA + Paradigm)
+    evolver: Any | None = field(default=None, repr=False)
 
     # Optional PlaybookCurator for retrieve-classify-revise pipeline
     _curator: Any | None = field(default=None, repr=False)
 
-    def system_prompt(self, bench: str, task_tags: set[str] | None = None) -> str:
+    # Evolver context set by the loop before forward_backward
+    _evolver_context: Any | None = field(default=None, repr=False)
+
+    # Optional embedding provider for semantic playbook retrieval
+    _embeddings: Any | None = field(default=None, repr=False)
+
+    # Cosine similarity threshold for embedding retrieval
+    _retrieval_threshold: float = 0.4
+
+    # Max entries returned in full-playbook fallback
+    _max_retrieval_entries: int = 50
+
+    def system_prompt(
+        self,
+        bench: str,
+        task_tags: set[str] | None = None,
+        context: str | None = None,
+    ) -> str:
         """Resolve the system prompt for a bench, including playbook.
 
-        When *task_tags* is provided, only playbook entries matching those
-        tags are included (selective retrieval, ACE/DC-RS style).
+        The playbook is a dynamic prompt section — which entries are
+        included depends on relevance to the current task.
+
+        When *context* is provided (e.g. the user's message or task
+        description), entries are selected by embedding similarity.
+        This keeps the prompt focused on what's relevant right now.
+
+        Retrieval priority (when *context* is provided):
+          1. Embedding similarity (primary — semantic match)
+          2. Tag filter (fallback — category match)
+          3. Full playbook (final fallback — capped by effective score)
+
+        Without *context*, uses tag-based filtering (or all entries).
         """
         base = self.system_prompts.get(bench, "")
-        pb = self.playbook.render(tags=task_tags)
+
+        if context and context.strip() and self.embeddings is not None:
+            entries, reason = self._retrieve_entries(task_tags, context.strip())
+            pb = self._render_entries(entries, reason)
+        else:
+            pb = self.playbook.render(tags=task_tags)
+
         if pb:
             return f"{base}\n\n{pb}" if base else pb
         return base
+
+    @property
+    def embeddings(self) -> Any | None:
+        """Return the embedding provider (explicit or from curator)."""
+        if self._embeddings is not None:
+            return self._embeddings
+        if self._curator is not None and hasattr(self._curator, "_embeddings"):
+            return self._curator._embeddings
+        return None
+
+    def _retrieve_entries(
+        self,
+        task_tags: set[str] | None,
+        query_text: str,
+    ) -> tuple[list[PlaybookEntry], str]:
+        """Embedding-first retrieval with tag and full-playbook fallbacks."""
+        active = self.playbook.active_entries()
+        if not active:
+            return [], "empty"
+
+        # 1. Embedding retrieval (primary)
+        hits = self._embed_and_find(query_text, active)
+        if hits:
+            # Cap results to prevent prompt bloat
+            return hits[: self._max_retrieval_entries], "embedding"
+
+        # 2. Tag filter (secondary fallback)
+        if task_tags:
+            tag_hits = [e for e in active if e.tags and set(e.tags) & task_tags]
+            if tag_hits:
+                return tag_hits, "tags"
+
+        # 3. Full playbook (final fallback, capped by effective score)
+        if len(active) > self._max_retrieval_entries:
+            active = sorted(active, key=lambda e: e.effective_score(), reverse=True)
+            active = active[: self._max_retrieval_entries]
+        return active, "full"
+
+    def _embed_and_find(
+        self, query_text: str, entries: list[PlaybookEntry],
+    ) -> list[PlaybookEntry]:
+        """Embed query and find similar entries. Returns [] on any failure."""
+        provider = self.embeddings
+        if provider is None:
+            return []
+
+        from clawloop.core.embeddings import find_similar
+
+        # Lazy embed: entries missing or stale embeddings get refreshed
+        model_id = getattr(provider, "model", None) or "unknown"
+        needs = [e for e in entries if e.needs_reembed(model_id)]
+        if needs:
+            try:
+                texts = [e.content for e in needs]
+                vectors = provider.embed(texts)
+                for entry, vec in zip(needs, vectors):
+                    entry.embedding = vec
+                    entry.embedding_model_id = model_id
+                    entry.embedding_updated_at = time.time()
+            except Exception:
+                log.warning("Failed to embed playbook entries", exc_info=True)
+
+        # Embed query
+        query_text = query_text[:500]
+        try:
+            query_vec = provider.embed([query_text])[0]
+        except Exception:
+            log.warning("Failed to embed query text", exc_info=True)
+            return []
+
+        try:
+            results = find_similar(query_vec, entries, threshold=self._retrieval_threshold)
+            return [entry for entry, _score in results]
+        except Exception:
+            log.warning("find_similar failed", exc_info=True)
+            return []
+
+    @staticmethod
+    def _render_entries(entries: list[PlaybookEntry], reason: str) -> str:
+        """Render retrieved entries with a header indicating retrieval method."""
+        if not entries:
+            return ""
+        header = "## PLAYBOOK (semantic match)" if reason == "embedding" else "## PLAYBOOK"
+        lines = [header]
+        for e in entries:
+            if e.name and e.description:
+                lines.append(f"### {e.name}")
+                lines.append(f"**When**: {e.description}")
+                lines.append(e.content)
+                if e.anti_patterns:
+                    lines.append(f"**Anti-pattern**: {e.anti_patterns}")
+            else:
+                tag_str = f" [{', '.join(e.tags)}]" if e.tags else ""
+                lines.append(f"[{e.id}]{tag_str} :: {e.content}")
+        return "\n".join(lines)
 
     def apply_insights(self, insights: list[Insight]) -> int:
         """Curator step: apply reflector insights as playbook deltas.
@@ -590,20 +724,6 @@ class Harness:
 
     # -- Layer protocol methods --
 
-    @staticmethod
-    def _extract_episode_tags(episodes: list[Any]) -> set[str]:
-        """Extract category/bench tags from episodes for insight tagging."""
-        tags: set[str] = set()
-        for ep in episodes:
-            if getattr(ep, "bench", None):
-                tags.add(ep.bench)
-            meta = getattr(ep, "metadata", None) or {}
-            for key in ("entropic_category", "car_category", "task_category"):
-                val = meta.get(key)
-                if val:
-                    tags.add(val)
-        return tags
-
     def _attribute_entries(self, episode: Any) -> list[PlaybookEntry]:
         """Return playbook entries relevant to this episode.
 
@@ -668,6 +788,46 @@ class Harness:
         # Fallback: all active entries
         return active
 
+    # -- Evolver helpers --
+
+    def set_evolver_context(self, ctx: Any) -> None:
+        """Set the EvolverContext for the next forward_backward call."""
+        self._evolver_context = ctx
+
+    def _build_snapshot(self) -> Any:
+        """Build a HarnessSnapshot from current state for the Evolver."""
+        from clawloop.core.evolver import HarnessSnapshot
+
+        return HarnessSnapshot(
+            system_prompts=dict(self.system_prompts),
+            playbook_entries=[e.to_dict() for e in self.playbook.entries],
+            pareto_fronts={
+                bench: [c.to_dict() for c in front.candidates]
+                for bench, front in self.pareto_fronts.items()
+            },
+            playbook_generation=self.playbook_generation,
+            playbook_version=self.playbook_version,
+        )
+
+    # -- Management methods (stubs for local, rich for cloud) --
+
+    def evolution_summary(self, run_id: str = "") -> dict[str, Any]:
+        """Return summary of last/current evolution."""
+        return {"backend": self.evolver.name() if self.evolver else "none"}
+
+    def get_candidates(self, bench: str = "") -> list[dict[str, Any]]:
+        """Return current Pareto front candidates for inspection."""
+        if bench and bench in self.pareto_fronts:
+            return [
+                {"text": c.text, "scores": c.per_task_scores}
+                for c in self.pareto_fronts[bench].candidates
+            ]
+        return []
+
+    def cancel(self, run_id: str = "") -> bool:
+        """Cancel a running evolution. No-op for local evolvers."""
+        return False
+
     def forward_backward(self, data: Datum) -> Future[FBResult]:
         """Analyse episodes and accumulate signals without mutating observable state.
 
@@ -706,30 +866,42 @@ class Harness:
             "stale_skipped": stale_skipped,
         }
 
-        # Reflector: analyse traces and accumulate insights.
-        # Batch size controls the noise/signal tradeoff (TextGrad analogy):
-        #   batch=1  → per-sample reflection (Reflexion-style, clean gradients)
-        #   batch=N  → mini-batch reflection (TextGrad-style, lower variance)
-        if self.reflector is not None:
+        # Evolver: unified optimization (reflector + GEPA + paradigm).
+        if self.evolver is not None:
             try:
-                batch_sz = self.reflector.config.reflection_batch_size
-                episodes = data.episodes
-                total_insights: list[Any] = []
-                for i in range(0, len(episodes), batch_sz):
-                    batch = episodes[i : i + batch_sz]
-                    batch_insights = self.reflector.reflect(batch, self.playbook)
-                    # Auto-tag insights with source episode metadata for
-                    # cleaner attribution when using per-sample reflection.
-                    if batch_sz <= 2 and batch_insights:
-                        ep_tags = self._extract_episode_tags(batch)
-                        for insight in batch_insights:
-                            existing = set(insight.tags) if insight.tags else set()
-                            insight.tags = list(existing | ep_tags)
-                    total_insights.extend(batch_insights)
-                self._pending.insights.extend(total_insights)
-                metrics["insights_generated"] = len(total_insights)
-            except Exception:
-                log.exception("Reflector failed during forward_backward")
+                from clawloop.core.evolver import EvolverContext, make_fb_info
+
+                snapshot = self._build_snapshot()
+                ctx = self._evolver_context or EvolverContext()
+                evolver_result = self.evolver.evolve(data.episodes, snapshot, ctx)
+
+                # Merge evolver results into pending
+                self._pending.insights.extend(evolver_result.insights)
+                for bench, cands in evolver_result.candidates.items():
+                    self._pending.candidates.setdefault(bench, []).extend(cands)
+                if evolver_result.deprecation_targets:
+                    self._pending.deprecation_targets.extend(evolver_result.deprecation_targets)
+
+                metrics["insights_generated"] = len(evolver_result.insights)
+                metrics["candidates_generated"] = sum(
+                    len(c) for c in evolver_result.candidates.values()
+                )
+                metrics["paradigm_shifted"] = evolver_result.paradigm_shift
+
+                fb_info = make_fb_info(
+                    status="ok",
+                    run_id=evolver_result.run_id,
+                    candidates_tested=metrics["candidates_generated"],
+                    paradigm_shifted=evolver_result.paradigm_shift,
+                    backend=evolver_result.provenance.backend,
+                )
+                metrics.update(fb_info)
+            except Exception as exc:
+                log.exception("Evolver failed during forward_backward")
+                metrics["evolver_error"] = str(exc)
+            finally:
+                # Clear context to prevent stale reuse on next call
+                self._evolver_context = None
 
         return Future.immediate(FBResult(status="ok", metrics=metrics))
 
@@ -743,8 +915,9 @@ class Harness:
         has_signals = bool(pending.playbook_signals)
         has_insights = bool(pending.insights)
         has_candidates = bool(pending.candidates)
+        has_deprecation = bool(pending.deprecation_targets)
 
-        if not (has_signals or has_insights or has_candidates):
+        if not (has_signals or has_insights or has_candidates or has_deprecation):
             return Future.immediate(OptimResult(status="ok", updates_applied=0))
 
         # Snapshot for rollback
@@ -775,6 +948,15 @@ class Harness:
                 for candidate in candidates:
                     self.update_pareto(bench, candidate)
                     updates += 1
+
+            # Apply paradigm deprecation: increase decay on targeted entries
+            if pending.deprecation_targets:
+                deprecation_decay = _PARADIGM_DEPRECATION_DECAY
+                target_set = set(pending.deprecation_targets)
+                for entry in self.playbook.entries:
+                    if entry.id in target_set:
+                        entry.decay_rate = max(entry.decay_rate, deprecation_decay)
+                        updates += 1
 
             # Auto-prune entries with sustained negative score
             # Only prune entries that have enough signal (helpful+harmful >= 3)

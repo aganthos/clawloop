@@ -23,6 +23,7 @@ from clawloop.core.intensity import AdaptiveIntensity
 from clawloop.core.paradigm import ParadigmBreakthrough
 from clawloop.core.reflector import Reflector
 from clawloop.core.types import Datum
+from clawloop.evolvers.local import LocalEvolver
 from clawloop.layers.harness import Harness, Playbook, PlaybookEntry
 
 log = logging.getLogger(__name__)
@@ -70,9 +71,11 @@ class ClawLoopAgent:
 
     def __post_init__(self) -> None:
         reflector = Reflector(client=self.reflector_client)
+        paradigm = ParadigmBreakthrough(client=self.reflector_client)
+        evolver = LocalEvolver(reflector=reflector, paradigm=paradigm)
         self._harness = Harness(
             system_prompts={self.bench: self.base_system_prompt},
-            reflector=reflector,
+            evolver=evolver,
         )
         self._intensity = AdaptiveIntensity()
         self._tried_paradigms = []
@@ -123,26 +126,29 @@ class ClawLoopAgent:
             rewards.append(avg_reward)
             log.info("  avg_reward=%.4f", avg_reward)
 
-            # 3. Reflect if intensity says so
+            # 3. Reflect if intensity says so (evolver handles reflector + paradigm)
             if self._intensity.should_reflect(i):
                 log.info("  reflecting...")
-                datum = Datum(episodes=episodes)
-                self._harness.forward_backward(datum)
-                self._harness.optim_step()
+                from clawloop.core.evolver import EvolverContext
 
-            # 4. Paradigm breakthrough on stagnation
-            if self._intensity.is_stagnating():
-                log.info("  stagnation — triggering paradigm breakthrough")
-                pb = ParadigmBreakthrough(client=self.reflector_client)
-                insights = pb.generate(
-                    playbook=self._harness.playbook,
-                    reward_history=self._intensity._rewards,
-                    tried_paradigms=self._tried_paradigms,
+                ctx = EvolverContext(
+                    reward_history=list(self._intensity._rewards),
+                    is_stagnating=self._intensity.is_stagnating(),
+                    iteration=i,
+                    tried_paradigms=list(self._tried_paradigms),
                 )
-                if insights:
-                    for ins in insights:
-                        self._tried_paradigms.append(ins.content)
-                    self._harness.apply_insights(insights)
+                self._harness.set_evolver_context(ctx)
+
+                datum = Datum(episodes=episodes)
+                fb_result = self._harness.forward_backward(datum).result()
+
+                # Capture paradigm contents before optim drains pending
+                if fb_result.metrics.get("paradigm_shifted"):
+                    for insight in self._harness._pending.insights:
+                        if "paradigm" in (insight.tags or []):
+                            self._tried_paradigms.append(insight.content)
+
+                self._harness.optim_step()
 
         return {
             "rewards": rewards,
@@ -157,8 +163,10 @@ class ClawLoopAgent:
     def ingest(self, episodes: list[Episode]) -> None:
         """Ingest externally-collected episodes into the learning system.
 
-        Runs forward_backward (which triggers the reflector) and then
-        optim_step to apply insights to the playbook.
+        Runs forward_backward (which triggers the evolver) and then
+        optim_step to apply insights to the playbook. Note: paradigm
+        breakthrough is not available through ingest() — use learn()
+        for full stagnation handling.
         """
         datum = Datum(episodes=episodes)
         self._harness.forward_backward(datum)

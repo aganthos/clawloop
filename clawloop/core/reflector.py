@@ -96,8 +96,14 @@ class Reflector:
         playbook: Playbook,
         *,
         sibling_context: str | None = None,
+        base_prompt: str | None = None,
     ) -> list[Insight]:
         """Analyze episodes and return a list of Insight objects.
+
+        When *base_prompt* is provided, the Reflector sees the static system
+        prompt so it can avoid adding playbook entries that duplicate what's
+        already in the base prompt. The playbook is the dynamic part
+        (per-query strategies); the base prompt is the static part (all queries).
 
         Returns [] if *episodes* is empty (no LLM call is made).
         Returns [] on parse failure (logs a warning, does not raise).
@@ -108,7 +114,7 @@ class Reflector:
         # Limit episodes to max_episodes_per_prompt
         episodes = episodes[: self.config.max_episodes_per_prompt]
 
-        user_prompt = self._build_prompt(episodes, playbook, sibling_context)
+        user_prompt = self._build_prompt(episodes, playbook, sibling_context, base_prompt)
         system_prompt = _SYSTEM_PROMPT.format(max_insights=_MAX_INSIGHTS_PER_BATCH)
 
         messages = [
@@ -129,14 +135,25 @@ class Reflector:
         episodes: list[Episode],
         playbook: Playbook,
         sibling_context: str | None,
+        base_prompt: str | None = None,
     ) -> str:
         """Assemble the user prompt from playbook, episode traces, and sibling context."""
         sections: list[str] = []
 
-        # -- CURRENT PLAYBOOK --
+        # -- BASE SYSTEM PROMPT (static, for reference) --
+        if base_prompt:
+            sections.append(
+                f"## CURRENT SYSTEM PROMPT (static, applies to all queries)\n"
+                f"{_sanitize_str(base_prompt)}"
+            )
+
+        # -- CURRENT PLAYBOOK (dynamic, per-query strategies) --
         pb_text = playbook.render()
         if pb_text:
-            sections.append(f"## CURRENT PLAYBOOK\n{_sanitize_str(pb_text)}")
+            sections.append(
+                f"## CURRENT PLAYBOOK (dynamic, appended per-query — do NOT duplicate the system prompt above)\n"
+                f"{_sanitize_str(pb_text)}"
+            )
         else:
             sections.append("## CURRENT PLAYBOOK\n(empty)")
 

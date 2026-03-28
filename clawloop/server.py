@@ -20,6 +20,7 @@ from clawloop.collector import EpisodeCollector
 from clawloop.core.loop import AgentState
 from clawloop.core.reflector import Reflector, ReflectorConfig
 from clawloop.core.reward import RewardPipeline
+from clawloop.evolvers.local import LocalEvolver
 from clawloop.layers.harness import Harness
 from clawloop.learner import AsyncLearner
 
@@ -43,9 +44,10 @@ class ClawLoopServer:
         self._batch_size = batch_size
         self._reflector = reflector
 
+        evolver = LocalEvolver(reflector=reflector) if reflector else None
         self.harness = Harness(
             system_prompts={bench: seed_prompt},
-            reflector=reflector,
+            evolver=evolver,
         )
         self.agent_state = AgentState(harness=self.harness)
         self.learner = AsyncLearner(
@@ -189,9 +191,10 @@ class ClawLoopServer:
 
     def reset(self) -> None:
         self.learner.stop()
+        evolver = LocalEvolver(reflector=self._reflector) if self._reflector else None
         self.harness = Harness(
             system_prompts={self.bench: self.seed_prompt},
-            reflector=self._reflector,
+            evolver=evolver,
         )
         self.agent_state.harness = self.harness
         self.collector = EpisodeCollector(
