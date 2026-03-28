@@ -36,9 +36,17 @@ class PromptEvolver:
     config: EvolverConfig = field(default_factory=EvolverConfig)
 
     def mutate(
-        self, parent: PromptCandidate, feedback: list[Episode],
+        self,
+        parent: PromptCandidate,
+        feedback: list[Episode],
+        playbook_context: str | None = None,
     ) -> PromptCandidate | None:
         """ASI-guided mutation: propose a targeted fix based on failing episodes.
+
+        When *playbook_context* is provided (rendered playbook text), the LLM
+        sees it so it can complement rather than duplicate playbook strategies.
+        The system prompt is the static part (all queries), the playbook is
+        the dynamic part (query-specific) — they must not overlap.
 
         Returns a new candidate with parent lineage, or None if the LLM
         response cannot be parsed.
@@ -54,24 +62,38 @@ class PromptEvolver:
                 + "\n".join(msgs)
             )
 
+        user_parts = [
+            f"## Current System Prompt (static, applies to all queries)\n{parent.text}",
+        ]
+        if playbook_context:
+            user_parts.append(
+                f"## Current Playbook (dynamic, appended per-query — do NOT duplicate these)\n{playbook_context}"
+            )
+        user_parts.append(
+            f"## Failing Episodes\n" + "\n---\n".join(episode_summaries)
+        )
+        user_parts.append(
+            "Propose a revised system prompt that addresses these failures. "
+            "Only modify the static system prompt — do not include playbook strategies."
+        )
+
         prompt = [
             {
                 "role": "system",
                 "content": (
                     "You are a prompt optimization expert. Given a system prompt "
                     "and episodes where it failed, propose a targeted modification "
-                    "to improve performance. Return ONLY a JSON object with a "
-                    '"revised_prompt" key containing the full improved prompt text.'
+                    "to improve performance. The system prompt is the STATIC part "
+                    "that applies to all queries. A separate dynamic playbook "
+                    "(shown for reference) handles per-query strategies — do NOT "
+                    "duplicate those in the system prompt. Return ONLY a JSON "
+                    'object with a "revised_prompt" key containing the full '
+                    "improved system prompt text."
                 ),
             },
             {
                 "role": "user",
-                "content": (
-                    f"## Current System Prompt\n{parent.text}\n\n"
-                    f"## Failing Episodes\n"
-                    + "\n---\n".join(episode_summaries)
-                    + "\n\nPropose a revised system prompt that addresses these failures."
-                ),
+                "content": "\n\n".join(user_parts),
             },
         ]
 
@@ -95,7 +117,10 @@ class PromptEvolver:
         )
 
     def crossover(
-        self, a: PromptCandidate, b: PromptCandidate,
+        self,
+        a: PromptCandidate,
+        b: PromptCandidate,
+        playbook_context: str | None = None,
     ) -> PromptCandidate | None:
         """Combine strengths of two non-dominated candidates.
 
@@ -108,23 +133,34 @@ class PromptEvolver:
             f"{k}: {v:.2f}" for k, v in sorted(b.per_task_scores.items())
         ) or "no scores yet"
 
+        user_parts = [
+            f"## Candidate A (scores: {a_tasks})\n{a.text}",
+            f"## Candidate B (scores: {b_tasks})\n{b.text}",
+        ]
+        if playbook_context:
+            user_parts.append(
+                f"## Current Playbook (dynamic, appended per-query — do NOT duplicate these)\n{playbook_context}"
+            )
+        user_parts.append(
+            "Create a hybrid system prompt that combines the strengths of both. "
+            "Do not include strategies already covered by the playbook."
+        )
+
         prompt = [
             {
                 "role": "system",
                 "content": (
                     "You are a prompt optimization expert. Given two system prompts "
                     "with their per-task performance scores, create a hybrid that "
-                    "combines their strengths. Return ONLY a JSON object with a "
+                    "combines their strengths. A separate dynamic playbook "
+                    "(shown for reference) handles per-query strategies — do NOT "
+                    "duplicate those. Return ONLY a JSON object with a "
                     '"revised_prompt" key containing the full combined prompt text.'
                 ),
             },
             {
                 "role": "user",
-                "content": (
-                    f"## Candidate A (scores: {a_tasks})\n{a.text}\n\n"
-                    f"## Candidate B (scores: {b_tasks})\n{b.text}\n\n"
-                    "Create a hybrid prompt that combines the strengths of both."
-                ),
+                "content": "\n\n".join(user_parts),
             },
         ]
 
