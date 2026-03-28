@@ -153,13 +153,13 @@ class LocalEvolver:
             best_dict = max(
                 front_data,
                 key=lambda c: (
-                    sum(c.get("scores", {}).values()) / max(len(c.get("scores", {})), 1)
+                    sum(c.get("per_task_scores", {}).values()) / max(len(c.get("per_task_scores", {})), 1)
                 ),
             )
             best = PromptCandidate(
                 id=best_dict.get("id", PromptCandidate.new_id()),
                 text=best_dict.get("text", ""),
-                per_task_scores=best_dict.get("scores", {}),
+                per_task_scores=best_dict.get("per_task_scores", {}),
             )
 
             bench_candidates: list[PromptCandidate] = []
@@ -185,12 +185,12 @@ class LocalEvolver:
                 a = PromptCandidate(
                     id=a_dict.get("id", PromptCandidate.new_id()),
                     text=a_dict.get("text", ""),
-                    per_task_scores=a_dict.get("scores", {}),
+                    per_task_scores=a_dict.get("per_task_scores", {}),
                 )
                 b = PromptCandidate(
                     id=b_dict.get("id", PromptCandidate.new_id()),
                     text=b_dict.get("text", ""),
-                    per_task_scores=b_dict.get("scores", {}),
+                    per_task_scores=b_dict.get("per_task_scores", {}),
                 )
                 for _ in range(pe.config.max_crossovers_per_step):
                     try:

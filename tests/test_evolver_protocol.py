@@ -48,7 +48,7 @@ def test_harness_snapshot_serializable():
     snap = HarnessSnapshot(
         system_prompts={"default": "You are helpful."},
         playbook_entries=[{"id": "e1", "content": "Be concise", "helpful": 3, "harmful": 0}],
-        pareto_fronts={"default": [{"text": "You are helpful.", "scores": {"t1": 0.8}}]},
+        pareto_fronts={"default": [{"id": "pc-1", "text": "You are helpful.", "per_task_scores": {"t1": 0.8}, "generation": 0, "parent_id": None}]},
         playbook_generation=5,
         playbook_version=12,
     )
