@@ -481,7 +481,7 @@ class Harness:
 
         # 3. Full playbook (final fallback, capped by effective score)
         if len(active) > self._max_retrieval_entries:
-            active.sort(key=lambda e: e.effective_score(), reverse=True)
+            active = sorted(active, key=lambda e: e.effective_score(), reverse=True)
             active = active[: self._max_retrieval_entries]
         return active, "full"
 
@@ -496,19 +496,18 @@ class Harness:
         from clawloop.core.embeddings import find_similar
 
         # Lazy embed: entries missing or stale embeddings get refreshed
-        model_id = getattr(provider, "model", None)
-        if model_id:
-            needs = [e for e in entries if e.needs_reembed(model_id)]
-            if needs:
-                try:
-                    texts = [e.content for e in needs]
-                    vectors = provider.embed(texts)
-                    for entry, vec in zip(needs, vectors):
-                        entry.embedding = vec
-                        entry.embedding_model_id = model_id
-                        entry.embedding_updated_at = time.time()
-                except Exception:
-                    log.warning("Failed to embed playbook entries", exc_info=True)
+        model_id = getattr(provider, "model", None) or "unknown"
+        needs = [e for e in entries if e.needs_reembed(model_id)]
+        if needs:
+            try:
+                texts = [e.content for e in needs]
+                vectors = provider.embed(texts)
+                for entry, vec in zip(needs, vectors):
+                    entry.embedding = vec
+                    entry.embedding_model_id = model_id
+                    entry.embedding_updated_at = time.time()
+            except Exception:
+                log.warning("Failed to embed playbook entries", exc_info=True)
 
         # Embed query
         query_text = query_text[:500]
@@ -530,13 +529,8 @@ class Harness:
         """Render retrieved entries with a header indicating retrieval method."""
         if not entries:
             return ""
-        lines = []
-        if reason == "embedding":
-            lines.append("## PLAYBOOK (semantic match)")
-        elif reason == "tags":
-            lines.append("## PLAYBOOK")
-        else:
-            lines.append("## PLAYBOOK")
+        header = "## PLAYBOOK (semantic match)" if reason == "embedding" else "## PLAYBOOK"
+        lines = [header]
         for e in entries:
             if e.name and e.description:
                 lines.append(f"### {e.name}")
