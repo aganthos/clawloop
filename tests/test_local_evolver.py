@@ -26,7 +26,7 @@ def _make_snapshot() -> HarnessSnapshot:
     return HarnessSnapshot(
         system_prompts={"test": "You are helpful."},
         playbook_entries=[],
-        pareto_fronts={"test": [{"text": "You are helpful.", "scores": {"t1": 0.8}}]},
+        pareto_fronts={"test": [{"id": "pc-1", "text": "You are helpful.", "per_task_scores": {"t1": 0.8}, "generation": 0, "parent_id": None}]},
         playbook_generation=0,
         playbook_version=0,
     )
