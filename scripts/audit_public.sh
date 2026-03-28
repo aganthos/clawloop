@@ -56,7 +56,14 @@ from pathlib import Path
 errors = []
 for d in ['clawloop', 'tests', 'examples']:
     for f in Path(d).rglob('*.py'):
-        if 'enterprise' in str(f) or '.claude' in str(f):
+        # Only skip the enterprise_clawloop directory itself, not substring matches
+        if str(f).startswith('enterprise_clawloop/') or '/enterprise_clawloop/' in str(f):
+            continue
+        if '.claude' in str(f):
+            continue
+        # Flag enterprise-themed filenames inside public dirs
+        if 'enterprise' in f.name:
+            errors.append(f'{f}: enterprise-themed filename in public directory')
             continue
         try:
             tree = ast.parse(f.read_text())
