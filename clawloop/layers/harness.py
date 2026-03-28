@@ -893,8 +893,9 @@ class Harness:
                     backend=evolver_result.provenance.backend,
                 )
                 metrics.update(fb_info)
-            except Exception:
+            except Exception as exc:
                 log.exception("Evolver failed during forward_backward")
+                metrics["evolver_error"] = str(exc)
             finally:
                 # Clear context to prevent stale reuse on next call
                 self._evolver_context = None
