@@ -35,6 +35,37 @@ configs/
 All configs follow the same schema (`TrainConfig`). The only difference between
 harness and weight variants is `mode` and the presence of `skyrl` config.
 
+## OpenClaw Proxy — Improve any agent with zero code changes
+
+ClawLoop can improve any OpenAI-compatible agent (pi-mono, LangChain, CrewAI, raw
+API calls) by sitting as a transparent proxy between the agent and the LLM:
+
+```
+Agent ──► ClawLoop Proxy ──► Upstream LLM
+            │
+            ├─ inject playbook skills
+            ├─ forward request
+            ├─ stream response back
+            ├─ capture trace for training
+            └─ strip skills before storage
+```
+
+The agent requires **zero code changes** — just point `base_url` at the proxy.
+
+```bash
+# Install pi-mono runner (one time)
+cd scripts/openclaw_runner && npm install && cd ../..
+
+# Run the demo (uses CLIProxyAPI → Haiku 4.5)
+PYTHONPATH=. python examples/openclaw_proxy_demo.py
+
+# Or with your own upstream:
+UPSTREAM_URL=https://api.openai.com/v1 UPSTREAM_KEY=$OPENAI_API_KEY MODEL=gpt-4o-mini \
+    PYTHONPATH=. python examples/openclaw_proxy_demo.py
+```
+
+See [`openclaw_proxy_demo.py`](openclaw_proxy_demo.py) for the full annotated example.
+
 ## Tinker Cookbook Recipes
 
 Self-contained scripts that mirror
@@ -50,3 +81,4 @@ See [recipes/README.md](recipes/README.md) for details.
 | Math | Local Mac (Gemini) | Lambda A10 (Gemini + SkyRL) |
 | Harbor BFCL | Lambda (Gemini + Docker) | Lambda (Oracle + Docker + SkyRL) |
 | Entropic A2A | Local Mac (Gemini) | Lambda A10 (Gemini + SkyRL) |
+| OpenClaw Proxy | Local Mac (Haiku 4.5 via CLIProxy) | — |
