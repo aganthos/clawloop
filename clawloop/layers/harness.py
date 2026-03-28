@@ -48,6 +48,9 @@ _INJECTION_PATTERNS = [
     re.compile(r"<\s*/?\s*system\s*>", re.IGNORECASE),
 ]
 
+# Decay rate applied to deprecated entries during paradigm shifts.
+_PARADIGM_DEPRECATION_DECAY = 0.05
+
 # Whitelist for insight tag characters (alphanumeric, hyphens, underscores).
 _TAG_RE = re.compile(r"^[a-zA-Z0-9\-_]+$")
 
@@ -948,7 +951,7 @@ class Harness:
 
             # Apply paradigm deprecation: increase decay on targeted entries
             if pending.deprecation_targets:
-                deprecation_decay = 0.05
+                deprecation_decay = _PARADIGM_DEPRECATION_DECAY
                 target_set = set(pending.deprecation_targets)
                 for entry in self.playbook.entries:
                     if entry.id in target_set:
