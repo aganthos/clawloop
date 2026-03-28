@@ -56,6 +56,10 @@ Requires Node.js and an OpenAI-compatible API (OpenAI, Anthropic via proxy,
 vLLM, etc.). Note: Gemini's OpenAI-compatible endpoint has SSE format
 differences that cause empty responses with pi-mono.
 
+Compatibility notes:
+- **Chat Completions only:** the proxy serves `POST /v1/chat/completions` (and streaming). It does not implement `/v1/completions`, `/v1/embeddings`, `/v1/responses`, etc.
+- **Bench vs live mode:** examples use `bench_mode=true`, which requires the `X-ClawLoop-Run-Id` header (the Node runner sets it). For a deployed/public proxy, use `bench_mode=false` and set a `proxy_key` so requests must include `Authorization: Bearer ...`.
+
 ```bash
 # Install pi-mono runner (one time)
 cd examples/openclaw_runner && npm install && cd ../..

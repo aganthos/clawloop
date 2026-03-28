@@ -1,4 +1,16 @@
-"""ProxyApp — OpenAI-compatible reverse proxy with trace capture."""
+"""ProxyApp — OpenAI-compatible reverse proxy with trace capture.
+
+Compatibility:
+    - Serves **Chat Completions** only: `POST /v1/chat/completions` (and streaming).
+      This proxy does not implement `/v1/completions`, `/v1/embeddings`,
+      `/v1/responses`, etc.
+
+Modes:
+    - bench_mode=True (default): intended for local benchmark/training runs.
+      Requires `X-ClawLoop-Run-Id` so traces can be correlated into sessions.
+    - bench_mode=False ("live mode"): intended for a deployed proxy.
+      Requires `proxy_key` and enforces `Authorization: Bearer <proxy_key>`.
+"""
 from __future__ import annotations
 
 import asyncio
