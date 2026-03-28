@@ -135,6 +135,26 @@ def _build_entropic(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]
     return adapter, [f"base_{i}" for i in range(n_tasks)]
 
 
+def _build_openclaw(
+    config: TrainConfig, llm_clients: dict[str, LLMClientConfig]
+) -> tuple:
+    from clawloop.adapters.openclaw import OpenClawAdapter
+
+    openclaw_cfg = dict(config.env_config or {})
+    adapter = OpenClawAdapter()
+    adapter_config = {
+        "task_dir": openclaw_cfg.get("openclaw_task_dir", "tasks"),
+        "runner_script": openclaw_cfg.get(
+            "openclaw_runner", "scripts/openclaw_runner/runner.js"
+        ),
+        "timeout_s": openclaw_cfg.get("openclaw_timeout_s", 120),
+        "node_bin": openclaw_cfg.get("openclaw_node_bin", "node"),
+    }
+    adapter.setup(adapter_config)
+    tasks = adapter.list_tasks("base")
+    return adapter, tasks
+
+
 # ---------------------------------------------------------------------------
 # Environment registry — add new envs here
 # ---------------------------------------------------------------------------
@@ -143,6 +163,7 @@ ENV_BUILDERS: dict[str, Any] = {
     "harbor": _build_harbor,
     "math": _build_math,
     "entropic": _build_entropic,
+    "openclaw": _build_openclaw,
 }
 
 
