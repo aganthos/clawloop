@@ -49,13 +49,19 @@ class LocalEvolver:
         deprecation_targets: list[str] = []
 
         # --- 1. Reflector: playbook insights ---
+        # Pass the base system prompt so the Reflector can avoid
+        # adding playbook entries that duplicate the static prompt.
         if self.reflector is not None and episodes:
             try:
                 playbook = self._rebuild_playbook(harness_state)
+                # Pick the first bench's prompt as representative base prompt
+                base_prompt = next(iter(harness_state.system_prompts.values()), None)
                 batch_sz = self.reflector.config.reflection_batch_size
                 for i in range(0, len(episodes), batch_sz):
                     batch = episodes[i : i + batch_sz]
-                    batch_insights = self.reflector.reflect(batch, playbook)
+                    batch_insights = self.reflector.reflect(
+                        batch, playbook, base_prompt=base_prompt,
+                    )
                     # Auto-tag insights with source episode metadata for
                     # cleaner attribution when using per-sample reflection.
                     if batch_sz <= 2 and batch_insights:
@@ -146,9 +152,18 @@ class LocalEvolver:
         episodes: list[Episode],
         state: HarnessSnapshot,
     ) -> dict[str, list[PromptCandidate]]:
-        """Run GEPA mutation and crossover across benches."""
+        """Run GEPA mutation and crossover across benches.
+
+        Passes the rendered playbook to GEPA so it can see which strategies
+        are already in the dynamic part and avoid duplicating them in the
+        static system prompt.
+        """
         result: dict[str, list[PromptCandidate]] = {}
         pe = self.prompt_evolver
+
+        # Render playbook for GEPA context
+        playbook = self._rebuild_playbook(state)
+        playbook_text = playbook.render() or None
 
         for bench, front_data in state.pareto_fronts.items():
             if not front_data:
@@ -177,7 +192,7 @@ class LocalEvolver:
             if bench_failures:
                 for _ in range(pe.config.max_mutations_per_step):
                     try:
-                        child = pe.mutate(best, bench_failures)
+                        child = pe.mutate(best, bench_failures, playbook_context=playbook_text)
                         if child is not None:
                             bench_candidates.append(child)
                     except Exception:
@@ -199,7 +214,7 @@ class LocalEvolver:
                 )
                 for _ in range(pe.config.max_crossovers_per_step):
                     try:
-                        child = pe.crossover(a, b)
+                        child = pe.crossover(a, b, playbook_context=playbook_text)
                         if child is not None:
                             bench_candidates.append(child)
                     except Exception:
