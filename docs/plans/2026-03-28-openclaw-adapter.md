@@ -2,7 +2,7 @@
 
 **Date**: 2026-03-28
 **Status**: Final
-**Codex review**: 3 rounds (NEEDS WORK → NEEDS WORK → NEEDS WORK, all issues addressed)
+**Codex review**: 6 rounds total
 
 ## Goal
 
@@ -16,8 +16,10 @@ in two modes:
 
 Both modes use the same mechanism: an OpenAI-compatible LLM proxy that sits
 between the agent and the upstream model. The proxy injects harness skills and
-captures traces transparently. The agent requires zero code changes — it just
-sets `base_url` to point at ClawLoop.
+captures traces transparently. The agent requires zero code changes — only
+configuration: set `base_url` to point at ClawLoop, and in live mode set the
+API key to the `proxy_key` value (pi-mono's `Model.headers` or provider
+API key config).
 
 This is the same pattern MetaClaw uses (arXiv 2603.17187): the proxy IS the
 integration layer.
@@ -47,7 +49,9 @@ pi-mono Agent                ClawLoop Proxy               Upstream LLM
 
 Single-process deployment only (both modes). Multi-worker (gunicorn/uvicorn
 workers) is not supported in v1 — `turn_index` counters are in-process
-atomics. Document this constraint explicitly.
+atomics. **Runtime guard**: on startup, `ProxyApp` checks
+`os.environ.get("WEB_CONCURRENCY")` and uvicorn worker count; raises
+`ConfigError` if >1 worker detected. This prevents silent data corruption.
 
 ## Component 1: LLM Proxy (`clawloop/proxy.py`)
 
@@ -113,34 +117,59 @@ separately.
 
 ### Streaming
 
-Byte-for-byte SSE passthrough to the client. The proxy stores **raw SSE
-event bytes** into a per-request `bytearray` buffer. No inline
-reconstruction — that happens in a post-processing step after the stream
-ends.
+**Streaming responses** (`stream: true`): byte-for-byte SSE passthrough to
+the client. The proxy stores raw SSE event bytes into a per-request
+`bytearray` buffer. No inline reconstruction — that happens in post-
+processing.
 
-Buffer cap: 512 KB per request. If exceeded, remaining events are still
-passed through to the client but not stored. The turn is marked
-`"truncated": true`.
+**Non-streaming responses** (`stream: false` or omitted): the proxy reads
+the upstream response in chunks (same `httpx` streaming iter), forwards each
+chunk to the client, and tees into the `bytearray` buffer up to the cap.
+No SSE parsing needed — the complete JSON is reconstructed from the buffer
+in post-processing. This avoids loading the entire response into memory.
+
+Buffer cap (both modes): 512 KB per request (`max_tee_bytes`). If exceeded,
+remaining data is still streamed through to the client but not buffered.
+The turn is marked `"truncated": true`.
 
 ### Post-processing
 
-Runs as a bounded `asyncio.Task` via `asyncio.Semaphore(max_post_process_tasks)`.
-When the semaphore is full, new tasks wait (bounded queue via the semaphore
-itself — no unbounded memory growth). If the post-processor crashes, the raw
-SSE buffer is persisted to disk as a `.sse.raw` file for later
-replay/debugging. The turn is marked `"post_process_failed": true` and
-treated as non-trainable.
+Post-processing is **fire-and-forget from the request handler's perspective**.
+The request handler enqueues work into a bounded `asyncio.Queue(maxsize=64)`.
+A fixed pool of `max_post_process_tasks` (default 8) worker tasks drain the
+queue. If the queue is full, the request handler **drops** the post-process
+job: the turn is marked `"post_process_dropped": true` (non-trainable), a
+structured warning is logged with session_id/turn_index, and a counter
+`proxy_post_process_drops_total` is incremented. Client latency is never
+coupled to post-processing.
 
-**Raw file storage**: `runs/<bench>/<session_id>/` directory. Files named
-`<turn_index>_<timestamp>.sse.raw`. Max 10 MB per file (larger buffers
-truncated on write). Retention: cleaned up by adapter `teardown()` in bench
-mode; in live mode, retained until manual cleanup or configurable max age.
+**Shutdown**: on ASGI lifespan shutdown, workers drain remaining queue items
+with a grace period (default 10s). After grace, remaining items are dropped
+and logged. Semaphore/task cleanup uses `try/finally` to prevent leaks.
+
+**Error handling**: worker exceptions are caught, logged as structured
+errors (session_id, turn_index, traceback), and the turn is marked
+non-trainable. Workers never crash — they catch and continue.
+
+If a worker encounters a **parse failure** (malformed SSE, invalid JSON) or
+**ingest failure** (EpisodeCollector rejects the turn), the turn is marked
+`"post_process_failed": true` and treated as non-trainable. **Raw file
+persistence** on failure: bench mode only. The `redaction_hook` is applied
+to both request messages and the response buffer **before** any disk write.
+In live mode, raw buffers are never persisted to disk. In both modes, turn
+metadata (session_id, turn_index, error type, truncated traceback) is logged
+as a structured error.
+
+**Raw file storage** (bench mode only): `runs/<bench>/<run_id>/` directory.
+Files named `<turn_index>_<timestamp>.raw`. Max size equals `max_tee_bytes`
+(512 KB default). Cleaned up by adapter `teardown()`.
 
 Steps:
-1. Apply `redaction_hook` (if configured) to request/response bodies before
-   any persistence — covers messages, tool args, error payloads.
-2. Parse raw SSE bytes into a complete assistant message (text content +
-   tool calls + usage).
+1. Apply `redaction_hook` (if configured) to request messages and response
+   buffer before any further processing or persistence.
+2. Parse response buffer into a complete assistant message:
+   - Streaming: parse raw SSE bytes → reconstruct text + tool calls + usage.
+   - Non-streaming: parse JSON response directly.
 3. Strip the injected skills system message from the request messages.
 4. Feed into `EpisodeCollector.ingest_external()` with bench, session_id,
    model, usage, turn_index.
@@ -161,6 +190,11 @@ the response, the turn is ingested without token counts — not a blocker.
 ### Upstream timeouts
 
 Connect timeout 10s, read timeout 120s (configurable via `ProxyConfig`).
+The read timeout applies **per chunk** (httpx `Timeout(read=...)` behavior),
+not to the entire response. This means long-running SSE streams that
+produce chunks within the timeout window are not killed — only streams that
+go silent for >120s are terminated. This is the correct behavior for live
+mode where agent sessions can run for minutes.
 No proxy-level retry — client handles retries.
 
 ### Do-not-train signal
@@ -181,7 +215,8 @@ Bench finalization is explicit and deterministic — no timers, no races.
 ### Trainability rules
 
 Non-trainable turn states: `truncated`, `partial`, `post_process_failed`,
-`no_train_header`. Enforced centrally in `EpisodeCollector`.
+`post_process_dropped`, `no_train_header`. Enforced centrally in
+`EpisodeCollector`.
 
 **Trainable-prefix policy**: an Episode with non-trainable turns is not
 entirely discarded. Instead, the Episode is split at the first non-trainable
@@ -222,7 +257,18 @@ inherits from clawloop-server config.
   contamination on shared hosts.
 - Live mode: `proxy_key` **required** (enforced at startup). Auth via
   `Authorization: Bearer <key>` on all `/v1/*` routes.
-- Redact `Authorization` headers and API keys from stored traces.
+- **Auth flow (single-tenant)**: client sends `Authorization: Bearer <proxy_key>`
+  to the proxy. The proxy **strips** this header and uses its own
+  `upstream_api_key` (from `ProxyConfig`) when forwarding to the upstream LLM.
+  Client credentials are never forwarded upstream. Multi-tenant (per-client
+  upstream keys) is not supported in v1.
+- **Header forwarding policy**: the proxy forwards only a safe allowlist of
+  headers to upstream (`Content-Type`, `Accept`, `User-Agent`). All others
+  are dropped. Specifically stripped: `Authorization`, `Proxy-Authorization`,
+  `X-ClawLoop-*` (internal), hop-by-hop headers (`Connection`, `Keep-Alive`,
+  `Transfer-Encoding`, `TE`, `Trailer`, `Upgrade`).
+- Redact `Authorization` headers from stored traces. `proxy_key` is never
+  logged or stored in any trace/raw file.
 - `upstream_url` validated at config time: must be https (or http localhost
   for dev). No per-request override. Redirects disabled on upstream
   httpx client. `HTTP_PROXY`/`HTTPS_PROXY` env vars ignored by the upstream
