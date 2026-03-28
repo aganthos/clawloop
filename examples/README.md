@@ -58,7 +58,7 @@ differences that cause empty responses with pi-mono.
 
 ```bash
 # Install pi-mono runner (one time)
-cd scripts/openclaw_runner && npm install && cd ../..
+cd examples/openclaw_runner && npm install && cd ../..
 
 # Run the demo
 UPSTREAM_URL=https://api.openai.com/v1 UPSTREAM_KEY=$OPENAI_API_KEY \
