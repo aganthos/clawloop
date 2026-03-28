@@ -487,7 +487,8 @@ class Harness:
         if task_tags:
             tag_hits = [e for e in active if e.tags and set(e.tags) & task_tags]
             if tag_hits:
-                return tag_hits, "tags"
+                tag_hits.sort(key=lambda e: e.effective_score(), reverse=True)
+                return tag_hits[: self._max_retrieval_entries], "tags"
 
         # 3. Full playbook (final fallback, capped by effective score)
         if len(active) > self._max_retrieval_entries:

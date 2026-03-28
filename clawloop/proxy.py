@@ -25,7 +25,7 @@ import httpx
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response, StreamingResponse
-from starlette.routing import Route
+from starlette.routing import Mount, Route
 
 from clawloop.proxy_config import ProxyConfig
 from clawloop.proxy_session import SessionTracker
@@ -69,8 +69,6 @@ class ProxyApp:
         # Mount so the full path /v1/chat/completions works.
         # When mounted externally (server.py), mount_prefix="" skips the
         # wrapper so the external Mount("/v1", ...) can supply the prefix.
-        from starlette.routing import Mount
-
         chat_route = Route(
             "/chat/completions",
             self._handle_chat_completions,
