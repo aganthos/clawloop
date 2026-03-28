@@ -5,7 +5,6 @@
 clawloop/
 tests/
 examples/
-benchmarks/
 clawloop.png
 README.md
 LICENSE
@@ -13,4 +12,6 @@ pyproject.toml
 CONTRIBUTING.md
 CHANGELOG.md
 .gitignore
-.gitmodules
+
+# benchmarks/ and .gitmodules are managed as submodules in the public repo,
+# not synced via rsync. Update them with: git submodule update --remote
