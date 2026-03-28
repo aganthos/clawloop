@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="clawloop.png" alt="ClawLoop" width="200">
+</p>
+
 # ClawLoop — Learning from Experience
 
 Unified learning API for AI agents. Three learning layers — **harness** (prompt/playbook), **router** (model routing), **weights** (LoRA/GRPO) — all following the same protocol. Tinker/SkyRL compatible.
@@ -19,7 +23,7 @@ pip install -e clawloop/skyrl[fsdp]
 
 Set your API key:
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...
+export ANTHROPIC_API_KEY=your-api-key-here
 ```
 
 Run:
