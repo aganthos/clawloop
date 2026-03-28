@@ -133,6 +133,11 @@ class LocalEvolver:
                 helpful=e.get("helpful", 0),
                 harmful=e.get("harmful", 0),
                 tags=e.get("tags", []),
+                name=e.get("name", ""),
+                description=e.get("description", ""),
+                anti_patterns=e.get("anti_patterns", ""),
+                category=e.get("category", "general"),
+                superseded_by=e.get("superseded_by"),
             ))
         return Playbook(entries=entries)
 
