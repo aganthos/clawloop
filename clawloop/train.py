@@ -146,7 +146,7 @@ def _build_openclaw(
     adapter_config = {
         "task_dir": openclaw_cfg.get("task_dir", "tasks"),
         "runner_script": openclaw_cfg.get(
-            "runner_script", "scripts/openclaw_runner/runner.js"
+            "runner_script", "examples/openclaw_runner/runner.js"
         ),
         "timeout_s": openclaw_cfg.get("timeout_s", 120),
         "node_bin": openclaw_cfg.get("node_bin", "node"),

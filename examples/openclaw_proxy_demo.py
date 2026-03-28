@@ -21,7 +21,7 @@ Requires:
     or an Anthropic-to-OpenAI proxy instead.
 
 Usage:
-    cd scripts/openclaw_runner && npm install && cd ../..
+    cd examples/openclaw_runner && npm install && cd ../..
 
     # With OpenAI:
     UPSTREAM_URL=https://api.openai.com/v1 UPSTREAM_KEY=$OPENAI_API_KEY \\
@@ -100,7 +100,7 @@ def start_proxy(upstream_url, upstream_key, harness, collector, bench):
 def run_task(task, port, model):
     proc = subprocess.run(
         [
-            "node", "scripts/openclaw_runner/runner.js",
+            "node", "examples/openclaw_runner/runner.js",
             "--base-url", f"http://127.0.0.1:{port}/v1",
             "--run-id", f"run-{task['task_id']}",
         ],
