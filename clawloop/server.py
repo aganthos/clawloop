@@ -440,7 +440,15 @@ def create_app(
         Route("/episodes", episodes_list, methods=["GET"]),
     ]
 
-    app = Starlette(routes=routes)
+    from contextlib import asynccontextmanager
+
+    @asynccontextmanager
+    async def lifespan(app):
+        server.start()
+        yield
+        server.stop()
+
+    app = Starlette(routes=routes, lifespan=lifespan)
 
     static_dir = Path(__file__).parent / "static"
     if static_dir.exists():
@@ -448,14 +456,6 @@ def create_app(
         app.mount("/dashboard", StaticFiles(directory=str(static_dir), html=True))
 
     app.state.server = server
-
-    @app.on_event("startup")
-    async def startup():
-        server.start()
-
-    @app.on_event("shutdown")
-    async def shutdown():
-        server.stop()
 
     return app
 
