@@ -9,7 +9,7 @@ import threading
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from starlette.applications import Starlette
 from starlette.requests import Request
@@ -23,6 +23,10 @@ from clawloop.core.reward import RewardPipeline
 from clawloop.evolvers.local import LocalEvolver
 from clawloop.layers.harness import Harness
 from clawloop.learner import AsyncLearner
+
+if TYPE_CHECKING:
+    from clawloop.proxy import ProxyApp
+    from clawloop.proxy_config import ProxyConfig
 
 log = logging.getLogger(__name__)
 
@@ -401,6 +405,7 @@ def create_app(
     model: str = "gpt-4o-mini",
     api_base: str | None = None,
     api_key: str | None = None,
+    proxy_config: "ProxyConfig | None" = None,
 ) -> Starlette:
     import os
 
@@ -444,10 +449,27 @@ def create_app(
         Route("/episodes", episodes_list, methods=["GET"]),
     ]
 
+    proxy_app: "ProxyApp | None" = None
+    if proxy_config is not None:
+        from clawloop.proxy import ProxyApp
+        from starlette.routing import Mount
+
+        proxy_app = ProxyApp(
+            proxy_config,
+            collector=server.collector,
+            harness=server.harness,
+            mount_prefix="",  # server provides its own Mount("/v1")
+        )
+        routes.append(Mount("/v1", app=proxy_app.asgi_app))
+
     @asynccontextmanager
     async def lifespan(app):
         server.start()
+        if proxy_app is not None:
+            await proxy_app.startup()
         yield
+        if proxy_app is not None:
+            await proxy_app.shutdown()
         server.stop()
 
     app = Starlette(routes=routes, lifespan=lifespan)

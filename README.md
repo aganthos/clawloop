@@ -60,6 +60,7 @@ Same config shape. Change `"mode"` from `"harness_learning"` to `"weight"`:
 | `math` | Built-in arithmetic/competition math | LLM API |
 | `harbor` | [Harbor](https://harborframework.com/) sandboxed agent tasks (BFCL, etc.) | Docker + LLM API |
 | `entropic` | [CRMArenaPro](https://github.com/salesforce/CRMArena) A2A benchmark | Entropic bench + LLM API |
+| `openclaw` | Proxy an OpenAI-compatible agent through ClawLoop to capture traces + inject playbook skills | Node.js + OpenAI-compatible **Chat Completions** endpoint |
 
 ## LLM Providers
 
@@ -79,6 +80,11 @@ config for proxy setups.
 
 See [examples/README.md](examples/README.md) for all configs and Tinker
 cookbook recipes.
+
+For the OpenClaw proxy adapter:
+
+- Config: `examples/configs/openclaw_proxy.json`
+- Demo (fully annotated): `examples/openclaw_proxy_demo.py`
 
 ## Architecture
 
