@@ -91,21 +91,12 @@ def program_to_evolver_result(
             # Matched an existing entry
             orig = orig_list[match_idx]
             matched_originals[content] = match_idx + 1
-            # Check if tags changed.
-            # NOTE: The Harness Curator currently only applies content and
-            # helpful increments on "update" insights — tag-only changes are
-            # silently dropped. This is an upstream limitation (Harness, not
-            # enterprise). We still emit the insight so the intent is visible
-            # in logs/metrics, and it will work once Harness adds tag update
-            # support.
-            if entry.get("tags", []) != orig.get("tags", []):
-                orig_id = orig.get("id", "")
-                insights.append(Insight(
-                    content=content,
-                    tags=entry.get("tags", []),
-                    action="update",
-                    target_entry_id=orig_id or None,
-                ))
+            # Tag-only changes are suppressed. The Harness Curator applies
+            # "update" insights by incrementing helpful and resetting
+            # embeddings — but does NOT update tags. Emitting the insight
+            # would inflate helpful scores and churn embeddings for no
+            # functional effect. Suppressed until Harness supports tag
+            # updates (upstream limitation, not enterprise).
         else:
             # New entry added by evolution
             matched_originals[content] = match_idx + 1

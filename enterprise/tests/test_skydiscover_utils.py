@@ -146,7 +146,13 @@ class TestProgramToEvolverResult:
         assert result.insights == []
         assert result.candidates == {}
 
-    def test_tag_update_produces_update_insight(self, tmp_path: Path) -> None:
+    def test_tag_only_change_suppressed(self, tmp_path: Path) -> None:
+        """Tag-only changes should NOT produce update insights.
+
+        The Harness Curator applies "update" by incrementing helpful and
+        resetting embeddings but does not update tags — emitting the insight
+        would inflate scores with no functional effect.
+        """
         snap = _make_snapshot()
         prog_path = harness_to_program(snap, str(tmp_path / "evolved.json"))
 
@@ -155,9 +161,7 @@ class TestProgramToEvolverResult:
         Path(prog_path).write_text(json.dumps(data))
 
         result = program_to_evolver_result(prog_path, snap)
-        update_insights = [i for i in result.insights if i.action == "update"]
-        assert len(update_insights) == 1
-        assert update_insights[0].target_entry_id == "e1"
+        assert result.insights == []
 
     def test_duplicate_content_entries_handled(self, tmp_path: Path) -> None:
         """Two entries with same content should both be tracked."""
