@@ -1,6 +1,10 @@
 """Playbook Learning Demo — watch the harness learn from failure episodes.
 
-Run: python examples/playbook_demo.py
+Run with real LLM (requires API key):
+    python examples/playbook_demo.py
+
+Run in dry-run mode (no API calls, finishes in seconds):
+    python examples/playbook_demo.py --dry-run
 
 This script walks through the ClawLoop learning loop step by step,
 showing exactly what happens at each stage:
@@ -16,22 +20,87 @@ The playbook is the agent's evolving memory — it learns general
 strategies from specific failures.
 """
 
+import argparse
 import json
+import os
+import sys
 import textwrap
 
+# ---------------------------------------------------------------------------
+# Local dev: allow running from the repo root without pip install
+# ---------------------------------------------------------------------------
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
-from clawloop.core.evolution import EvolverConfig, PromptEvolver
 from clawloop.core.reflector import Reflector, ReflectorConfig
 from clawloop.core.types import Datum
 from clawloop.evolvers.local import LocalEvolver
-from clawloop.layers.harness import (
-    Harness,
-    Playbook,
-    PlaybookEntry,
-    PromptCandidate,
-    ParetoFront,
-)
-from clawloop.llm import LiteLLMClient
+from clawloop.layers.harness import Harness, PlaybookEntry
+from clawloop.llm import LiteLLMClient, MockLLMClient
+
+
+# ── CLI ─────────────────────────────────────────────────────────────────
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Playbook Learning Demo — watch the harness learn from failure episodes",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Use mock LLM clients (no API calls, fast)",
+    )
+    return parser.parse_args()
+
+
+# ── Mock reflector responses for --dry-run ──────────────────────────────
+
+def _build_mock_reflector_responses() -> list[str]:
+    """Canned reflector outputs that drive the demo without real LLM calls.
+
+    The reflector is called three times during the demo:
+      1. After initial failures  — produces math-strategy insights
+      2. After success episodes  — may produce refinement insights
+      3. After another failure   — may produce additional insights
+    """
+    def _insight_json(*insights: dict) -> str:
+        return json.dumps(list(insights))
+
+    return [
+        # Call 1: analyse initial math failures -> two strategy insights
+        _insight_json(
+            {
+                "action": "add",
+                "content": "Show intermediate calculation steps for arithmetic",
+                "target_entry_id": None,
+                "tags": ["math", "strategy"],
+                "source_episode_ids": [],
+            },
+            {
+                "action": "add",
+                "content": "Double-check multiplication by estimating the expected magnitude first",
+                "target_entry_id": None,
+                "tags": ["math", "verification"],
+                "source_episode_ids": [],
+            },
+        ),
+        # Call 2: after success episodes -> no new insights needed
+        "[]",
+        # Call 3: after another failure -> one new insight
+        _insight_json(
+            {
+                "action": "add",
+                "content": "For division and root problems, verify by multiplying the result back",
+                "target_entry_id": None,
+                "tags": ["math", "verification"],
+                "source_episode_ids": [],
+            },
+        ),
+        # Extra responses in case of additional reflect calls
+        "[]",
+        "[]",
+        "[]",
+    ]
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────
@@ -101,17 +170,21 @@ def make_episode(
 # ── Main demo ────────────────────────────────────────────────────────────
 
 def main() -> None:
-    import os
+    args = parse_args()
 
-    # Connect to an LLM — configure via environment variables:
-    #   CLAWLOOP_MODEL    — litellm model string (e.g. "gemini/gemini-2.0-flash-lite")
-    #   CLAWLOOP_API_BASE — optional API base URL
-    #   CLAWLOOP_API_KEY  — optional API key (or use provider-specific env vars)
-    llm = LiteLLMClient(
-        model=os.environ.get("CLAWLOOP_MODEL", "gemini/gemini-3.1-flash-lite-preview"),
-        api_base=os.environ.get("CLAWLOOP_API_BASE") or None,
-        api_key=os.environ.get("CLAWLOOP_API_KEY") or None,
-    )
+    if args.dry_run:
+        print("=== DRY-RUN MODE (mock LLM clients, no API calls) ===\n")
+        llm = MockLLMClient(responses=_build_mock_reflector_responses())
+    else:
+        # Connect to an LLM — configure via environment variables:
+        #   CLAWLOOP_MODEL    — litellm model string (e.g. "gemini/gemini-2.0-flash-lite")
+        #   CLAWLOOP_API_BASE — optional API base URL
+        #   CLAWLOOP_API_KEY  — optional API key (or use provider-specific env vars)
+        llm = LiteLLMClient(
+            model=os.environ.get("CLAWLOOP_MODEL", "gemini/gemini-2.0-flash-lite"),
+            api_base=os.environ.get("CLAWLOOP_API_BASE") or None,
+            api_key=os.environ.get("CLAWLOOP_API_KEY") or None,
+        )
 
     # ┌─────────────────────────────────────────────────────────┐
     # │  PART 1: The basics — Reflector produces insights       │

@@ -417,9 +417,11 @@ def create_app(
 
     # Auto-create Reflector: explicit api_base/api_key, or env vars
     if reflector is None:
-        has_creds = api_base or (
+        has_creds = api_base or api_key or (
             os.environ.get("OPENAI_API_KEY")
             or os.environ.get("ANTHROPIC_API_KEY")
+            or os.environ.get("GEMINI_API_KEY")
+            or os.environ.get("GOOGLE_API_KEY")
         )
         if has_creds:
             try:

@@ -2,7 +2,7 @@
 
 PRIVATE — not synced to public clawloop repo (scripts/ not in .publicpaths).
 
-Same demo as examples/openclaw_proxy_demo.py but pre-configured for
+Same demo as examples/openclaw_demo.py but pre-configured for
 CLIProxyAPI (free, no API key needed) with Haiku 4.5.
 
 Usage:
@@ -33,8 +33,8 @@ os.environ.setdefault("MODEL", "claude-haiku-4-5-20251001")
 # Delegate to the public demo
 import importlib.util
 spec = importlib.util.spec_from_file_location(
-    "openclaw_proxy_demo",
-    os.path.join(os.path.dirname(__file__), "..", "examples", "openclaw_proxy_demo.py"),
+    "openclaw_demo",
+    os.path.join(os.path.dirname(__file__), "..", "examples", "openclaw_demo.py"),
 )
 mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)

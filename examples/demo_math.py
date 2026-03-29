@@ -4,14 +4,14 @@
 Run in dry-run mode (no API calls, finishes in seconds):
     python examples/demo_math.py --dry-run
 
-Run with real LLMs (requires GOOGLE_API_KEY or ANTHROPIC_API_KEY):
-    GOOGLE_API_KEY=... python examples/demo_math.py
+Run with real LLMs (requires ANTHROPIC_API_KEY, OPENAI_API_KEY, or GEMINI_API_KEY):
+    ANTHROPIC_API_KEY=... python examples/demo_math.py
 
 Environment variables:
-    CLAWLOOP_TASK_MODEL       (default: claude-haiku-4-5-20251001)
-    CLAWLOOP_REFLECTOR_MODEL  (default: claude-sonnet-4-5-20250929)
-    CLAWLOOP_API_BASE         (default: http://localhost:11434/v1)
-    CLAWLOOP_API_KEY          (default: your-api-key)
+    CLAWLOOP_TASK_MODEL       (default: anthropic/claude-haiku-4-5-20251001)
+    CLAWLOOP_REFLECTOR_MODEL  (default: anthropic/claude-sonnet-4-5-20250929)
+    CLAWLOOP_API_BASE         (optional — for proxy setups, omit to let litellm route natively)
+    CLAWLOOP_API_KEY          (optional — for proxy setups, omit to use provider env vars)
     CLAWLOOP_ITERATIONS       (default: 5)
     CLAWLOOP_EPISODES         (default: 5)
 """
@@ -147,7 +147,11 @@ def _build_mock_reflector_responses() -> list[str]:
         "[]",
         _insight_json("Verify by plugging the answer back into the original equation"),
         "[]",
-        # Extra responses for paradigm breakthrough calls or additional reflects
+        # Extra responses for paradigm breakthrough or additional reflect calls
+        _insight_json("Estimate the answer magnitude before calculating"),
+        _insight_json("Break multi-step problems into smaller sub-problems"),
+        _insight_json("Double-check by working the problem in reverse"),
+        "[]",
         "[]",
         "[]",
         "[]",
@@ -209,26 +213,23 @@ def main() -> None:
         task_client = MockTaskClient()
         reflector_client = MockLLMClient(responses=_build_mock_reflector_responses())
     else:
-        task_model = os.environ.get("CLAWLOOP_TASK_MODEL", "claude-haiku-4-5-20251001")
-        reflector_model = os.environ.get("CLAWLOOP_REFLECTOR_MODEL", "claude-sonnet-4-5-20250929")
-        api_base = os.environ.get("CLAWLOOP_API_BASE", "http://localhost:11434/v1")
-        api_key = os.environ.get("CLAWLOOP_API_KEY", "your-api-key")
+        task_model = os.environ.get("CLAWLOOP_TASK_MODEL", "anthropic/claude-haiku-4-5-20251001")
+        reflector_model = os.environ.get("CLAWLOOP_REFLECTOR_MODEL", "anthropic/claude-sonnet-4-5-20250929")
+        api_base = os.environ.get("CLAWLOOP_API_BASE", "")
+        api_key = os.environ.get("CLAWLOOP_API_KEY", "")
 
         log.info("=== REAL LLM MODE ===")
         log.info("  Task model:      %s", task_model)
         log.info("  Reflector model: %s", reflector_model)
-        log.info("  API base:        %s", api_base)
-
-        # LiteLLM needs "openai/" prefix when routing through an OpenAI-compatible proxy
-        task_litellm_model = f"openai/{task_model}"
-        reflector_litellm_model = f"openai/{reflector_model}"
+        if api_base:
+            log.info("  API base:        %s", api_base)
 
         task_client = LiteLLMClient(
-            model=task_litellm_model, api_key=api_key, api_base=api_base,
+            model=task_model, api_key=api_key or None, api_base=api_base or None,
             temperature=0.7, max_tokens=1024,
         )
         reflector_client = LiteLLMClient(
-            model=reflector_litellm_model, api_key=api_key, api_base=api_base,
+            model=reflector_model, api_key=api_key or None, api_base=api_base or None,
             temperature=0.7, max_tokens=2000,
         )
 
