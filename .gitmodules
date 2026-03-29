@@ -10,3 +10,6 @@
 [submodule "benchmarks/a2a/entropic-crmarenapro"]
 	path = benchmarks/a2a/entropic-crmarenapro
 	url = https://github.com/rkstu/entropic-crmarenapro.git
+[submodule "enterprise/evolution/skydiscover"]
+	path = enterprise/evolution/skydiscover
+	url = https://github.com/skydiscover-ai/skydiscover.git
