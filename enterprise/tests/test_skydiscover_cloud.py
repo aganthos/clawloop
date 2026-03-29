@@ -340,3 +340,44 @@ class TestCloudAdaEvolve:
             status = cloud.poll_status(run_id)
             assert status["status"] == "failed"
             assert "SkyDiscover crashed" in status["error"]
+
+    def test_cancel_before_thread_starts(self, tmp_path: Path) -> None:
+        """Cancel immediately after evolve — before thread starts running."""
+        gate = threading.Event()
+
+        def blocked_discovery(**kwargs: Any) -> MagicMock:
+            gate.wait(timeout=5)
+            evolved_path = tmp_path / "evolved.json"
+            evolved_path.write_text(json.dumps({
+                "system_prompt": "test", "playbook": [],
+            }))
+            result = MagicMock()
+            result.best_program = str(evolved_path)
+            return result
+
+        mock_run = MagicMock(side_effect=blocked_discovery)
+
+        adapter = MagicMock()
+        adapter.run_episode.return_value = _make_episode()
+        factory = MagicMock(return_value=MagicMock())
+
+        cloud = CloudAdaEvolve(
+            adapter=adapter, tasks=["t"], agent_state_factory=factory,
+        )
+
+        with patch(_PATCH_TARGET, return_value=mock_run):
+            result = cloud.evolve([_make_episode()], _make_snapshot(), _make_context())
+            run_id = result.run_id
+
+            # Cancel immediately — thread may not have started yet
+            cloud.cancel(run_id)
+
+            # Give thread time to observe cancellation
+            time.sleep(0.2)
+
+            # Must report cancelled, not stuck in running
+            status = cloud.poll_status(run_id)
+            assert status["status"] == "cancelled"
+
+            gate.set()
+            time.sleep(0.1)

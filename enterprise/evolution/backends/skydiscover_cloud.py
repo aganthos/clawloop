@@ -251,13 +251,18 @@ class CloudAdaEvolve:
         context: EvolverContext,
     ) -> None:
         """Execute evolution in background thread."""
-        run.status = RunStatus.RUNNING
         run.started_at = time.time()
 
-        try:
-            if run._cancel_event.is_set():
-                return
+        # Check cancellation before overwriting status — cancel() may have
+        # already set CANCELLED between evolve() and thread start.
+        if run._cancel_event.is_set():
+            run.status = RunStatus.CANCELLED
+            run.completed_at = time.time()
+            return
 
+        run.status = RunStatus.RUNNING
+
+        try:
             result = self._backend.evolve(episodes, harness_state, context)
 
             if run._cancel_event.is_set():
