@@ -13,7 +13,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from clawloop.core.evolver import EvolverResult, HarnessSnapshot, Provenance
+from clawloop.core.evolver import EvolverResult, HarnessSnapshot
 from clawloop.layers.harness import Insight, PromptCandidate
 
 
