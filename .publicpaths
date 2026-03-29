@@ -6,11 +6,13 @@ clawloop/
 tests/
 examples/
 clawloop.png
+architecture.png
 README.md
 LICENSE
 pyproject.toml
 CONTRIBUTING.md
 CHANGELOG.md
+THIRD_PARTY_NOTICES.md
 
 # .gitignore is managed directly in the public repo (not synced).
 # The monorepo version contains private directory names.

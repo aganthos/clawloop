@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ClawLoop Architecture</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    background: #0d1117; color: #f0f6fc;
+    font-family: 'Inter', -apple-system, sans-serif;
+    display: flex; justify-content: center; align-items: center;
+    min-height: 100vh; padding: 48px 20px;
+}
+.diagram { width: 780px; position: relative; }
+.content {
+    position: relative; z-index: 1;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 8px 80px 20px 20px;
+}
+
+.badges { display: flex; gap: 10px; justify-content: center; }
+.b { background: #1c2129; border: 1px solid #4a525d; border-radius: 20px; padding: 7px 18px; font-size: 13px; font-weight: 700; color: #f0f6fc; }
+.b.n8n { color: #ff6b8a; font-weight: 800; font-family: 'JetBrains Mono', monospace; }
+.b.lit { color: #6cb6ff; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+
+.dn { display: flex; flex-direction: column; align-items: center; }
+.dn i { display: block; width: 2px; height: 16px; background: #6c7582; }
+.dn b { display: block; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 7px solid #6c7582; }
+.lbl { font-size: 12px; color: #adbac7; text-align: center; }
+
+.card { width: 100%; background: #161b22; border: 1px solid #3d444d; border-radius: 10px; padding: 14px 20px; }
+.card-h { font-size: 11px; font-weight: 800; color: #adbac7; text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 10px; }
+.row { display: flex; gap: 10px; }
+.c { background: #0d1117; border: 1px solid #3d444d; border-radius: 7px; padding: 14px; text-align: center; }
+.c.w { flex: 1; } .c.n { flex: 0 0 120px; }
+.ct { font-size: 15px; font-weight: 800; color: #f0f6fc; margin-bottom: 3px; }
+.cs { font-size: 12px; color: #adbac7; line-height: 1.4; }
+
+.et { font-size: 15px; font-weight: 800; color: #f0f6fc; text-align: center; margin-bottom: 3px; }
+.es { font-size: 12px; color: #adbac7; text-align: center; }
+
+.cl { width: 100%; background: rgba(230,65,65,0.07); border: 2.5px solid rgba(240,80,80,0.6); border-radius: 12px; padding: 16px 16px 12px; }
+.cl-t { font-family: 'JetBrains Mono', monospace; font-size: 17px; font-weight: 800; color: #f0f6fc; text-align: center; margin-bottom: 12px; letter-spacing: 0.05em; }
+.ls { display: flex; gap: 10px; }
+.l { flex: 1; background: #0d1117; border: 1px solid #3d444d; border-radius: 7px; padding: 14px 8px; text-align: center; }
+.lt { font-size: 14px; font-weight: 800; color: #f0f6fc; margin-bottom: 3px; }
+.lsub { font-size: 11px; color: #adbac7; line-height: 1.4; }
+.proto { text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #adbac7; margin-top: 10px; }
+
+.res { background: #161b22; border: 2.5px solid rgba(74,222,128,0.65); border-radius: 10px; padding: 14px 40px; font-size: 16px; font-weight: 800; color: #4ade80; text-align: center; }
+
+#loop-svg {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 2; pointer-events: none; overflow: visible;
+}
+</style>
+</head>
+<body>
+<div class="diagram" id="diagram">
+
+    <svg id="loop-svg" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+        </defs>
+        <!-- Filled dynamically by script -->
+    </svg>
+
+    <div class="content">
+
+        <div class="card" style="text-align:center;padding:14px 20px 12px;">
+            <div style="font-size:15px;font-weight:800;color:#f0f6fc;margin-bottom:2px;">Your Agent</div>
+            <div style="font-size:11px;color:#adbac7;margin-bottom:8px;">built with</div>
+            <div class="badges">
+                <div class="b">OpenClaw</div>
+                <div class="b n8n">n8n</div>
+                <div class="b lit">litellm</div>
+                <div class="b">any framework</div>
+            </div>
+        </div>
+
+        <div class="dn"><i></i><b></b></div>
+
+        <div class="card" id="agent-box">
+            <div class="card-h">Agent</div>
+            <div class="row">
+                <div class="c w"><div class="ct">Harness</div><div class="cs">prompt + memory + tools</div></div>
+                <div class="c n"><div class="ct">Model</div><div class="cs">weights</div></div>
+            </div>
+        </div>
+
+        <div class="dn"><i></i><b></b></div>
+        <div class="lbl">interacts with</div>
+
+        <div class="card">
+            <div class="et">Training or Production Environment</div>
+            <div class="es">sandbox &middot; benchmark &middot; Harbor &middot; live traffic</div>
+        </div>
+
+        <div class="dn"><i></i><b></b></div>
+        <div class="lbl">produces episodes</div>
+
+        <div class="cl">
+            <div class="cl-t">ClawLoop</div>
+            <div class="ls">
+                <div class="l"><div class="lt">Harness</div></div>
+                <div class="l"><div class="lt">Router</div></div>
+                <div class="l"><div class="lt">Weights</div></div>
+            </div>
+            <div style="background:rgba(0,0,0,0.35);border-radius:5px;padding:10px 14px;margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.65;">
+                <div><span style="color:#f0f6fc;">learner</span> = clawloop.<span style="color:#e8a87c;">AsyncLearner</span>(</div>
+                <div>&nbsp;&nbsp;layers=[<span style="color:#e8a87c;">"weights"</span>, <span style="color:#e8a87c;">"harness"</span>, <span style="color:#e8a87c;">"router"</span>],</div>
+                <div>&nbsp;&nbsp;backend=<span style="color:#e8a87c;">"harbor"</span>)</div>
+                <div><span style="color:#f0f6fc;">learner</span>.<span style="color:#e8a87c;">start</span>() <span style="color:#6c7582;"># Tinker-compatible</span></div>
+            </div>
+        </div>
+
+        <div class="dn"><i></i><b></b></div>
+
+        <div class="res" id="result-box">Improved Agent</div>
+
+    </div>
+</div>
+
+<script>
+// Measure real DOM positions and draw the loop arrow precisely
+window.addEventListener('load', () => {
+    const diagram = document.getElementById('diagram');
+    const agent   = document.getElementById('agent-box');
+    const result  = document.getElementById('result-box');
+    const svg     = document.getElementById('loop-svg');
+
+    const dRect = diagram.getBoundingClientRect();
+    const aRect = agent.getBoundingClientRect();
+    const rRect = result.getBoundingClientRect();
+
+    // Make SVG coordinate space match CSS pixels exactly
+    svg.setAttribute('viewBox', `0 0 ${dRect.width} ${dRect.height}`);
+
+    // All coordinates relative to diagram top-left
+    const toLocal = (r) => ({
+        left:   r.left   - dRect.left,
+        right:  r.right  - dRect.left,
+        top:    r.top    - dRect.top,
+        bottom: r.bottom - dRect.top,
+        midY:   (r.top + r.bottom) / 2 - dRect.top,
+        midX:   (r.left + r.right) / 2 - dRect.left,
+    });
+
+    const a = toLocal(aRect);  // Agent box
+    const r = toLocal(rRect);  // Improved Agent box
+
+    // Loop arrow config
+    const GAP      = 12;   // gap between arrowhead tip and Agent box right edge
+    const MARGIN   = 50;   // how far right of all boxes the vertical line runs
+    const RADIUS   = 24;   // corner radius
+
+    const lineX    = a.right + MARGIN;          // vertical line x
+    const tipX     = a.right + GAP;             // arrowhead tip x
+    const tipY     = a.midY;                    // arrowhead tip y (middle of Agent box)
+    const startX   = r.right + 10;              // start from right edge of Improved Agent
+    const startY   = r.midY;                    // at its vertical center
+
+    // Build path: start → right → up → left to tip
+    const path = `
+        M ${startX} ${startY}
+        L ${lineX - RADIUS} ${startY}
+        A ${RADIUS} ${RADIUS} 0 0 0 ${lineX} ${startY - RADIUS}
+        L ${lineX} ${tipY + RADIUS}
+        A ${RADIUS} ${RADIUS} 0 0 0 ${lineX - RADIUS} ${tipY}
+        L ${tipX} ${tipY}
+    `.trim();
+
+
+    svg.innerHTML = `
+        <defs>
+            <marker id="arrowhead"
+                    viewBox="0 0 10 10"
+                    refX="10" refY="5"
+                    markerWidth="10" markerHeight="10"
+                    markerUnits="userSpaceOnUse"
+                    orient="auto">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#4ade80"/>
+            </marker>
+        </defs>
+        <path d="${path}" stroke="#4ade80" stroke-width="2" fill="none" opacity="0.6"
+              marker-end="url(#arrowhead)"/>
+    `;
+});
+</script>
+</body>
+</html>

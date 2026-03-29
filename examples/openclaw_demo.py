@@ -27,11 +27,11 @@ Usage:
 
     # With OpenAI:
     UPSTREAM_URL=https://api.openai.com/v1 UPSTREAM_KEY=$OPENAI_API_KEY \\
-        PYTHONPATH=. python examples/openclaw_proxy_demo.py
+        PYTHONPATH=. python examples/openclaw_demo.py
 
     # With any OpenAI-compatible endpoint:
     UPSTREAM_URL=http://your-api/v1 UPSTREAM_KEY=your-key MODEL=model-name \\
-        PYTHONPATH=. python examples/openclaw_proxy_demo.py
+        PYTHONPATH=. python examples/openclaw_demo.py
 
 Bench vs live mode:
     This demo runs the proxy in `bench_mode=True`, which requires
@@ -138,7 +138,7 @@ def main():
     if not upstream_url or not upstream_key:
         print("Set UPSTREAM_URL and UPSTREAM_KEY. Example:")
         print("  UPSTREAM_URL=https://api.openai.com/v1 UPSTREAM_KEY=$OPENAI_API_KEY \\")
-        print("      PYTHONPATH=. python examples/openclaw_proxy_demo.py")
+        print("      PYTHONPATH=. python examples/openclaw_demo.py")
         sys.exit(1)
 
     tasks = [
