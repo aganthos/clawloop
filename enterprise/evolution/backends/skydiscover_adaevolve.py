@@ -100,9 +100,14 @@ def _extract_best_program_path(result: Any, fallback_dir: str) -> str:
     if solution_text is None:
         raise ValueError("SkyDiscover result has no best_solution or best_program.code")
 
-    # If the solution is already a file path, return it
-    if isinstance(solution_text, str) and Path(solution_text).exists():
-        return solution_text
+    # If the solution is already a file path, return it.
+    # Guard against long strings (JSON content) hitting OS filename limits.
+    if isinstance(solution_text, str) and len(solution_text) < 260:
+        try:
+            if Path(solution_text).exists():
+                return solution_text
+        except OSError:
+            pass  # Not a valid path — treat as content
 
     # Otherwise, parse as JSON program content and write to file
     out_path = Path(fallback_dir) / "best_program.json"
