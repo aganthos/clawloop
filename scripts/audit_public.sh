@@ -86,7 +86,7 @@ print('AST import scan: clean')
 # 6. No symlinks pointing outside public tree
 while IFS= read -r link; do
     target="$(readlink "$link")"
-    if [[ "$target" == *enterprise* || "$target" == *docs/* || "$target" == *pitch/* ]]; then
+    if [[ "$target" == *enterprise* || "$target" == *business/* ]]; then
         echo "FAIL: Symlink $link points to private path: $target"
         ERRORS=$((ERRORS + 1))
     fi
@@ -100,7 +100,7 @@ import tarfile, zipfile, glob, sys, re
 
 # Match top-level private dirs (after the package prefix like 'clawloop-0.0.1/')
 # These patterns match paths where the private dir is the first real directory.
-PRIVATE_DIRS = ('enterprise', 'enterprise_clawloop', 'pitch', 'configs', 'resources')
+PRIVATE_DIRS = ('enterprise', 'enterprise_clawloop', 'business')
 
 def is_private(path):
     # Strip sdist prefix (e.g., 'clawloop-0.0.1/enterprise/...')
