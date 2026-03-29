@@ -1,5 +1,8 @@
 """Serialization helpers for SkyDiscover <-> ClawLoop harness programs.
 
+Integrates with SkyDiscover (https://github.com/skydiscover-ai/skydiscover)
+by UC Berkeley Sky Computing Lab — Apache 2.0. No SkyDiscover code is copied.
+
 Converts between HarnessSnapshot (ClawLoop's internal state) and the JSON
 "program" files that SkyDiscover evolves.
 """

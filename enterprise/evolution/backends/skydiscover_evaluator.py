@@ -1,5 +1,8 @@
 """ClawLoop evaluator adapter for SkyDiscover.
 
+Integrates with SkyDiscover (https://github.com/skydiscover-ai/skydiscover)
+by UC Berkeley Sky Computing Lab — Apache 2.0. No SkyDiscover code is copied.
+
 SkyDiscover expects an evaluator callable:
     evaluate(program_path: str) -> {"combined_score": float, ...}
 

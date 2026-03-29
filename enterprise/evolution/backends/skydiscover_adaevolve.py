@@ -1,5 +1,8 @@
 """SkyDiscover AdaEvolve — enterprise Evolver backend for ClawLoop.
 
+Integrates with SkyDiscover (https://github.com/skydiscover-ai/skydiscover)
+by UC Berkeley Sky Computing Lab — Apache 2.0. No SkyDiscover code is copied.
+
 Wraps SkyDiscover's multi-island adaptive search (AdaEvolve) as a ClawLoop
 Evolver. Serializes the current harness state as a seed program, runs
 SkyDiscover's evolutionary search with a ClawLoopEvaluator, and parses the

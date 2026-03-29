@@ -1,5 +1,8 @@
 """Async cloud wrapper for SkyDiscover AdaEvolve.
 
+Integrates with SkyDiscover (https://github.com/skydiscover-ai/skydiscover)
+by UC Berkeley Sky Computing Lab — Apache 2.0. No SkyDiscover code is copied.
+
 Runs evolution in a background thread and returns immediately with a run_id.
 Integrates with ClawLoop's existing async evolver patterns:
 - EvolverResult.run_id for tracking
