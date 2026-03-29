@@ -137,22 +137,24 @@ class CloudAdaEvolve:
         check FBResult.info["status"] == "running" and poll via
         evolution_summary(run_id).
         """
-        # Check concurrency limit
+        # Check concurrency + register atomically to avoid TOCTOU race
+        run_id = f"sky-{uuid.uuid4().hex[:12]}"
+        run = EvolutionRun(run_id=run_id)
+
         with self._lock:
             active = sum(
                 1 for r in self._runs.values()
                 if r.status in (RunStatus.PENDING, RunStatus.RUNNING)
             )
             if active >= self._max_concurrent:
+                log.warning(
+                    "Concurrency limit reached (%d/%d) — evolution skipped",
+                    active, self._max_concurrent,
+                )
                 return EvolverResult(
                     run_id="",
                     provenance=Provenance(backend="skydiscover_adaevolve_cloud"),
                 )
-
-        run_id = f"sky-{uuid.uuid4().hex[:12]}"
-        run = EvolutionRun(run_id=run_id)
-
-        with self._lock:
             self._runs[run_id] = run
 
         thread = threading.Thread(
@@ -278,8 +280,7 @@ class CloudAdaEvolve:
             # have fired between evolve() dispatch and thread start.
             if run._cancel_event.is_set():
                 run.status = RunStatus.CANCELLED
-                run.completed_at = time.time()
-                return
+                return  # finally block sets completed_at
 
             run.status = RunStatus.RUNNING
 

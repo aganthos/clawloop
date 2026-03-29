@@ -96,14 +96,14 @@ def _extract_best_program_path(result: Any, fallback_dir: str) -> str:
     # Try best_solution (str) first — this is the actual solution text
     solution_text = getattr(result, "best_solution", None)
 
-    # Try best_program.code as fallback
+    # Try best_program.solution as fallback
     if solution_text is None:
         best_prog = getattr(result, "best_program", None)
         if best_prog is not None:
             solution_text = getattr(best_prog, "solution", None) or str(best_prog)
 
     if solution_text is None:
-        raise ValueError("SkyDiscover result has no best_solution or best_program.code")
+        raise ValueError("SkyDiscover result has no best_solution or best_program.solution")
 
     # If the solution is already a file path, return it.
     # Guard against long strings (JSON content) hitting OS filename limits.

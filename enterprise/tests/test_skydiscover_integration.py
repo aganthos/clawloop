@@ -50,7 +50,7 @@ def _make_discovery_result_with_new_entry(
     result = MagicMock()
     result.best_solution = json.dumps(program)
     result.best_program = MagicMock()
-    result.best_program.code = json.dumps(program)
+    result.best_program.solution = json.dumps(program)
     result.best_score = 0.8
     result.metrics = {"total_tokens": 500}
     result.output_dir = str(tmp_path)

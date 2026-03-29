@@ -32,7 +32,7 @@ def _make_discovery_result(
     # best_score, metrics, output_dir, initial_score
     result.best_solution = Path(evolved_program_path).read_text()
     result.best_program = MagicMock()
-    result.best_program.code = Path(evolved_program_path).read_text()
+    result.best_program.solution = Path(evolved_program_path).read_text()
     result.best_score = best_score
     result.metrics = {"total_tokens": 1500, "iterations_completed": 5}
     result.output_dir = str(Path(evolved_program_path).parent)

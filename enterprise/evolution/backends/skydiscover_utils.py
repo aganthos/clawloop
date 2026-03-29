@@ -68,7 +68,16 @@ def program_to_evolver_result(
     - PromptCandidates if the system_prompt changed
     - Provenance tagged with backend="skydiscover_adaevolve"
     """
-    program = json.loads(Path(program_path).read_text())
+    raw = json.loads(Path(program_path).read_text())
+
+    # SkyDiscover LLM mutations may produce valid JSON that isn't a dict
+    # (e.g., a list or a quoted string). Normalize to our expected schema.
+    if isinstance(raw, dict):
+        program = raw
+    elif isinstance(raw, str):
+        program = {"system_prompt": raw, "playbook": [], "model": ""}
+    else:
+        program = {"system_prompt": str(raw), "playbook": [], "model": ""}
 
     insights: list[Insight] = []
     candidates: dict[str, list[PromptCandidate]] = {}

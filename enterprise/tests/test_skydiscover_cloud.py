@@ -82,15 +82,17 @@ class TestCloudAdaEvolve:
 
         def gated_discovery(**kwargs: Any) -> MagicMock:
             gate.wait(timeout=5)
-            evolved_path = tmp_path / "evolved.json"
-            evolved_path.write_text(json.dumps({
+            program = {
                 "system_prompt": "You are a helpful agent.",
                 "playbook": [{"content": "Be safe.", "tags": ["safety"], "helpful": 1, "harmful": 0}],
-            }))
+            }
             result = MagicMock()
-            result.best_program = str(evolved_path)
-            result.version = "0.1.0"
-            result.tokens_used = 100
+            result.best_solution = json.dumps(program)
+            result.best_program = MagicMock()
+            result.best_program.solution = json.dumps(program)
+            result.best_score = 0.8
+            result.metrics = {"total_tokens": 100}
+            result.output_dir = str(tmp_path)
             return result
 
         mock_run = MagicMock(side_effect=gated_discovery)
@@ -217,12 +219,14 @@ class TestCloudAdaEvolve:
 
         def slow_discovery(**kwargs: Any) -> MagicMock:
             gate.wait(timeout=5)
-            evolved_path = tmp_path / "evolved.json"
-            evolved_path.write_text(json.dumps({
-                "system_prompt": "test", "playbook": [],
-            }))
+            program = {"system_prompt": "test", "playbook": []}
             result = MagicMock()
-            result.best_program = str(evolved_path)
+            result.best_solution = json.dumps(program)
+            result.best_program = MagicMock()
+            result.best_program.solution = json.dumps(program)
+            result.best_score = 0.5
+            result.metrics = {}
+            result.output_dir = str(tmp_path)
             return result
 
         mock_run = MagicMock(side_effect=slow_discovery)
@@ -264,12 +268,14 @@ class TestCloudAdaEvolve:
 
         def slow_discovery(**kwargs: Any) -> MagicMock:
             gate.wait(timeout=5)
-            evolved_path = tmp_path / "evolved.json"
-            evolved_path.write_text(json.dumps({
-                "system_prompt": "test", "playbook": [],
-            }))
+            program = {"system_prompt": "test", "playbook": []}
             result = MagicMock()
-            result.best_program = str(evolved_path)
+            result.best_solution = json.dumps(program)
+            result.best_program = MagicMock()
+            result.best_program.solution = json.dumps(program)
+            result.best_score = 0.5
+            result.metrics = {}
+            result.output_dir = str(tmp_path)
             return result
 
         mock_run = MagicMock(side_effect=slow_discovery)
