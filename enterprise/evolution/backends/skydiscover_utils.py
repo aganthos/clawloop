@@ -38,12 +38,16 @@ def harness_to_program(snapshot: HarnessSnapshot, output_path: str) -> str:
 
     playbook = []
     for entry in snapshot.playbook_entries:
-        playbook.append({
+        e: dict[str, Any] = {
             "content": entry.get("content", ""),
             "tags": entry.get("tags", []),
             "helpful": entry.get("helpful", 0),
             "harmful": entry.get("harmful", 0),
-        })
+        }
+        # Preserve ID for deterministic diff matching with duplicates
+        if entry.get("id"):
+            e["id"] = entry["id"]
+        playbook.append(e)
 
     program: dict[str, Any] = {
         "system_prompt": system_prompt,
@@ -83,35 +87,55 @@ def program_to_evolver_result(
     candidates: dict[str, list[PromptCandidate]] = {}
 
     # --- Diff playbook ---
-    # Use (content, index) as key to handle duplicate content strings safely.
-    # Build a multimap: content -> list of original entries (preserving dupes).
+    # Normalize: guard against non-list playbook (LLM may produce null/string)
+    raw_playbook = program.get("playbook", [])
+    evolved_playbook: list[dict[str, Any]] = [
+        e for e in (raw_playbook if isinstance(raw_playbook, list) else [])
+        if isinstance(e, dict)
+    ]
+
+    # Build lookup structures from original entries.
+    # Prefer ID-based matching (deterministic with duplicates), fall back
+    # to content-based matching for entries without IDs.
+    original_by_id: dict[str, dict[str, Any]] = {}
     original_by_content: dict[str, list[dict[str, Any]]] = {}
     for e in original.playbook_entries:
+        eid = e.get("id", "")
+        if eid:
+            original_by_id[eid] = e
         c = e.get("content", "")
         original_by_content.setdefault(c, []).append(e)
 
-    evolved_playbook: list[dict[str, Any]] = program.get("playbook", [])
+    matched_ids: set[str] = set()
+    matched_content_counts: dict[str, int] = {}  # content -> count matched
 
-    # Track which original entries have been matched (by content + index)
-    matched_originals: dict[str, int] = {}  # content -> count matched so far
     for entry in evolved_playbook:
         content = entry.get("content", "")
+        eid = entry.get("id", "")
+
+        # Try ID match first (deterministic)
+        if eid and eid in original_by_id and eid not in matched_ids:
+            matched_ids.add(eid)
+            # Tag-only changes suppressed (Harness limitation — see comment above)
+            continue
+
+        # Fall back to content match
         orig_list = original_by_content.get(content, [])
-        match_idx = matched_originals.get(content, 0)
+        match_idx = matched_content_counts.get(content, 0)
+
+        # Skip entries already matched by ID
+        while match_idx < len(orig_list) and orig_list[match_idx].get("id", "") in matched_ids:
+            match_idx += 1
 
         if match_idx < len(orig_list):
-            # Matched an existing entry
             orig = orig_list[match_idx]
-            matched_originals[content] = match_idx + 1
-            # Tag-only changes are suppressed. The Harness Curator applies
-            # "update" insights by incrementing helpful and resetting
-            # embeddings — but does NOT update tags. Emitting the insight
-            # would inflate helpful scores and churn embeddings for no
-            # functional effect. Suppressed until Harness supports tag
-            # updates (upstream limitation, not enterprise).
+            matched_ids.add(orig.get("id", ""))
+            matched_content_counts[content] = match_idx + 1
+            # Tag-only changes suppressed (Harness Curator increments helpful
+            # and resets embeddings on "update" but does NOT update tags)
         else:
             # New entry added by evolution
-            matched_originals[content] = match_idx + 1
+            matched_content_counts[content] = match_idx + 1
             insights.append(Insight(
                 content=content,
                 tags=entry.get("tags", []),
@@ -119,15 +143,27 @@ def program_to_evolver_result(
             ))
 
     # Entries removed by evolution: any original entries not matched
-    for content, orig_list in original_by_content.items():
-        matched_count = matched_originals.get(content, 0)
-        for orig in orig_list[matched_count:]:
-            orig_id = orig.get("id", "")
+    for e in original.playbook_entries:
+        eid = e.get("id", "")
+        if eid and eid not in matched_ids:
             insights.append(Insight(
-                content=content,
+                content=e.get("content", ""),
                 action="remove",
-                target_entry_id=orig_id or None,
+                target_entry_id=eid or None,
             ))
+        elif not eid:
+            # No ID — check content-based matching
+            content = e.get("content", "")
+            matched_count = matched_content_counts.get(content, 0)
+            total_with_content = len(original_by_content.get(content, []))
+            if matched_count < total_with_content:
+                matched_content_counts[content] = matched_count + 1
+            else:
+                insights.append(Insight(
+                    content=content,
+                    action="remove",
+                    target_entry_id=None,
+                ))
 
     # --- Diff system prompt ---
     original_prompt = next(iter(original.system_prompts.values()), "")
