@@ -212,26 +212,30 @@ class CloudAdaEvolve:
     def cancel(self, run_id: str) -> bool:
         """Request cancellation of a running evolution.
 
+        Sets the cancel event so the thread will stop at its next checkpoint.
+        Note: ``run_discovery()`` is a blocking call that does not support
+        mid-execution cancellation — the thread will finish the current
+        SkyDiscover iteration before checking the event and exiting.
+        Status transitions to CANCELLED only when the thread actually stops.
+
         Returns True if cancellation was requested, False if run not found
-        or already completed.
+        or already completed/cancelled.
         """
         with self._lock:
             run = self._runs.get(run_id)
-
-        if run is None:
-            return False
-        if run.status not in (RunStatus.PENDING, RunStatus.RUNNING):
-            return False
-
-        run._cancel_event.set()
-        run.status = RunStatus.CANCELLED
-        run.completed_at = time.time()
-        log.info("Cancellation requested for run %s", run_id)
-        return True
+            if run is None:
+                return False
+            if run.status not in (RunStatus.PENDING, RunStatus.RUNNING):
+                return False
+            run._cancel_event.set()
+            log.info("Cancellation requested for run %s", run_id)
+            return True
 
     def active_runs(self) -> list[str]:
         """Return run_ids of currently active evolutions."""
         with self._lock:
+            # Prune completed threads while we hold the lock
+            self._threads = [t for t in self._threads if t.is_alive()]
             return [
                 r.run_id for r in self._runs.values()
                 if r.status in (RunStatus.PENDING, RunStatus.RUNNING)
@@ -267,26 +271,29 @@ class CloudAdaEvolve:
         context: EvolverContext,
     ) -> None:
         """Execute evolution in background thread."""
-        run.started_at = time.time()
+        with self._lock:
+            run.started_at = time.time()
 
-        # Check cancellation before overwriting status — cancel() may have
-        # already set CANCELLED between evolve() and thread start.
-        if run._cancel_event.is_set():
-            run.status = RunStatus.CANCELLED
-            run.completed_at = time.time()
-            return
+            # Check cancellation before overwriting status — cancel() may
+            # have fired between evolve() dispatch and thread start.
+            if run._cancel_event.is_set():
+                run.status = RunStatus.CANCELLED
+                run.completed_at = time.time()
+                return
 
-        run.status = RunStatus.RUNNING
+            run.status = RunStatus.RUNNING
 
         try:
             result = self._backend.evolve(episodes, harness_state, context)
 
-            if run._cancel_event.is_set():
-                run.status = RunStatus.CANCELLED
-                return
+            with self._lock:
+                if run._cancel_event.is_set():
+                    run.status = RunStatus.CANCELLED
+                    return
 
-            run.result = result
-            run.status = RunStatus.COMPLETED
+                run.result = result
+                run.status = RunStatus.COMPLETED
+
             log.info(
                 "Evolution run %s completed: %d insights, %d candidate benches",
                 run.run_id,
@@ -295,9 +302,11 @@ class CloudAdaEvolve:
             )
 
         except Exception as exc:
-            run.status = RunStatus.FAILED
-            run.error = str(exc)
+            with self._lock:
+                run.status = RunStatus.FAILED
+                run.error = str(exc)
             log.exception("Evolution run %s failed", run.run_id)
 
         finally:
-            run.completed_at = time.time()
+            with self._lock:
+                run.completed_at = time.time()

@@ -53,10 +53,23 @@ class ClawLoopEvaluator:
         self._n_episodes = n_episodes
 
     def __call__(self, program_path: str) -> dict[str, Any]:
-        """Evaluate a candidate program. Returns {"combined_score": float}."""
-        program = json.loads(Path(program_path).read_text())
-        system_prompt = program.get("system_prompt", "")
-        playbook = program.get("playbook", [])
+        """Evaluate a candidate program. Returns {"combined_score": float}.
+
+        SkyDiscover writes the raw solution text to a temp file before
+        calling the evaluator. The content is usually JSON (our serialized
+        harness program), but LLM mutations may produce non-JSON text.
+        We handle both cases gracefully.
+        """
+        content = Path(program_path).read_text()
+        try:
+            program = json.loads(content)
+            system_prompt = program.get("system_prompt", "")
+            playbook = program.get("playbook", [])
+        except json.JSONDecodeError:
+            # LLM mutated the program into non-JSON — treat as system prompt
+            log.debug("Non-JSON program at %s, treating as system prompt", program_path)
+            system_prompt = content.strip()
+            playbook = []
 
         agent_state = self._agent_state_factory(system_prompt, playbook)
 

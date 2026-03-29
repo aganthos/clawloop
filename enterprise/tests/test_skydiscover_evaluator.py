@@ -172,3 +172,27 @@ class TestClawLoopEvaluator:
 
         result = evaluator(str(prog_path))
         assert result["rewards"] == pytest.approx([0.3, 0.7])
+
+    def test_non_json_program_treated_as_prompt(self, tmp_path: Path) -> None:
+        """SkyDiscover may mutate JSON into non-JSON — evaluator should cope."""
+        adapter = make_adapter([0.5])
+        factory = make_factory()
+        evaluator = ClawLoopEvaluator(
+            adapter=adapter,
+            tasks=["task-a"],
+            agent_state_factory=factory,
+            n_episodes=1,
+        )
+
+        # Write non-JSON content (simulating a broken LLM mutation)
+        prog_path = tmp_path / "mutated.py"
+        prog_path.write_text("You are an expert math tutor. Show all work.")
+
+        result = evaluator(str(prog_path))
+        assert result["combined_score"] == pytest.approx(0.5)
+        assert result["n_episodes"] == 1
+        # Factory should have received the raw text as system_prompt
+        factory.assert_called_once_with(
+            "You are an expert math tutor. Show all work.",
+            [],
+        )

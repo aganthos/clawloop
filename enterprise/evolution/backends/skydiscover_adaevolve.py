@@ -100,7 +100,7 @@ def _extract_best_program_path(result: Any, fallback_dir: str) -> str:
     if solution_text is None:
         best_prog = getattr(result, "best_program", None)
         if best_prog is not None:
-            solution_text = getattr(best_prog, "code", None) or str(best_prog)
+            solution_text = getattr(best_prog, "solution", None) or str(best_prog)
 
     if solution_text is None:
         raise ValueError("SkyDiscover result has no best_solution or best_program.code")
@@ -179,6 +179,11 @@ class SkyDiscoverAdaEvolve:
         context: EvolverContext,
     ) -> EvolverResult:
         """Run SkyDiscover AdaEvolve and return an EvolverResult.
+
+        WARNING: SkyDiscover uses ``asyncio.run()`` internally. This will
+        raise ``RuntimeError`` if called from an already-running event loop
+        (e.g., async web frameworks). Use ``CloudAdaEvolve`` instead, which
+        runs evolution in a separate thread with its own event loop.
 
         Note: ``episodes`` is accepted for Evolver protocol compatibility but
         not used directly — the evaluator generates fresh episodes against each

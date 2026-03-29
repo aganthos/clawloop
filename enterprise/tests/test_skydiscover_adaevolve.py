@@ -62,16 +62,16 @@ class TestExtractBestProgramPath:
         data = json.loads(Path(path).read_text())
         assert data["system_prompt"] == "Evolved!"
 
-    def test_extracts_from_best_program_code(self, tmp_path: Path) -> None:
-        """Falls back to best_program.code if best_solution is None."""
-        program = {"system_prompt": "From code", "playbook": []}
+    def test_extracts_from_best_program_solution(self, tmp_path: Path) -> None:
+        """Falls back to best_program.solution if best_solution is None."""
+        program = {"system_prompt": "From solution", "playbook": []}
         result = MagicMock()
         result.best_solution = None
-        result.best_program.code = json.dumps(program)
+        result.best_program.solution = json.dumps(program)
 
         path = _extract_best_program_path(result, str(tmp_path))
         data = json.loads(Path(path).read_text())
-        assert data["system_prompt"] == "From code"
+        assert data["system_prompt"] == "From solution"
 
     def test_wraps_plain_text_as_prompt(self, tmp_path: Path) -> None:
         """Non-JSON text gets wrapped as a system_prompt."""

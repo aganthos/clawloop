@@ -36,9 +36,13 @@ def _make_mock_run_discovery(tmp_path: Path, evolved_program: dict | None = None
     evolved_path.write_text(json.dumps(program))
 
     result = MagicMock()
-    result.best_program = str(evolved_path)
-    result.version = "0.1.0"
-    result.tokens_used = 500
+    result.best_solution = json.dumps(program)
+    result.best_program = MagicMock()
+    result.best_program.solution = json.dumps(program)
+    result.best_score = 0.8
+    result.metrics = {"total_tokens": 500}
+    result.output_dir = str(tmp_path)
+    result.initial_score = 0.3
 
     def slow_discovery(**kwargs: Any) -> MagicMock:
         time.sleep(0.05)  # Simulate some work
@@ -145,17 +149,19 @@ class TestCloudAdaEvolve:
             assert isinstance(final, EvolverResult)
 
     def test_cancel_running_evolution(self, tmp_path: Path) -> None:
-        """cancel() should stop a running evolution."""
+        """cancel() requests cancellation; thread resolves as cancelled after unblocking."""
         gate = threading.Event()
 
         def slow_discovery(**kwargs: Any) -> MagicMock:
             gate.wait(timeout=5)
-            evolved_path = tmp_path / "evolved.json"
-            evolved_path.write_text(json.dumps({
-                "system_prompt": "test", "playbook": [],
-            }))
+            program = {"system_prompt": "test", "playbook": []}
             result = MagicMock()
-            result.best_program = str(evolved_path)
+            result.best_solution = json.dumps(program)
+            result.best_program = MagicMock()
+            result.best_program.solution = json.dumps(program)
+            result.best_score = 0.5
+            result.metrics = {}
+            result.output_dir = str(tmp_path)
             return result
 
         mock_run = MagicMock(side_effect=slow_discovery)
@@ -175,12 +181,17 @@ class TestCloudAdaEvolve:
             time.sleep(0.05)
             assert cloud.cancel(run_id) is True
 
+            # While blocked on gate, thread is still running
+            status = cloud.poll_status(run_id)
+            assert status["status"] == "running"  # honest — still executing
+
+            # Release gate — thread checks cancel event post-evolve
+            gate.set()
+            time.sleep(0.2)
+
+            # Now it should be cancelled
             status = cloud.poll_status(run_id)
             assert status["status"] == "cancelled"
-
-            # Release gate to let thread exit
-            gate.set()
-            time.sleep(0.1)
 
     def test_cancel_unknown_run_id(self) -> None:
         adapter = MagicMock()
@@ -308,18 +319,20 @@ class TestCloudAdaEvolve:
             assert status["status"] == "failed"
             assert "SkyDiscover crashed" in status["error"]
 
-    def test_cancel_before_thread_starts(self, tmp_path: Path) -> None:
-        """Cancel immediately after evolve — before thread starts running."""
+    def test_cancel_then_release_resolves_cancelled(self, tmp_path: Path) -> None:
+        """cancel() + release gate → thread finishes as cancelled, not completed."""
         gate = threading.Event()
 
         def blocked_discovery(**kwargs: Any) -> MagicMock:
             gate.wait(timeout=5)
-            evolved_path = tmp_path / "evolved.json"
-            evolved_path.write_text(json.dumps({
-                "system_prompt": "test", "playbook": [],
-            }))
+            program = {"system_prompt": "test", "playbook": []}
             result = MagicMock()
-            result.best_program = str(evolved_path)
+            result.best_solution = json.dumps(program)
+            result.best_program = MagicMock()
+            result.best_program.solution = json.dumps(program)
+            result.best_score = 0.5
+            result.metrics = {}
+            result.output_dir = str(tmp_path)
             return result
 
         mock_run = MagicMock(side_effect=blocked_discovery)
@@ -336,15 +349,13 @@ class TestCloudAdaEvolve:
             result = cloud.evolve([make_episode()], make_snapshot(), make_context())
             run_id = result.run_id
 
-            # Cancel immediately — thread may not have started yet
-            cloud.cancel(run_id)
+            time.sleep(0.05)
+            assert cloud.cancel(run_id) is True
 
-            # Give thread time to observe cancellation
-            time.sleep(0.2)
+            # Release gate so thread can finish and check cancel event
+            gate.set()
+            time.sleep(0.3)
 
-            # Must report cancelled, not stuck in running
+            # Thread should resolve as cancelled, not completed
             status = cloud.poll_status(run_id)
             assert status["status"] == "cancelled"
-
-            gate.set()
-            time.sleep(0.1)
