@@ -9,9 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
-from clawloop.core.evolver import EvolverContext, HarnessSnapshot
-from clawloop.core.reward import RewardSignal
+from enterprise.tests.conftest import make_context, make_episode, make_snapshot
 from enterprise.evolution.backends.skydiscover_adaevolve import (
     SkyDiscoverAdaEvolve,
     _build_config,
@@ -22,47 +20,6 @@ _PATCH_TARGET = (
     "enterprise.evolution.backends.skydiscover_adaevolve"
     ".SkyDiscoverAdaEvolve._get_run_discovery"
 )
-
-
-def _make_snapshot() -> HarnessSnapshot:
-    return HarnessSnapshot(
-        system_prompts={"default": "You are a helpful agent."},
-        playbook_entries=[
-            {
-                "id": "e1",
-                "content": "Always verify inputs.",
-                "tags": ["safety"],
-                "helpful": 5,
-                "harmful": 1,
-            },
-        ],
-        pareto_fronts={},
-        playbook_generation=2,
-        playbook_version=4,
-    )
-
-
-def _make_context() -> EvolverContext:
-    return EvolverContext(
-        reward_history=[0.3, 0.5, 0.4],
-        is_stagnating=False,
-        iteration=3,
-    )
-
-
-def _make_episode(reward: float = 0.5) -> Episode:
-    return Episode(
-        id="ep-test",
-        state_id="s-test",
-        task_id="t-1",
-        bench="test",
-        messages=[Message(role="user", content="hello")],
-        step_boundaries=[0],
-        steps=[StepMeta(t=0, reward=reward, done=True, timing_ms=100.0)],
-        summary=EpisodeSummary(
-            signals={"outcome": RewardSignal(name="outcome", value=reward, confidence=1.0)},
-        ),
-    )
 
 
 def _make_discovery_result(
@@ -147,9 +104,9 @@ class TestExtractBestProgramPath:
 class TestSkyDiscoverAdaEvolve:
     def test_evolve_returns_evolver_result(self, tmp_path: Path) -> None:
         """End-to-end: mock run_discovery, verify EvolverResult shape."""
-        snap = _make_snapshot()
-        ctx = _make_context()
-        episodes = [_make_episode()]
+        snap = make_snapshot()
+        ctx = make_context()
+        episodes = [make_episode()]
 
         # Write an "evolved" program with a new playbook entry + changed prompt
         evolved = {
@@ -167,7 +124,7 @@ class TestSkyDiscoverAdaEvolve:
         mock_run = MagicMock(return_value=mock_result)
 
         adapter = MagicMock()
-        adapter.run_episode.return_value = _make_episode(0.8)
+        adapter.run_episode.return_value = make_episode(0.8)
         factory = MagicMock(return_value=MagicMock())
 
         backend = SkyDiscoverAdaEvolve(
@@ -205,7 +162,7 @@ class TestSkyDiscoverAdaEvolve:
 
     def test_evolve_no_changes(self, tmp_path: Path) -> None:
         """When evolution produces no changes, result should be empty."""
-        snap = _make_snapshot()
+        snap = make_snapshot()
 
         evolved = {
             "system_prompt": "You are a helpful agent.",
@@ -221,7 +178,7 @@ class TestSkyDiscoverAdaEvolve:
         mock_run = MagicMock(return_value=mock_result)
 
         adapter = MagicMock()
-        adapter.run_episode.return_value = _make_episode()
+        adapter.run_episode.return_value = make_episode()
         factory = MagicMock(return_value=MagicMock())
 
         backend = SkyDiscoverAdaEvolve(
@@ -231,7 +188,7 @@ class TestSkyDiscoverAdaEvolve:
         )
 
         with patch(_PATCH_TARGET, return_value=mock_run):
-            result = backend.evolve([_make_episode()], snap, _make_context())
+            result = backend.evolve([make_episode()], snap, make_context())
 
         assert result.insights == []
         assert result.candidates == {}
@@ -246,7 +203,7 @@ class TestSkyDiscoverAdaEvolve:
 
     def test_seed_program_written_to_work_dir(self, tmp_path: Path) -> None:
         """Verify that the seed program is written before calling run_discovery."""
-        snap = _make_snapshot()
+        snap = make_snapshot()
 
         evolved_path = tmp_path / "evolved.json"
         evolved_path.write_text(json.dumps({
@@ -267,7 +224,7 @@ class TestSkyDiscoverAdaEvolve:
         mock_run = MagicMock(side_effect=capture_seed)
 
         adapter = MagicMock()
-        adapter.run_episode.return_value = _make_episode()
+        adapter.run_episode.return_value = make_episode()
         factory = MagicMock(return_value=MagicMock())
 
         backend = SkyDiscoverAdaEvolve(
@@ -275,7 +232,7 @@ class TestSkyDiscoverAdaEvolve:
         )
 
         with patch(_PATCH_TARGET, return_value=mock_run):
-            backend.evolve([_make_episode()], snap, _make_context())
+            backend.evolve([make_episode()], snap, make_context())
 
         assert len(seed_contents) == 1
         assert seed_contents[0]["system_prompt"] == "You are a helpful agent."
@@ -295,7 +252,7 @@ class TestSkyDiscoverAdaEvolve:
 
     def test_run_dir_cleaned_after_evolve(self, tmp_path: Path) -> None:
         """Per-run temp dir should be cleaned up after evolve completes."""
-        snap = _make_snapshot()
+        snap = make_snapshot()
 
         evolved_path = tmp_path / "evolved.json"
         evolved_path.write_text(json.dumps({
@@ -317,7 +274,7 @@ class TestSkyDiscoverAdaEvolve:
         mock_run = MagicMock(side_effect=capture_run_dir)
 
         adapter = MagicMock()
-        adapter.run_episode.return_value = _make_episode()
+        adapter.run_episode.return_value = make_episode()
         factory = MagicMock(return_value=MagicMock())
 
         backend = SkyDiscoverAdaEvolve(
@@ -325,14 +282,14 @@ class TestSkyDiscoverAdaEvolve:
         )
 
         with patch(_PATCH_TARGET, return_value=mock_run):
-            backend.evolve([_make_episode()], snap, _make_context())
+            backend.evolve([make_episode()], snap, make_context())
 
         assert len(run_dirs) == 1
         assert not Path(run_dirs[0]).exists(), "Run dir should be cleaned up"
 
     def test_output_dir_passed_to_run_discovery(self, tmp_path: Path) -> None:
         """run_discovery should receive output_dir for SkyDiscover to write to."""
-        snap = _make_snapshot()
+        snap = make_snapshot()
 
         evolved_path = tmp_path / "evolved.json"
         evolved_path.write_text(json.dumps({
@@ -346,7 +303,7 @@ class TestSkyDiscoverAdaEvolve:
         mock_run = MagicMock(return_value=mock_result)
 
         adapter = MagicMock()
-        adapter.run_episode.return_value = _make_episode()
+        adapter.run_episode.return_value = make_episode()
         factory = MagicMock(return_value=MagicMock())
 
         backend = SkyDiscoverAdaEvolve(
@@ -354,7 +311,7 @@ class TestSkyDiscoverAdaEvolve:
         )
 
         with patch(_PATCH_TARGET, return_value=mock_run):
-            backend.evolve([_make_episode()], snap, _make_context())
+            backend.evolve([make_episode()], snap, make_context())
 
         call_kwargs = mock_run.call_args.kwargs
         assert "output_dir" in call_kwargs
@@ -362,7 +319,7 @@ class TestSkyDiscoverAdaEvolve:
 
     def test_metrics_extracted_from_result(self, tmp_path: Path) -> None:
         """Provenance should pull token count from result.metrics."""
-        snap = _make_snapshot()
+        snap = make_snapshot()
 
         evolved_path = tmp_path / "evolved.json"
         evolved_path.write_text(json.dumps({
@@ -377,7 +334,7 @@ class TestSkyDiscoverAdaEvolve:
         mock_run = MagicMock(return_value=mock_result)
 
         adapter = MagicMock()
-        adapter.run_episode.return_value = _make_episode()
+        adapter.run_episode.return_value = make_episode()
         factory = MagicMock(return_value=MagicMock())
 
         backend = SkyDiscoverAdaEvolve(
@@ -385,6 +342,6 @@ class TestSkyDiscoverAdaEvolve:
         )
 
         with patch(_PATCH_TARGET, return_value=mock_run):
-            result = backend.evolve([_make_episode()], snap, _make_context())
+            result = backend.evolve([make_episode()], snap, make_context())
 
         assert result.provenance.tokens_used == 42000

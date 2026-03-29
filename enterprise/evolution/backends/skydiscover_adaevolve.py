@@ -178,10 +178,10 @@ class SkyDiscoverAdaEvolve:
 
         # 1. Write harness state as seed program (unique name for concurrency)
         run_id = uuid.uuid4().hex[:8]
-        run_dir = f"{self._work_dir}/run_{run_id}"
+        run_dir = Path(self._work_dir) / f"run_{run_id}"
         seed_path = harness_to_program(
             harness_state,
-            f"{run_dir}/seed.json",
+            str(run_dir / "seed.json"),
         )
 
         # 2. Create evaluator
@@ -212,11 +212,11 @@ class SkyDiscoverAdaEvolve:
             model=self._model,
             iterations=self._iterations,
             config=config,
-            output_dir=run_dir,
+            output_dir=str(run_dir),
         )
 
         # 5. Extract best program from DiscoveryResult
-        best_path = _extract_best_program_path(result, run_dir)
+        best_path = _extract_best_program_path(result, str(run_dir))
 
         # 6. Parse result back to EvolverResult
         evolver_result = program_to_evolver_result(best_path, harness_state)

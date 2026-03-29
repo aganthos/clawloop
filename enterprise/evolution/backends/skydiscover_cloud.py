@@ -119,6 +119,7 @@ class CloudAdaEvolve:
         )
         self._max_concurrent = max_concurrent
         self._runs: dict[str, EvolutionRun] = {}
+        self._threads: list[threading.Thread] = []
         self._lock = threading.Lock()
 
     def evolve(
@@ -154,10 +155,12 @@ class CloudAdaEvolve:
         thread = threading.Thread(
             target=self._run_evolution,
             args=(run, episodes, harness_state, context),
-            daemon=True,
+            daemon=False,
             name=f"skydiscover-{run_id}",
         )
         thread.start()
+        with self._lock:
+            self._threads.append(thread)
 
         return EvolverResult(
             run_id=run_id,
@@ -234,13 +237,23 @@ class CloudAdaEvolve:
     def name(self) -> str:
         return "skydiscover_adaevolve_cloud"
 
-    def cleanup(self) -> None:
-        """Cancel all runs and clean up resources."""
+    def cleanup(self, timeout: float = 10.0) -> None:
+        """Cancel all runs, join threads, and clean up resources.
+
+        Threads are non-daemon so they won't be killed on main exit.
+        This method ensures graceful shutdown by signalling cancellation
+        and waiting for threads to finish.
+        """
         with self._lock:
             for run in self._runs.values():
                 if run.status in (RunStatus.PENDING, RunStatus.RUNNING):
                     run._cancel_event.set()
                     run.status = RunStatus.CANCELLED
+            threads = list(self._threads)
+
+        for t in threads:
+            t.join(timeout=timeout)
+
         self._backend.cleanup()
 
     def _run_evolution(

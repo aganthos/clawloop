@@ -4,49 +4,18 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
 
-from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta, TokenUsage
-from clawloop.core.reward import RewardSignal
 from enterprise.evolution.backends.skydiscover_evaluator import ClawLoopEvaluator
-
-
-def _make_episode(reward: float) -> Episode:
-    """Create a minimal Episode with a given outcome reward."""
-    return Episode(
-        id=f"ep-test",
-        state_id="s-test",
-        task_id="t-1",
-        bench="test",
-        messages=[Message(role="user", content="hello")],
-        step_boundaries=[0],
-        steps=[StepMeta(t=0, reward=reward, done=True, timing_ms=100.0)],
-        summary=EpisodeSummary(
-            signals={"outcome": RewardSignal(name="outcome", value=reward, confidence=1.0)},
-        ),
-    )
-
-
-def _make_adapter(rewards: list[float]) -> MagicMock:
-    """Create a mock adapter that returns episodes with given rewards."""
-    adapter = MagicMock()
-    episodes = [_make_episode(r) for r in rewards]
-    adapter.run_episode.side_effect = episodes
-    return adapter
-
-
-def _make_factory() -> MagicMock:
-    """Create a mock AgentStateFactory."""
-    return MagicMock(return_value=MagicMock())
+from enterprise.tests.conftest import make_adapter, make_episode, make_factory
 
 
 class TestClawLoopEvaluator:
     def test_returns_combined_score(self, tmp_path: Path) -> None:
-        adapter = _make_adapter([0.8, 0.6])
-        factory = _make_factory()
+        adapter = make_adapter([0.8, 0.6])
+        factory = make_factory()
         evaluator = ClawLoopEvaluator(
             adapter=adapter,
             tasks=["task-a", "task-b"],
@@ -63,8 +32,8 @@ class TestClawLoopEvaluator:
         assert result["n_episodes"] == 2
 
     def test_cycles_through_tasks(self, tmp_path: Path) -> None:
-        adapter = _make_adapter([0.5, 0.5, 0.5])
-        factory = _make_factory()
+        adapter = make_adapter([0.5, 0.5, 0.5])
+        factory = make_factory()
         evaluator = ClawLoopEvaluator(
             adapter=adapter,
             tasks=["task-a"],
@@ -83,8 +52,8 @@ class TestClawLoopEvaluator:
         assert all(c.args[0] == "task-a" for c in calls)
 
     def test_passes_config_to_factory(self, tmp_path: Path) -> None:
-        adapter = _make_adapter([0.5])
-        factory = _make_factory()
+        adapter = make_adapter([0.5])
+        factory = make_factory()
         evaluator = ClawLoopEvaluator(
             adapter=adapter,
             tasks=["task-a"],
@@ -108,7 +77,7 @@ class TestClawLoopEvaluator:
     def test_handles_all_failures(self, tmp_path: Path) -> None:
         adapter = MagicMock()
         adapter.run_episode.side_effect = RuntimeError("boom")
-        factory = _make_factory()
+        factory = make_factory()
         evaluator = ClawLoopEvaluator(
             adapter=adapter,
             tasks=["task-a"],
@@ -125,8 +94,8 @@ class TestClawLoopEvaluator:
         assert result["n_episodes"] == 0
 
     def test_negative_rewards(self, tmp_path: Path) -> None:
-        adapter = _make_adapter([-0.5, -1.0])
-        factory = _make_factory()
+        adapter = make_adapter([-0.5, -1.0])
+        factory = make_factory()
         evaluator = ClawLoopEvaluator(
             adapter=adapter,
             tasks=["task-a"],
@@ -144,7 +113,7 @@ class TestClawLoopEvaluator:
     def test_empty_tasks_returns_failure(self, tmp_path: Path) -> None:
         """Empty task list should not crash (was ZeroDivisionError)."""
         adapter = MagicMock()
-        factory = _make_factory()
+        factory = make_factory()
         evaluator = ClawLoopEvaluator(
             adapter=adapter,
             tasks=[],
@@ -166,11 +135,11 @@ class TestClawLoopEvaluator:
         adapter = MagicMock()
         # First call succeeds, second fails, third succeeds
         adapter.run_episode.side_effect = [
-            _make_episode(0.6),
+            make_episode(0.6),
             RuntimeError("timeout"),
-            _make_episode(0.4),
+            make_episode(0.4),
         ]
-        factory = _make_factory()
+        factory = make_factory()
         evaluator = ClawLoopEvaluator(
             adapter=adapter,
             tasks=["task-a", "task-b", "task-c"],
@@ -188,8 +157,8 @@ class TestClawLoopEvaluator:
 
     def test_rewards_list_in_result(self, tmp_path: Path) -> None:
         """Result should include individual rewards for analysis."""
-        adapter = _make_adapter([0.3, 0.7])
-        factory = _make_factory()
+        adapter = make_adapter([0.3, 0.7])
+        factory = make_factory()
         evaluator = ClawLoopEvaluator(
             adapter=adapter,
             tasks=["t1", "t2"],

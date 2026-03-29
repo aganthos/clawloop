@@ -11,50 +11,17 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
-from clawloop.core.evolver import EvolverContext, EvolverResult, HarnessSnapshot, Provenance
-from clawloop.core.reward import RewardSignal
-from clawloop.layers.harness import Insight
+from clawloop.core.evolver import EvolverResult, Provenance
 from enterprise.evolution.backends.skydiscover_cloud import (
     CloudAdaEvolve,
     RunStatus,
 )
+from enterprise.tests.conftest import make_context, make_episode, make_snapshot
 
 _PATCH_TARGET = (
     "enterprise.evolution.backends.skydiscover_adaevolve"
     ".SkyDiscoverAdaEvolve._get_run_discovery"
 )
-
-
-def _make_snapshot() -> HarnessSnapshot:
-    return HarnessSnapshot(
-        system_prompts={"default": "You are a helpful agent."},
-        playbook_entries=[
-            {"id": "e1", "content": "Be safe.", "tags": ["safety"], "helpful": 1, "harmful": 0},
-        ],
-        pareto_fronts={},
-        playbook_generation=1,
-        playbook_version=2,
-    )
-
-
-def _make_context() -> EvolverContext:
-    return EvolverContext(reward_history=[0.5], iteration=1)
-
-
-def _make_episode(reward: float = 0.5) -> Episode:
-    return Episode(
-        id="ep-test",
-        state_id="s-test",
-        task_id="t-1",
-        bench="test",
-        messages=[Message(role="user", content="hello")],
-        step_boundaries=[0],
-        steps=[StepMeta(t=0, reward=reward, done=True, timing_ms=100.0)],
-        summary=EpisodeSummary(
-            signals={"outcome": RewardSignal(name="outcome", value=reward, confidence=1.0)},
-        ),
-    )
 
 
 def _make_mock_run_discovery(tmp_path: Path, evolved_program: dict | None = None) -> MagicMock:
@@ -86,7 +53,7 @@ class TestCloudAdaEvolve:
         mock_run = _make_mock_run_discovery(tmp_path)
 
         adapter = MagicMock()
-        adapter.run_episode.return_value = _make_episode()
+        adapter.run_episode.return_value = make_episode()
         factory = MagicMock(return_value=MagicMock())
 
         cloud = CloudAdaEvolve(
@@ -95,7 +62,7 @@ class TestCloudAdaEvolve:
 
         with patch(_PATCH_TARGET, return_value=mock_run):
             start = time.time()
-            result = cloud.evolve([_make_episode()], _make_snapshot(), _make_context())
+            result = cloud.evolve([make_episode()], make_snapshot(), make_context())
             elapsed = time.time() - start
 
         assert result.run_id.startswith("sky-")
@@ -125,7 +92,7 @@ class TestCloudAdaEvolve:
         mock_run = MagicMock(side_effect=gated_discovery)
 
         adapter = MagicMock()
-        adapter.run_episode.return_value = _make_episode()
+        adapter.run_episode.return_value = make_episode()
         factory = MagicMock(return_value=MagicMock())
 
         cloud = CloudAdaEvolve(
@@ -133,7 +100,7 @@ class TestCloudAdaEvolve:
         )
 
         with patch(_PATCH_TARGET, return_value=mock_run):
-            result = cloud.evolve([_make_episode()], _make_snapshot(), _make_context())
+            result = cloud.evolve([make_episode()], make_snapshot(), make_context())
             run_id = result.run_id
 
             # Should be running
@@ -156,7 +123,7 @@ class TestCloudAdaEvolve:
         mock_run = _make_mock_run_discovery(tmp_path)
 
         adapter = MagicMock()
-        adapter.run_episode.return_value = _make_episode()
+        adapter.run_episode.return_value = make_episode()
         factory = MagicMock(return_value=MagicMock())
 
         cloud = CloudAdaEvolve(
@@ -164,7 +131,7 @@ class TestCloudAdaEvolve:
         )
 
         with patch(_PATCH_TARGET, return_value=mock_run):
-            result = cloud.evolve([_make_episode()], _make_snapshot(), _make_context())
+            result = cloud.evolve([make_episode()], make_snapshot(), make_context())
             run_id = result.run_id
 
             # Not ready yet
@@ -194,7 +161,7 @@ class TestCloudAdaEvolve:
         mock_run = MagicMock(side_effect=slow_discovery)
 
         adapter = MagicMock()
-        adapter.run_episode.return_value = _make_episode()
+        adapter.run_episode.return_value = make_episode()
         factory = MagicMock(return_value=MagicMock())
 
         cloud = CloudAdaEvolve(
@@ -202,7 +169,7 @@ class TestCloudAdaEvolve:
         )
 
         with patch(_PATCH_TARGET, return_value=mock_run):
-            result = cloud.evolve([_make_episode()], _make_snapshot(), _make_context())
+            result = cloud.evolve([make_episode()], make_snapshot(), make_context())
             run_id = result.run_id
 
             time.sleep(0.05)
@@ -250,7 +217,7 @@ class TestCloudAdaEvolve:
         mock_run = MagicMock(side_effect=slow_discovery)
 
         adapter = MagicMock()
-        adapter.run_episode.return_value = _make_episode()
+        adapter.run_episode.return_value = make_episode()
         factory = MagicMock(return_value=MagicMock())
 
         cloud = CloudAdaEvolve(
@@ -260,13 +227,13 @@ class TestCloudAdaEvolve:
 
         with patch(_PATCH_TARGET, return_value=mock_run):
             # First run should succeed
-            r1 = cloud.evolve([_make_episode()], _make_snapshot(), _make_context())
+            r1 = cloud.evolve([make_episode()], make_snapshot(), make_context())
             assert r1.run_id.startswith("sky-")
 
             time.sleep(0.05)
 
             # Second run should be rejected (empty run_id)
-            r2 = cloud.evolve([_make_episode()], _make_snapshot(), _make_context())
+            r2 = cloud.evolve([make_episode()], make_snapshot(), make_context())
             assert r2.run_id == ""
 
             # Release and cleanup
@@ -297,7 +264,7 @@ class TestCloudAdaEvolve:
         mock_run = MagicMock(side_effect=slow_discovery)
 
         adapter = MagicMock()
-        adapter.run_episode.return_value = _make_episode()
+        adapter.run_episode.return_value = make_episode()
         factory = MagicMock(return_value=MagicMock())
 
         cloud = CloudAdaEvolve(
@@ -306,7 +273,7 @@ class TestCloudAdaEvolve:
         )
 
         with patch(_PATCH_TARGET, return_value=mock_run):
-            cloud.evolve([_make_episode()], _make_snapshot(), _make_context())
+            cloud.evolve([make_episode()], make_snapshot(), make_context())
             time.sleep(0.05)
 
             assert len(cloud.active_runs()) == 1
@@ -324,7 +291,7 @@ class TestCloudAdaEvolve:
         mock_run = MagicMock(side_effect=exploding_discovery)
 
         adapter = MagicMock()
-        adapter.run_episode.return_value = _make_episode()
+        adapter.run_episode.return_value = make_episode()
         factory = MagicMock(return_value=MagicMock())
 
         cloud = CloudAdaEvolve(
@@ -332,7 +299,7 @@ class TestCloudAdaEvolve:
         )
 
         with patch(_PATCH_TARGET, return_value=mock_run):
-            result = cloud.evolve([_make_episode()], _make_snapshot(), _make_context())
+            result = cloud.evolve([make_episode()], make_snapshot(), make_context())
             run_id = result.run_id
 
             time.sleep(0.3)
@@ -358,7 +325,7 @@ class TestCloudAdaEvolve:
         mock_run = MagicMock(side_effect=blocked_discovery)
 
         adapter = MagicMock()
-        adapter.run_episode.return_value = _make_episode()
+        adapter.run_episode.return_value = make_episode()
         factory = MagicMock(return_value=MagicMock())
 
         cloud = CloudAdaEvolve(
@@ -366,7 +333,7 @@ class TestCloudAdaEvolve:
         )
 
         with patch(_PATCH_TARGET, return_value=mock_run):
-            result = cloud.evolve([_make_episode()], _make_snapshot(), _make_context())
+            result = cloud.evolve([make_episode()], make_snapshot(), make_context())
             run_id = result.run_id
 
             # Cancel immediately — thread may not have started yet
