@@ -3,7 +3,7 @@
 and per-task metric breakdowns from experiment.jsonl + results.json files.
 
 Usage:
-    uv run python scripts/analyze_run.py runs/car/train_icl_001
+    uv run python scripts/analyze_run.py enterprise_clawloop/runs/car/train_icl_001
 """
 
 from __future__ import annotations

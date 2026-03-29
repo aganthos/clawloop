@@ -68,11 +68,8 @@ include = [
 exclude = [
     "benchmarks/",
     "enterprise_clawloop/",
-    "pitch/",
-    "configs/",
-    "resources/",
+    "business/",
     "scripts/",
-    "docs/",
 ]
 
 [tool.hatch.build.targets.wheel]

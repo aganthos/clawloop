@@ -2,7 +2,6 @@
 *.pptx
 *.pdf
 *.xlsx
-swiss_genai_price/
 
 # Secrets
 .env
@@ -13,39 +12,30 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 
-# Planning docs
-docs/
-
-#coding agent repos
+# Coding agent repos
 .kd
 .claude
-
-# un-ignore resources folder (intentionally tracked)
-!resources/*.pptx
-!resources/*.pdf
-!resources/*.png
-!resources/*.jpeg
-
-# ignore LaTeX build artifacts in resources
-resources/*.aux
-resources/*.log
-resources/*.xdv
 
 # Benchmark artifacts
 benchmarks/*/output/
 benchmarks/*/.venv/
 benchmarks/*/.env
 
-#runs
-/runs
+# Business directory (untracked awards subdirectory)
+business/awards/
+business/pitch/node_modules/
 
-#strange stuff to plot the pitch slides
-/pitch/node_modules/
-
-#superpowers
-.superpowers/
-
-# Enterprise code must never exist in public repo
+# Enterprise
 /enterprise/
 /enterprise_clawloop/
+enterprise_clawloop/runs/
+
+# Runtime experiment output
+/runs
+
+# Build artifacts
+dist/
 playbook.json
+
+# Superpowers
+.superpowers/

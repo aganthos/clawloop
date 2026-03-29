@@ -19,7 +19,7 @@ services:
       - "host.docker.internal:host-gateway"
     env_file: .env
     volumes:
-      - ./config:/app/config:ro
+      - ./enterprise_clawloop/config:/app/config:ro
 
 volumes:
   n8n_data:
