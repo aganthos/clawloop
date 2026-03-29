@@ -65,24 +65,26 @@ def _build_config(
 ) -> Any:
     """Build a SkyDiscover Config with AdaEvolve-specific settings.
 
-    The real API accepts config as a Config object or YAML path.
-    AdaEvolve params (num_islands, population_size) are config-level
-    settings in AdaEvolveDatabaseConfig, not direct run_discovery kwargs.
+    Config.search.type selects the algorithm.
+    Config.search.database holds algorithm-specific params (num_islands, etc.)
+    via AdaEvolveDatabaseConfig.
     """
     try:
-        from skydiscover.config import Config
+        from skydiscover.config import (
+            AdaEvolveDatabaseConfig,
+            Config,
+            SearchConfig,
+        )
+
+        db_config = AdaEvolveDatabaseConfig(
+            num_islands=num_islands,
+            population_size=population_size,
+        )
         cfg = Config()
-        cfg.search = "adaevolve"
-        cfg.num_islands = num_islands
-        cfg.population_size = population_size
+        cfg.search = SearchConfig(type="adaevolve", database=db_config)
         return cfg
     except ImportError:
-        # Return a dict as fallback for environments without skydiscover
-        return {
-            "search": "adaevolve",
-            "num_islands": num_islands,
-            "population_size": population_size,
-        }
+        return None
 
 
 def _extract_best_program_path(result: Any, fallback_dir: str) -> str:

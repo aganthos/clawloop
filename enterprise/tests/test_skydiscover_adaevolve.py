@@ -41,12 +41,14 @@ def _make_discovery_result(
 
 
 class TestBuildConfig:
-    def test_returns_dict_without_skydiscover(self) -> None:
-        """Without skydiscover installed, returns a dict fallback."""
+    def test_returns_real_config_with_adaevolve_params(self) -> None:
+        """With skydiscover installed, returns a Config with AdaEvolve database."""
         cfg = _build_config(num_islands=3, population_size=30)
-        assert cfg["num_islands"] == 3
-        assert cfg["population_size"] == 30
-        assert cfg["search"] == "adaevolve"
+        from skydiscover.config import Config
+        assert isinstance(cfg, Config)
+        assert cfg.search.type == "adaevolve"
+        assert cfg.search.database.num_islands == 3
+        assert cfg.search.database.population_size == 30
 
 
 class TestExtractBestProgramPath:
