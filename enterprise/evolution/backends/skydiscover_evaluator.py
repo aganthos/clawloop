@@ -57,6 +57,10 @@ class ClawLoopEvaluator:
 
         agent_state = self._agent_state_factory(system_prompt, playbook)
 
+        if not self._tasks:
+            log.warning("No tasks provided for evaluation of %s", program_path)
+            return {"combined_score": -1.0, "n_episodes": 0}
+
         # Run up to n_episodes, cycling through tasks
         episodes: list[Episode] = []
         for i in range(self._n_episodes):
@@ -65,7 +69,10 @@ class ClawLoopEvaluator:
                 ep = self._adapter.run_episode(task, agent_state)
                 episodes.append(ep)
             except Exception:
-                log.warning("Episode %d failed for program %s", i, program_path)
+                log.warning(
+                    "Episode %d failed for program %s", i, program_path,
+                    exc_info=True,
+                )
 
         if not episodes:
             return {"combined_score": -1.0, "n_episodes": 0}

@@ -71,26 +71,33 @@ def program_to_evolver_result(
     candidates: dict[str, list[PromptCandidate]] = {}
 
     # --- Diff playbook ---
-    original_entries = {
-        e.get("content", ""): e for e in original.playbook_entries
-    }
+    # Use (content, index) as key to handle duplicate content strings safely.
+    # Build a multimap: content -> list of original entries (preserving dupes).
+    original_by_content: dict[str, list[dict[str, Any]]] = {}
+    for e in original.playbook_entries:
+        c = e.get("content", "")
+        original_by_content.setdefault(c, []).append(e)
+
     evolved_playbook: list[dict[str, Any]] = program.get("playbook", [])
 
-    evolved_contents: set[str] = set()
+    # Track which original entries have been matched (by content + index)
+    matched_originals: dict[str, int] = {}  # content -> count matched so far
     for entry in evolved_playbook:
         content = entry.get("content", "")
-        evolved_contents.add(content)
+        orig_list = original_by_content.get(content, [])
+        match_idx = matched_originals.get(content, 0)
 
-        if content not in original_entries:
-            # New entry added by evolution
-            insights.append(Insight(
-                content=content,
-                tags=entry.get("tags", []),
-                action="add",
-            ))
-        else:
-            # Existing entry — check if tags changed
-            orig = original_entries[content]
+        if match_idx < len(orig_list):
+            # Matched an existing entry
+            orig = orig_list[match_idx]
+            matched_originals[content] = match_idx + 1
+            # Check if tags changed.
+            # NOTE: The Harness Curator currently only applies content and
+            # helpful increments on "update" insights — tag-only changes are
+            # silently dropped. This is an upstream limitation (Harness, not
+            # enterprise). We still emit the insight so the intent is visible
+            # in logs/metrics, and it will work once Harness adds tag update
+            # support.
             if entry.get("tags", []) != orig.get("tags", []):
                 orig_id = orig.get("id", "")
                 insights.append(Insight(
@@ -99,10 +106,19 @@ def program_to_evolver_result(
                     action="update",
                     target_entry_id=orig_id or None,
                 ))
+        else:
+            # New entry added by evolution
+            matched_originals[content] = match_idx + 1
+            insights.append(Insight(
+                content=content,
+                tags=entry.get("tags", []),
+                action="add",
+            ))
 
-    # Entries removed by evolution
-    for content, orig in original_entries.items():
-        if content not in evolved_contents:
+    # Entries removed by evolution: any original entries not matched
+    for content, orig_list in original_by_content.items():
+        matched_count = matched_originals.get(content, 0)
+        for orig in orig_list[matched_count:]:
             orig_id = orig.get("id", "")
             insights.append(Insight(
                 content=content,
@@ -128,5 +144,6 @@ def program_to_evolver_result(
     return EvolverResult(
         insights=insights,
         candidates=candidates,
-        provenance=Provenance(backend="skydiscover_adaevolve"),
+        # Provenance is set by the caller (SkyDiscoverAdaEvolve.evolve)
+        # with actual runtime metadata from the DiscoveryResult.
     )

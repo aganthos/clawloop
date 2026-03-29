@@ -140,3 +140,66 @@ class TestClawLoopEvaluator:
 
         result = evaluator(str(prog_path))
         assert result["combined_score"] == pytest.approx(-0.75)
+
+    def test_empty_tasks_returns_failure(self, tmp_path: Path) -> None:
+        """Empty task list should not crash (was ZeroDivisionError)."""
+        adapter = MagicMock()
+        factory = _make_factory()
+        evaluator = ClawLoopEvaluator(
+            adapter=adapter,
+            tasks=[],
+            agent_state_factory=factory,
+            n_episodes=3,
+        )
+
+        program = {"system_prompt": "test", "playbook": []}
+        prog_path = tmp_path / "prog.json"
+        prog_path.write_text(json.dumps(program))
+
+        result = evaluator(str(prog_path))
+        assert result["combined_score"] == -1.0
+        assert result["n_episodes"] == 0
+        adapter.run_episode.assert_not_called()
+
+    def test_partial_failures(self, tmp_path: Path) -> None:
+        """Some episodes fail, others succeed — score uses only successes."""
+        adapter = MagicMock()
+        # First call succeeds, second fails, third succeeds
+        adapter.run_episode.side_effect = [
+            _make_episode(0.6),
+            RuntimeError("timeout"),
+            _make_episode(0.4),
+        ]
+        factory = _make_factory()
+        evaluator = ClawLoopEvaluator(
+            adapter=adapter,
+            tasks=["task-a", "task-b", "task-c"],
+            agent_state_factory=factory,
+            n_episodes=3,
+        )
+
+        program = {"system_prompt": "test", "playbook": []}
+        prog_path = tmp_path / "prog.json"
+        prog_path.write_text(json.dumps(program))
+
+        result = evaluator(str(prog_path))
+        assert result["n_episodes"] == 2
+        assert result["combined_score"] == pytest.approx(0.5)
+
+    def test_rewards_list_in_result(self, tmp_path: Path) -> None:
+        """Result should include individual rewards for analysis."""
+        adapter = _make_adapter([0.3, 0.7])
+        factory = _make_factory()
+        evaluator = ClawLoopEvaluator(
+            adapter=adapter,
+            tasks=["t1", "t2"],
+            agent_state_factory=factory,
+            n_episodes=2,
+        )
+
+        program = {"system_prompt": "test", "playbook": []}
+        prog_path = tmp_path / "prog.json"
+        prog_path.write_text(json.dumps(program))
+
+        result = evaluator(str(prog_path))
+        assert result["rewards"] == pytest.approx([0.3, 0.7])
