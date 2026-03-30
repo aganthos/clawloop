@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -e ".[dev,server,car]"
+      - run: pytest tests/ -x -q --timeout=30
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+
+  boundary-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install build
+
+      - name: No enterprise imports in public code
+        run: |
+          MATCHES=$(grep -rn --include="*.py" -E '^\s*(from|import)\s+enterprise' clawloop/ tests/ examples/ 2>/dev/null | grep -v '\.claude/' || true)
+          if [[ -n "$MATCHES" ]]; then
+            echo "::error::Enterprise imports found in public code"
+            echo "$MATCHES"
+            exit 1
+          fi
+
+      - name: No enterprise references in docs
+        run: |
+          MATCHES=$(grep -rl "enterprise/" README.md CONTRIBUTING.md examples/ 2>/dev/null | grep -v '\.claude/' || true)
+          if [[ -n "$MATCHES" ]]; then
+            echo "::error::Public docs reference enterprise/"
+            echo "$MATCHES"
+            exit 1
+          fi
+
+      - name: No internal secrets
+        run: |
+          MATCHES=$(grep -rl "kuhhandel-bench-key" clawloop/ tests/ examples/ README.md 2>/dev/null || true)
+          if [[ -n "$MATCHES" ]]; then
+            echo "::error::Internal API key found in public code"
+            echo "$MATCHES"
+            exit 1
+          fi
+
+      - name: No residual lfx branding
+        run: |
+          MATCHES=$(grep -rnw --include="*.py" -i 'lfx' clawloop/ tests/ examples/ 2>/dev/null || true)
+          if [[ -n "$MATCHES" ]]; then
+            echo "::warning::Residual lfx branding found"
+            echo "$MATCHES"
+          fi
+
+      - name: Package contents audit
+        run: |
+          python -m build --sdist --wheel
+          python3 -c "
+          import tarfile, zipfile, glob, sys
+          PRIVATE = ('enterprise', 'enterprise_clawloop', 'business', 'scripts')
+          def check(path):
+              parts = path.split('/')
+              if len(parts) > 1 and '-' in parts[0]: parts = parts[1:]
+              return len(parts) > 0 and parts[0] in PRIVATE
+          for f in glob.glob('dist/*.tar.gz'):
+              for m in tarfile.open(f).getmembers():
+                  if check(m.name): print(f'LEAK: {m.name}'); sys.exit(1)
+          for f in glob.glob('dist/*.whl'):
+              for n in zipfile.ZipFile(f).namelist():
+                  if check(n): print(f'LEAK: {n}'); sys.exit(1)
+          print('Package audit: clean')
+          "
