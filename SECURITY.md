@@ -5,7 +5,7 @@
 If you discover a security vulnerability in ClawLoop, please report it
 responsibly.
 
-**Email:** [security@aganthos.com](mailto:security@aganthos.com)
+**Email:** [info@aganthos.com](mailto:info@aganthos.com)
 
 Please include:
 - A description of the vulnerability
