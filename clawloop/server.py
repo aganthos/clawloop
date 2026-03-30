@@ -492,7 +492,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="clawloop-server for n8n integration")
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=8400)
-    parser.add_argument("--seed-prompt", default="enterprise_clawloop/config/seed_prompt.txt")
+    parser.add_argument("--seed-prompt", default=None)
     parser.add_argument("--bench", default="n8n")
     parser.add_argument("--batch-size", type=int, default=5)
     parser.add_argument("--model", default=None, help="LLM model for Reflector (litellm format)")
