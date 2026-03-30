@@ -1,28 +1,26 @@
-# Secrets
-.env
-
-# Python
-__pycache__/
-*.pyc
-*.egg-info/
-.pytest_cache/
-dist/
-build/
-*.whl
-
-# OS
-.DS_Store
-
-# IDE
-.claude
-.vscode/
-.idea/
 
 # Benchmark artifacts
-benchmarks/*/output/
-benchmarks/*/.venv/
-benchmarks/*/.env
-
 # Enterprise code must never exist in public repo
+# IDE
+# OS
+# Python
+# Secrets
+*.egg-info/
+*.pyc
+*.whl
+.DS_Store
+.claude
+.env
+.idea/
+.pytest_cache/
+.vscode/
 /enterprise/
 /enterprise_clawloop/
+__pycache__/
+benchmarks/*/.env
+benchmarks/*/.venv/
+benchmarks/*/output/
+build/
+dist/
+examples/openclaw_runner/node_modules/
+examples/openclaw_runner/package-lock.json
