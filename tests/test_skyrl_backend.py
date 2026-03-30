@@ -100,6 +100,8 @@ class TestForwardBackwardMocked:
     def test_calls_backend(self) -> None:
         backend = _make_backend_with_mocks()
         backend._backend.forward_backward.return_value = {}
+        # Mock _to_prepared_batch to avoid SkyRL import (not available in CI)
+        backend._to_prepared_batch = MagicMock(return_value=MagicMock())
 
         result = backend.forward_backward(Datum(episodes=[_make_episode()])).result()
         assert result.status == "ok"
