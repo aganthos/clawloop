@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClawLoop dashboard</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0d0d;
+    --bg2: #141414;
+    --bg3: #1c1c1c;
+    --border: #2a2a2a;
+    --text: #c8c8c8;
+    --dim: #666;
+    --accent: #4fc3f7;
+    --green: #69f0ae;
+    --red: #ff5252;
+    --yellow: #ffd740;
+    --font: 'Courier New', Courier, monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 13px;
+    min-height: 100vh;
+  }
+
+  /* ── status bar ── */
+  #status-bar {
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    padding: 6px 16px;
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  #status-bar .logo { color: var(--accent); font-weight: bold; letter-spacing: 2px; }
+
+  .stat { display: flex; gap: 6px; align-items: center; }
+  .stat .label { color: var(--dim); }
+  .stat .value { color: var(--text); }
+
+  #conn-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--dim);
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  #conn-dot.sse   { background: var(--green); }
+  #conn-dot.poll  { background: var(--yellow); }
+  #conn-dot.error { background: var(--red); }
+
+  #learning-badge {
+    padding: 1px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    color: var(--dim);
+  }
+  #learning-badge.learning { border-color: var(--yellow); color: var(--yellow); }
+  #learning-badge.idle     { border-color: var(--green);  color: var(--green); }
+
+  #reset-btn {
+    margin-left: auto;
+    background: transparent;
+    border: 1px solid var(--red);
+    color: var(--red);
+    padding: 3px 10px;
+    cursor: pointer;
+    font-family: var(--font);
+    font-size: 12px;
+    border-radius: 3px;
+  }
+  #reset-btn:hover { background: var(--red); color: var(--bg); }
+
+  /* ── layout ── */
+  #grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto auto;
+    gap: 1px;
+    background: var(--border);
+    padding: 1px;
+  }
+
+  .panel {
+    background: var(--bg2);
+    padding: 12px 14px;
+    overflow: hidden;
+  }
+
+  .panel-title {
+    color: var(--accent);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 6px;
+  }
+
+  /* full-width panels */
+  .full { grid-column: 1 / -1; }
+
+  /* ── episode feed ── */
+  #episode-list {
+    max-height: 340px;
+    overflow-y: auto;
+  }
+
+  .episode-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .episode-row:last-child { border-bottom: none; }
+
+  .ep-id   { color: var(--dim); font-size: 11px; flex-shrink: 0; width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ep-ts   { color: var(--dim); font-size: 10px; flex-shrink: 0; width: 60px; }
+  .ep-query { color: var(--text); font-size: 12px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ep-response { color: var(--dim); font-size: 11px; max-height: 40px; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; line-height: 1.3; }
+  .ep-signals { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+  .ep-main { flex: 1; min-width: 0; }
+
+  .signal-tag {
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 2px;
+    border: 1px solid var(--border);
+    color: var(--dim);
+  }
+  .signal-tag.good { border-color: var(--green); color: var(--green); }
+  .signal-tag.bad  { border-color: var(--red);   color: var(--red); }
+
+  .thumb-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--dim);
+    padding: 1px 6px;
+    cursor: pointer;
+    font-size: 12px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .thumb-btn:hover        { border-color: var(--accent); color: var(--accent); }
+  .thumb-btn.voted-up     { border-color: var(--green); color: var(--green); }
+  .thumb-btn.voted-down   { border-color: var(--red);   color: var(--red); }
+
+  /* ── reward trend ── */
+  #trend-canvas {
+    width: 100%;
+    height: 140px;
+    display: block;
+    border: 1px solid var(--border);
+  }
+
+  /* ── playbook ── */
+  #playbook-list {
+    max-height: 220px;
+    overflow-y: auto;
+  }
+
+  .pb-entry {
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .pb-entry:last-child { border-bottom: none; }
+  .pb-content { color: var(--text); margin-bottom: 3px; }
+  .pb-meta    { display: flex; gap: 12px; }
+  .pb-tag     { font-size: 10px; padding: 1px 5px; border: 1px solid var(--border); border-radius: 2px; color: var(--dim); }
+  .pb-helpful { font-size: 10px; color: var(--green); }
+  .pb-harmful { font-size: 10px; color: var(--red); }
+
+  /* ── insights ── */
+  #insights-list {
+    max-height: 160px;
+    overflow-y: auto;
+  }
+
+  .insight-row {
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+  .insight-row:last-child { border-bottom: none; }
+  .insight-src { color: var(--dim); font-size: 10px; margin-top: 2px; }
+
+  /* ── before/after ── */
+  #before-after {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .prompt-box {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 8px;
+    font-size: 11px;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 180px;
+    overflow-y: auto;
+  }
+  .prompt-label { color: var(--dim); font-size: 10px; margin-bottom: 4px; letter-spacing: 1px; text-transform: uppercase; }
+
+  /* ── scrollbar ── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg2); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ── episode detail overlay ── */
+  #ep-detail-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    overflow-y: auto;
+    padding: 40px;
+  }
+  #ep-detail-overlay.open { display: block; }
+  #ep-detail {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  #ep-detail .close-btn {
+    float: right;
+    background: transparent;
+    border: 1px solid var(--dim);
+    color: var(--dim);
+    padding: 2px 8px;
+    cursor: pointer;
+    font-family: var(--font);
+    font-size: 12px;
+    border-radius: 3px;
+  }
+  #ep-detail .close-btn:hover { border-color: var(--red); color: var(--red); }
+  #ep-detail h3 { color: var(--accent); margin-bottom: 12px; font-size: 13px; letter-spacing: 1px; }
+  .msg-row { padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .msg-row:last-child { border-bottom: none; }
+  .msg-role { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
+  .msg-role.system { color: var(--yellow); }
+  .msg-role.user { color: var(--accent); }
+  .msg-role.assistant { color: var(--green); }
+  .msg-content { color: var(--text); font-size: 12px; white-space: pre-wrap; word-break: break-word; max-height: 200px; overflow-y: auto; }
+  .detail-signals { margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--border); }
+  .detail-signals .signal-row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 12px; }
+  .detail-meta { color: var(--dim); font-size: 11px; margin-top: 8px; }
+  .ep-row-clickable { cursor: pointer; transition: background 0.15s; border-left: 2px solid transparent; padding-left: 4px; }
+  .ep-row-clickable:hover { background: rgba(79,195,247,0.08); border-left-color: var(--accent); }
+
+  /* ── empty states ── */
+  .empty { color: var(--dim); font-size: 11px; padding: 8px 0; }
+</style>
+</head>
+<body>
+
+<!-- episode detail overlay -->
+<div id="ep-detail-overlay" onclick="if(event.target===this)closeDetail()">
+  <div id="ep-detail"></div>
+</div>
+
+<!-- status bar -->
+<div id="status-bar">
+  <span class="logo">ClawLoop</span>
+  <span id="conn-dot" title="connection status"></span>
+  <span class="stat"><span class="label">status</span><span id="badge-wrap"><span id="learning-badge">—</span></span></span>
+  <span class="stat"><span class="label">version</span><span class="value" id="sb-version">—</span></span>
+  <span class="stat"><span class="label">episodes</span><span class="value" id="sb-episodes">0</span></span>
+  <span class="stat"><span class="label">feedback</span><span class="value" id="sb-feedback">0</span></span>
+  <button id="reset-btn" onclick="doReset()">reset</button>
+</div>
+
+<!-- main grid -->
+<div id="grid">
+
+  <!-- episode feed -->
+  <div class="panel">
+    <div class="panel-title">episode feed</div>
+    <div id="episode-list"><div class="empty">no episodes yet</div></div>
+  </div>
+
+  <!-- reward trend -->
+  <div class="panel">
+    <div class="panel-title">reward trend</div>
+    <canvas id="trend-canvas"></canvas>
+  </div>
+
+  <!-- playbook entries -->
+  <div class="panel">
+    <div class="panel-title">playbook entries</div>
+    <div id="playbook-list"><div class="empty">no entries yet</div></div>
+  </div>
+
+  <!-- insights log -->
+  <div class="panel">
+    <div class="panel-title">insights log</div>
+    <div id="insights-list"><div class="empty">no insights yet</div></div>
+  </div>
+
+  <!-- before / after prompt -->
+  <div class="panel full">
+    <div class="panel-title">prompt: before / after</div>
+    <div id="before-after">
+      <div>
+        <div class="prompt-label">seed prompt</div>
+        <div class="prompt-box" id="prompt-before">loading...</div>
+      </div>
+      <div>
+        <div class="prompt-label">current prompt</div>
+        <div class="prompt-box" id="prompt-after">loading...</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── state ────────────────────────────────────────────────────────────────────
+const episodes    = [];   // {id, ts, signals}
+const rewardTrend = [];   // float[]
+let seedPrompt    = null;
+let pollMetrics   = null;
+let pollState     = null;
+let sseSource     = null;
+let connMode      = 'none';  // 'sse' | 'poll' | 'error'
+
+// ── DOM helpers ───────────────────────────────────────────────────────────────
+const $  = id => document.getElementById(id);
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const ts  = iso => iso ? iso.slice(11,19) : '';
+
+// ── connection status ─────────────────────────────────────────────────────────
+function setConn(mode) {
+  connMode = mode;
+  const dot = $('conn-dot');
+  dot.className = mode;
+  dot.title = { sse: 'SSE live', poll: 'polling', error: 'disconnected', none: 'connecting' }[mode] || mode;
+}
+
+// ── status bar ────────────────────────────────────────────────────────────────
+function updateStatusBar(data) {
+  const badge = $('learning-badge');
+  const status = data.learning_status || '—';
+  badge.textContent = status;
+  badge.className = status;
+
+  $('sb-version').textContent = data.playbook_version ?? '—';
+  const m = data.metrics || {};
+  $('sb-episodes').textContent = m.episodes_collected ?? 0;
+  $('sb-feedback').textContent = m.feedback_received  ?? 0;
+}
+
+// ── episode feed ──────────────────────────────────────────────────────────────
+function addEpisode(ev) {
+  // ev: {episode_id, timestamp, user_query, assistant_response, reward_signals}
+  const id = ev.episode_id || ev.id;
+  if (!id || episodes.find(e => e.id === id)) return;
+  episodes.unshift({
+    id,
+    ts: ev.timestamp || new Date().toISOString(),
+    query: ev.user_query || '',
+    response: ev.assistant_response || '',
+    signals: ev.reward_signals || {},
+  });
+  if (episodes.length > 100) episodes.pop();
+  renderEpisodes();
+}
+
+function renderEpisodes() {
+  const el = $('episode-list');
+  if (!episodes.length) { el.innerHTML = '<div class="empty">no episodes yet</div>'; return; }
+  el.innerHTML = episodes.slice(0, 40).map(ep => `
+    <div class="episode-row ep-row-clickable" onclick="openDetail('${esc(ep.id)}')">
+      <span class="ep-ts">${esc(ts(ep.ts))}</span>
+      <span class="ep-id" title="${esc(ep.id)}">${esc(ep.id.slice(0,8))}</span>
+      <div class="ep-main">
+        <div class="ep-query" title="${esc(ep.query)}">${ep.query ? '&#9654; ' + esc(ep.query) : '<span style="color:var(--dim)">no query</span>'}</div>
+        ${ep.response ? '<div class="ep-response">' + esc(ep.response.slice(0,150)) + '</div>' : ''}
+        <div class="ep-signals">${renderSignals(ep.signals)}</div>
+      </div>
+      <button class="thumb-btn ${ep._vote === 1 ? 'voted-up' : ''}"   onclick="event.stopPropagation();vote('${esc(ep.id)}',1)"  title="thumbs up">+</button>
+      <button class="thumb-btn ${ep._vote === -1 ? 'voted-down' : ''}" onclick="event.stopPropagation();vote('${esc(ep.id)}',-1)" title="thumbs down">-</button>
+    </div>`).join('');
+}
+
+function renderSignals(signals) {
+  return Object.entries(signals).map(([k, v]) => {
+    const val = typeof v === 'object' ? v.value : v;
+    const cls = val > 0 ? 'good' : val < 0 ? 'bad' : '';
+    return `<span class="signal-tag ${cls}">${esc(k)}:${(+val).toFixed(2)}</span>`;
+  }).join('');
+}
+
+// ── feedback ──────────────────────────────────────────────────────────────────
+function vote(id, score) {
+  const ep = episodes.find(e => e.id === id);
+  if (ep) ep._vote = score;
+  renderEpisodes();
+  fetch('/feedback', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ episode_id: id, score })
+  }).catch(console.error);
+}
+
+// ── reward trend ──────────────────────────────────────────────────────────────
+function pushTrend(values) {
+  if (!Array.isArray(values)) return;
+  values.forEach(v => {
+    if (typeof v === 'number') rewardTrend.push(v);
+  });
+  drawTrend();
+}
+
+function drawTrend() {
+  const canvas = $('trend-canvas');
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.offsetWidth  || 400;
+  const H = canvas.offsetHeight || 140;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const bg   = getComputedStyle(document.documentElement).getPropertyValue('--bg3').trim();
+  const line = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+  const dim  = getComputedStyle(document.documentElement).getPropertyValue('--dim').trim();
+
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  const data = rewardTrend.slice(-80);
+  if (data.length < 2) {
+    ctx.fillStyle = dim;
+    ctx.font = '11px monospace';
+    ctx.fillText('no data yet', 8, H / 2);
+    return;
+  }
+
+  const pad = 24;
+  const min = Math.min(-0.1, ...data);
+  const max = Math.max(0.1, ...data);
+  const rng = max - min || 1;
+
+  const x = i => pad + (i / (data.length - 1)) * (W - pad * 2);
+  const y = v => H - pad - ((v - min) / rng) * (H - pad * 2);
+
+  // zero line
+  ctx.strokeStyle = dim;
+  ctx.lineWidth   = 0.5;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.moveTo(pad, y(0));
+  ctx.lineTo(W - pad, y(0));
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // sparkline
+  ctx.strokeStyle = line;
+  ctx.lineWidth   = 1.5;
+  ctx.beginPath();
+  data.forEach((v, i) => { i === 0 ? ctx.moveTo(x(i), y(v)) : ctx.lineTo(x(i), y(v)); });
+  ctx.stroke();
+
+  // dots
+  ctx.fillStyle = line;
+  data.forEach((v, i) => {
+    ctx.beginPath();
+    ctx.arc(x(i), y(v), 2.5, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // axis labels
+  ctx.fillStyle = dim;
+  ctx.font = '9px monospace';
+  ctx.fillText(max.toFixed(2), 2, y(max) + 4);
+  ctx.fillText(min.toFixed(2), 2, y(min) + 4);
+  ctx.fillText(data.length + ' eps', W - 46, H - 4);
+}
+
+// ── playbook ──────────────────────────────────────────────────────────────────
+function renderPlaybook(entries) {
+  const el = $('playbook-list');
+  if (!entries || !entries.length) { el.innerHTML = '<div class="empty">no entries yet</div>'; return; }
+  el.innerHTML = entries.map(e => `
+    <div class="pb-entry">
+      <div class="pb-content">${esc(e.content)}</div>
+      <div class="pb-meta">
+        ${(e.tags || []).map(t => `<span class="pb-tag">${esc(t)}</span>`).join('')}
+        <span class="pb-helpful">+${e.helpful || 0}</span>
+        <span class="pb-harmful">-${e.harmful || 0}</span>
+      </div>
+    </div>`).join('');
+}
+
+// ── insights ──────────────────────────────────────────────────────────────────
+function renderInsights(insights) {
+  const el = $('insights-list');
+  if (!insights || !insights.length) { el.innerHTML = '<div class="empty">no insights yet</div>'; return; }
+  el.innerHTML = insights.map(i => `
+    <div class="insight-row">
+      <div>${esc(i.content)}</div>
+      <div class="insight-src">src: ${(i.source_episodes || []).map(s => `<a href="#" onclick="scrollToEp('${esc(s)}')" style="color:var(--accent);text-decoration:none">${esc(s.slice(0,8))}</a>`).join(', ')}</div>
+    </div>`).join('');
+}
+
+function scrollToEp(id) {
+  // highlight row in episode feed
+  const rows = $('episode-list').querySelectorAll('.episode-row');
+  rows.forEach(r => { if (r.querySelector('.ep-id').title === id) r.style.background = 'rgba(79,195,247,0.1)'; });
+}
+
+// ── before/after ─────────────────────────────────────────────────────────────
+function renderPrompts(state) {
+  if (seedPrompt === null && state.system_prompt) {
+    seedPrompt = state.system_prompt;
+    $('prompt-before').textContent = seedPrompt;
+  }
+  $('prompt-after').textContent = state.system_prompt || '';
+}
+
+// ── apply full state ──────────────────────────────────────────────────────────
+function applyState(state) {
+  updateStatusBar(state);
+  renderPlaybook(state.playbook_entries);
+  renderPrompts(state);
+  // reward_trend not in /state, only in /metrics — handled separately
+}
+
+function applyMetrics(m) {
+  updateStatusBar({
+    learning_status: m.learning_status,
+    playbook_version: m.playbook_version,
+    metrics: {
+      episodes_collected: m.episodes_collected,
+      episodes_filtered: m.episodes_filtered,
+      feedback_received: m.feedback_received,
+    }
+  });
+  if (m.reward_trend) pushTrend(m.reward_trend);
+  if (m.recent_insights) renderInsights(m.recent_insights);
+}
+
+// ── SSE ───────────────────────────────────────────────────────────────────────
+function startSSE() {
+  if (sseSource) { sseSource.close(); sseSource = null; }
+  try {
+    sseSource = new EventSource('/events');
+    sseSource.onopen = () => setConn('sse');
+    sseSource.onerror = () => {
+      sseSource.close(); sseSource = null;
+      setConn('poll');
+      startPolling();
+    };
+    sseSource.addEventListener('episode_ingested',   e => { addEpisode(JSON.parse(e.data)); loadMetrics(); });
+    sseSource.addEventListener('feedback_received',  e => { loadMetrics(); });
+    sseSource.addEventListener('learning_started',   e => { updateStatusBar({ learning_status: 'learning', playbook_version: JSON.parse(e.data).playbook_version, metrics: {} }); });
+    sseSource.addEventListener('learning_completed', e => { loadState(); loadMetrics(); });
+  } catch (err) {
+    setConn('poll');
+    startPolling();
+  }
+}
+
+// ── polling fallback ──────────────────────────────────────────────────────────
+function startPolling() {
+  if (pollMetrics) return;
+  setConn('poll');
+  pollMetrics = setInterval(loadMetrics, 3000);
+  pollState   = setInterval(loadState,   5000);
+}
+
+function stopPolling() {
+  clearInterval(pollMetrics); pollMetrics = null;
+  clearInterval(pollState);   pollState   = null;
+}
+
+// ── fetch helpers ─────────────────────────────────────────────────────────────
+async function loadState() {
+  try {
+    const r = await fetch('/state');
+    if (!r.ok) return;
+    applyState(await r.json());
+  } catch {}
+}
+
+async function loadMetrics() {
+  try {
+    const r = await fetch('/metrics');
+    if (!r.ok) return;
+    applyMetrics(await r.json());
+  } catch {}
+}
+
+// ── reset ─────────────────────────────────────────────────────────────────────
+async function doReset() {
+  if (!confirm('Reset ClawLoop server? All episodes and playbook will be cleared.')) return;
+  try {
+    await fetch('/reset', { method: 'POST' });
+    episodes.length = 0;
+    rewardTrend.length = 0;
+    seedPrompt = null;
+    renderEpisodes();
+    renderPlaybook([]);
+    renderInsights([]);
+    drawTrend();
+    await Promise.all([loadState(), loadMetrics()]);
+  } catch (err) {
+    console.error('reset failed', err);
+  }
+}
+
+// ── episode detail ───────────────────────────────────────────────────────
+async function openDetail(id) {
+  const overlay = $('ep-detail-overlay');
+  const detail = $('ep-detail');
+  detail.innerHTML = '<div class="empty">loading...</div>';
+  overlay.classList.add('open');
+
+  try {
+    const r = await fetch('/episodes');
+    if (!r.ok) { detail.innerHTML = '<div class="empty">failed to load</div>'; return; }
+    const all = await r.json();
+    const ep = all.find(e => e.id === id);
+    if (!ep) { detail.innerHTML = '<div class="empty">episode not found</div>'; return; }
+
+    const created = ep.created_at ? new Date(ep.created_at * 1000).toLocaleString() : '—';
+    const reward = ep.normalized_reward != null ? ep.normalized_reward.toFixed(3) : '—';
+    const effReward = ep.effective_reward != null ? ep.effective_reward.toFixed(3) : '—';
+
+    detail.innerHTML = `
+      <button class="close-btn" onclick="closeDetail()">close</button>
+      <h3>Episode ${esc(id.slice(0,12))}...</h3>
+      <div class="detail-meta">
+        ${created} &nbsp;|&nbsp; model: ${esc(ep.model || '—')} &nbsp;|&nbsp;
+        reward: ${reward} (effective: ${effReward}) &nbsp;|&nbsp;
+        feedback: ${ep.has_feedback ? '<span style="color:var(--green)">yes</span>' : '<span style="color:var(--dim)">none</span>'}
+      </div>
+
+      <div class="detail-signals">
+        <strong style="color:var(--accent);font-size:11px;">Signals</strong>
+        ${Object.keys(ep.signals).length === 0 ? '<div class="empty">no signals</div>' :
+          Object.entries(ep.signals).map(([k, v]) => {
+            const val = v.value;
+            const cls = val > 0 ? 'color:var(--green)' : val < 0 ? 'color:var(--red)' : 'color:var(--dim)';
+            return '<div class="signal-row"><span>' + esc(k) + '</span><span style="' + cls + '">' + val.toFixed(3) + ' (conf: ' + v.confidence.toFixed(2) + ')</span></div>';
+          }).join('')
+        }
+      </div>
+
+      <div style="margin-top:16px;">
+        <strong style="color:var(--accent);font-size:11px;">Conversation</strong>
+        ${ep.messages.map(m => `
+          <div class="msg-row">
+            <div class="msg-role ${m.role}">${esc(m.role)}</div>
+            <div class="msg-content">${esc(m.content)}</div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div style="margin-top:16px;display:flex;gap:8px;">
+        <button class="thumb-btn" onclick="vote('${esc(id)}',1);closeDetail()" style="padding:4px 16px;">&#128077; Good response</button>
+        <button class="thumb-btn" onclick="vote('${esc(id)}',-1);closeDetail()" style="padding:4px 16px;">&#128078; Bad response</button>
+      </div>
+    `;
+  } catch (err) {
+    detail.innerHTML = '<div class="empty">error: ' + esc(String(err)) + '</div>';
+  }
+}
+
+function closeDetail() {
+  $('ep-detail-overlay').classList.remove('open');
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
+
+// ── load episodes from server (survives page reload) ─────────────────────────
+async function loadEpisodes() {
+  try {
+    const r = await fetch('/episodes');
+    if (!r.ok) return;
+    const all = await r.json();
+    for (const ep of all) {
+      const id = ep.id;
+      if (episodes.find(e => e.id === id)) continue;
+      // Find user query and assistant response from messages
+      let query = '', response = '';
+      for (const m of (ep.messages || [])) {
+        if (m.role === 'user') query = m.content || '';
+        if (m.role === 'assistant') response = m.content || '';
+      }
+      episodes.push({
+        id,
+        ts: ep.created_at ? new Date(ep.created_at * 1000).toISOString() : '',
+        query,
+        response,
+        signals: ep.signals || {},
+        _vote: ep.has_feedback ? (ep.effective_reward > 0 ? 1 : ep.effective_reward < 0 ? -1 : 0) : undefined,
+      });
+    }
+    renderEpisodes();
+  } catch {}
+}
+
+// ── boot ──────────────────────────────────────────────────────────────────────
+(async () => {
+  await Promise.all([loadState(), loadMetrics(), loadEpisodes()]);
+  startSSE();
+  window.addEventListener('resize', drawTrend);
+})();
+</script>
+</body>
+</html>

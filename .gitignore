@@ -1,8 +1,3 @@
-.DS_Store
-*.pptx
-*.pdf
-*.xlsx
-
 # Secrets
 .env
 
@@ -11,31 +6,23 @@ __pycache__/
 *.pyc
 *.egg-info/
 .pytest_cache/
+dist/
+build/
+*.whl
 
-# Coding agent repos
-.kd
+# OS
+.DS_Store
+
+# IDE
 .claude
+.vscode/
+.idea/
 
 # Benchmark artifacts
 benchmarks/*/output/
 benchmarks/*/.venv/
 benchmarks/*/.env
 
-# Business directory (untracked awards subdirectory)
-business/awards/
-business/pitch/node_modules/
-
-# Enterprise
+# Enterprise code must never exist in public repo
 /enterprise/
 /enterprise_clawloop/
-enterprise_clawloop/runs/
-
-# Runtime experiment output
-/runs
-
-# Build artifacts
-dist/
-playbook.json
-
-# Superpowers
-.superpowers/

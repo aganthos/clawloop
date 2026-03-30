@@ -1,0 +1,10 @@
+{
+  "name": "openclaw-runner",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@mariozechner/pi-agent-core": "latest",
+    "@mariozechner/pi-ai": "latest"
+  }
+}

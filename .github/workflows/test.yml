@@ -1,0 +1,68 @@
+name: Tests
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -e ".[dev,server,car,otel]"
+      - run: pytest tests/ -x -q
+
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install build
+      - name: Check no enterprise imports
+        run: |
+          if grep -rn --include="*.py" -E '^\s*(from|import)\s+enterprise' clawloop/ tests/ examples/; then
+            echo "FAIL: enterprise imports found" && exit 1
+          fi
+      - name: Check no enterprise refs in docs
+        run: |
+          if grep -rl "enterprise/" README.md CONTRIBUTING.md examples/ 2>/dev/null; then
+            echo "FAIL: public docs reference enterprise/" && exit 1
+          fi
+      - name: Check no internal keys
+        run: |
+          if grep -rl "kuhhandel-bench-key" clawloop/ tests/ examples/ README.md; then
+            echo "FAIL: internal API key found" && exit 1
+          fi
+      - name: Check no residual lfx branding
+        run: |
+          MATCHES=$(grep -rnw --include="*.py" -i 'lfx' clawloop/ tests/ examples/ || true)
+          if [[ -n "$MATCHES" ]]; then
+            echo "FAIL: residual lfx branding"
+            echo "$MATCHES"
+            exit 1
+          fi
+      - name: Check package contents
+        run: |
+          python -m build --sdist --wheel
+          python3 -c "
+          import tarfile, zipfile, glob, sys
+          PRIVATE = ('enterprise', 'enterprise_clawloop', 'pitch', 'configs', 'ressources')
+          for f in glob.glob('dist/*.tar.gz'):
+              for m in tarfile.open(f).getmembers():
+                  parts = m.name.split('/')
+                  if len(parts) > 1 and '-' in parts[0]: parts = parts[1:]
+                  if parts and parts[0] in PRIVATE:
+                      print(f'LEAK: {m.name}'); sys.exit(1)
+          for f in glob.glob('dist/*.whl'):
+              for n in zipfile.ZipFile(f).namelist():
+                  parts = n.split('/')
+                  if parts and parts[0] in PRIVATE:
+                      print(f'LEAK: {n}'); sys.exit(1)
+          print('Package audit: clean')
+          "

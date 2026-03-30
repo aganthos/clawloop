@@ -1,0 +1,86 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "clawloop"
+version = "0.0.1"
+description = "ClawLoop — Learning from Experience unified learning API"
+requires-python = ">=3.11"
+license = {file = "LICENSE"}
+authors = [{name = "Aganthos Inc."}]
+readme = "README.md"
+keywords = ["ai", "agents", "learning", "llm", "reinforcement-learning"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "litellm>=1.0",
+    "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "pytest-timeout>=2.0",
+]
+car = [
+    "starlette>=0.27",
+    "uvicorn>=0.20",
+    "httpx>=0.24",
+]
+otel = [
+    "opentelemetry-api>=1.20",
+    "opentelemetry-sdk>=1.20",
+    "opentelemetry-exporter-otlp-proto-http>=1.20",
+    "openinference-semantic-conventions>=0.1.6",
+]
+server = [
+    "starlette>=0.27",
+    "uvicorn>=0.20",
+    "httpx>=0.24",
+]
+# tau2 = ["tau-bench"]  # deferred — not yet on PyPI
+
+[project.scripts]
+clawloop = "clawloop.cli:main"
+clawloop-server = "clawloop.server:main"
+
+[project.urls]
+Homepage = "https://github.com/aganthos/clawloop"
+Repository = "https://github.com/aganthos/clawloop"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "clawloop/",
+    "tests/",
+    "examples/",
+    "LICENSE",
+    "README.md",
+    "CONTRIBUTING.md",
+    "CHANGELOG.md",
+]
+exclude = [
+    "benchmarks/",
+    "enterprise_clawloop/",
+    "business/",
+    "scripts/",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["clawloop"]
+
+[tool.uv]
+python-preference = "only-managed"
+exclude-newer = "3 days"
+constraint-dependencies = [
+  "litellm!=1.82.7,!=1.82.8",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
