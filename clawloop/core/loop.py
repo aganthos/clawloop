@@ -18,9 +18,8 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from clawloop.core.episode import Episode
-from clawloop.core.evolution import PromptEvolver
+from clawloop.core.evolution_log import EvolutionEntry, EvolutionLog
 from clawloop.core.intensity import AdaptiveIntensity
-from clawloop.core.paradigm import ParadigmBreakthrough
 from clawloop.core.state import StateID
 from clawloop.core.types import Datum, FBResult, Future, OptimResult
 from clawloop.layers.harness import Harness
@@ -31,9 +30,6 @@ log = logging.getLogger(__name__)
 
 
 LAYER_NAMES = ("harness", "router", "weights")
-
-# Decay rate applied to non-paradigm entries when a paradigm breakthrough fires.
-PARADIGM_DEPRECATION_DECAY = 0.05
 
 
 class ExperimentLog:
@@ -147,8 +143,6 @@ def learning_loop(
     *,
     active_layers: list[str] | None = None,
     intensity: AdaptiveIntensity | None = None,
-    paradigm: ParadigmBreakthrough | None = None,
-    evolver: PromptEvolver | None = None,
     output_dir: str | Path | None = None,
 ) -> tuple[AgentState, StateID]:
     """Run the unified learning loop.
@@ -169,10 +163,7 @@ def learning_loop(
         Which layers to train. None means all three.
     intensity:
         Optional adaptive intensity controller that gates when the
-        Reflector fires (saves LLM calls).
-    paradigm:
-        Optional paradigm breakthrough generator that fires when
-        learning stagnates.
+        evolver fires (saves LLM calls).
 
     Returns
     -------
@@ -182,6 +173,8 @@ def learning_loop(
     state_id = agent_state.state_id()
     layers = agent_state.get_layers(active_layers)
     exp_log = ExperimentLog(output_dir)
+    evo_log = EvolutionLog(output_dir)
+    prev_avg_reward = 0.0
     log.info("Starting learning loop — initial state: %s", state_id.combined_hash[:12])
 
     for iteration in range(n_iterations):
@@ -228,6 +221,18 @@ def learning_loop(
             "router": Datum(episodes=episodes),
         }
 
+        # 2b. Set evolver context on harness (for Evolver-based optimization)
+        if isinstance(agent_state.harness, Harness) and agent_state.harness.evolver is not None:
+            from clawloop.core.evolver import EvolverContext
+
+            ctx = EvolverContext(
+                reward_history=list(intensity._rewards) if intensity else [],
+                is_stagnating=intensity.is_stagnating() if intensity else False,
+                iteration=iteration,
+                tried_paradigms=list(agent_state.tried_paradigms),
+            )
+            agent_state.harness.set_evolver_context(ctx)
+
         # 3. Phase 1: forward_backward (all active layers)
         fb_results: dict[str, FBResult] = {}
         for name, layer in layers:
@@ -261,6 +266,17 @@ def learning_loop(
 
         for name, result in fb_results.items():
             log.info("  fb %s: %s %s", name, result.status, result.metrics)
+
+        # Track paradigm shifts before optim drains _pending
+        harness_fb = fb_results.get("harness")
+        if (
+            harness_fb is not None
+            and harness_fb.metrics.get("paradigm_shifted")
+            and isinstance(agent_state.harness, Harness)
+        ):
+            for insight in agent_state.harness._pending.insights:
+                if "paradigm" in (insight.tags or []):
+                    agent_state.tried_paradigms.append(insight.content)
 
         # 4. Phase 2: optim_step with cross-layer rollback
         layers_to_optim = [
@@ -331,75 +347,40 @@ def learning_loop(
                 )
             agent_state._prev_playbook_generation = current_gen
 
-        # GEPA evolution: mutate from failures, crossover from Pareto front
-        if evolver is not None and isinstance(agent_state.harness, Harness) and not optim_failed:
-            for bench, front in agent_state.harness.pareto_fronts.items():
-                best = front.best()
-                if best is None:
-                    continue
-                # Mutation: use failure episodes filtered to this bench
-                bench_failures = [ep for ep in episodes if ep.bench == bench and ep.summary.effective_reward() < 0]
-                if bench_failures:
-                    mutations_done = 0
-                    for _ in range(evolver.config.max_mutations_per_step):
-                        try:
-                            child = evolver.mutate(best, bench_failures)
-                            if child is not None:
-                                front.add(child)
-                                mutations_done += 1
-                                log.info("  evolution: mutated %s -> %s", best.id, child.id)
-                        except Exception:
-                            log.exception("Mutation failed for bench %s", bench)
-                            break
-                # Crossover: combine two non-dominated candidates
-                if len(front.candidates) >= 2 and evolver.config.max_crossovers_per_step > 0:
-                    crossovers_done = 0
-                    for _ in range(evolver.config.max_crossovers_per_step):
-                        if len(front.candidates) < 2:
-                            break
-                        try:
-                            a, b = front.candidates[0], front.candidates[1]
-                            child = evolver.crossover(a, b)
-                            if child is not None:
-                                front.add(child)
-                                crossovers_done += 1
-                                log.info("  evolution: crossover -> %s", child.id)
-                        except Exception:
-                            log.exception("Crossover failed for bench %s", bench)
-                            break
-
-        # Paradigm breakthrough on stagnation
-        if paradigm is not None and intensity is not None and intensity.is_stagnating():
-            log.info("  stagnation detected — triggering paradigm breakthrough")
-            try:
-                if isinstance(agent_state.harness, Harness):
-                    insights = paradigm.generate(
-                        playbook=agent_state.harness.playbook,
-                        reward_history=intensity._rewards,
-                        tried_paradigms=agent_state.tried_paradigms,
-                    )
-                    if insights:
-                        # Track tried paradigm contents
-                        for ins in insights:
-                            agent_state.tried_paradigms.append(ins.content)
-
-                        # Deprecate old non-paradigm entries by increasing decay
-                        for entry in agent_state.harness.playbook.active_entries():
-                            if "paradigm" not in entry.tags:
-                                entry.decay_rate = max(entry.decay_rate, PARADIGM_DEPRECATION_DECAY)
-
-                        agent_state.harness._pending.insights.extend(insights)
-                        agent_state.harness.optim_step()
-                        log.info("  paradigm: applied %d insights", len(insights))
-            except Exception:
-                log.exception("paradigm breakthrough failed")
-
         # 5. Log iteration results
         harness_ref = agent_state.harness if isinstance(agent_state.harness, Harness) else None
         exp_log.log_iteration(iteration, episodes, fb_results, harness_ref)
 
-        # 6. Recompute state identity
+        # 6. Recompute state identity and log evolution entry
+        prev_hash = state_id.combined_hash
         state_id = agent_state.state_id()
+
+        # Build actions list from fb results for evolution log
+        actions: list[str] = []
+        for name, result in fb_results.items():
+            if result.status == "ok":
+                if result.metrics.get("insights_generated"):
+                    actions.append("reflect")
+                if result.metrics.get("candidates_generated"):
+                    actions.append("mutate")
+                if result.metrics.get("paradigm_shifted"):
+                    actions.append("paradigm_shift")
+        if actions:
+            evo_log.append(EvolutionEntry(
+                iteration=iteration,
+                state_hash_before=prev_hash,
+                state_hash_after=state_id.combined_hash,
+                actions=actions,
+                reward_before=prev_avg_reward,
+                reward_after=avg_reward,
+                backend=(
+                    agent_state.harness.evolver.name()
+                    if isinstance(agent_state.harness, Harness) and agent_state.harness.evolver
+                    else "none"
+                ),
+            ))
+
+        prev_avg_reward = avg_reward
 
     log.info("Loop complete — final state: %s", state_id.combined_hash[:12])
     return agent_state, state_id

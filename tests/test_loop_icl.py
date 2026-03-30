@@ -10,6 +10,7 @@ from clawloop.core.loop import AgentState, learning_loop
 from clawloop.core.paradigm import ParadigmBreakthrough
 from clawloop.core.reflector import Reflector, ReflectorConfig
 from clawloop.core.types import Datum, FBResult, Future, OptimResult
+from clawloop.evolvers.local import LocalEvolver
 from clawloop.layers.harness import Harness, Insight, PlaybookEntry
 
 
@@ -71,7 +72,7 @@ class TestLoopCallsReflectorViaHarness:
         reflector = Reflector(client=client, config=ReflectorConfig())
         harness = Harness(
             system_prompts={"test": "You are helpful."},
-            reflector=reflector,
+            evolver=LocalEvolver(reflector=reflector),
         )
         # Use failure reward so episodes go to harness (support-query separation)
         adapter = _MockAdapter(reward=0.2)
@@ -99,7 +100,7 @@ class TestPerSampleReflection:
         reflector = Reflector(client=client, config=ReflectorConfig(reflection_batch_size=1))
         harness = Harness(
             system_prompts={"test": "You are helpful."},
-            reflector=reflector,
+            evolver=LocalEvolver(reflector=reflector),
         )
         # Use failure reward so episodes go to harness (support)
         adapter = _MockAdapter(reward=0.2)
@@ -123,7 +124,7 @@ class TestPerSampleReflection:
         reflector = Reflector(client=client, config=ReflectorConfig(reflection_batch_size=5))
         harness = Harness(
             system_prompts={"test": "You are helpful."},
-            reflector=reflector,
+            evolver=LocalEvolver(reflector=reflector),
         )
         adapter = _MockAdapter(reward=0.2)
         state = AgentState(harness=harness)
@@ -146,7 +147,7 @@ class TestPerSampleReflection:
         reflector = Reflector(client=client, config=ReflectorConfig(reflection_batch_size=1))
         harness = Harness(
             system_prompts={"test": "You are helpful."},
-            reflector=reflector,
+            evolver=LocalEvolver(reflector=reflector),
         )
 
         ep = _make_episode(bench="entropic", task_id="t1", reward=-0.5)
@@ -219,7 +220,7 @@ class TestLoopWithAdaptiveIntensity:
         reflector = Reflector(client=client, config=ReflectorConfig(reflection_batch_size=5))
         harness = Harness(
             system_prompts={"test": "You are helpful."},
-            reflector=reflector,
+            evolver=LocalEvolver(reflector=reflector),
         )
         intensity = AdaptiveIntensity(reflect_every_n=2)
         # Use failure reward so episodes go to harness (support-query separation)
@@ -277,7 +278,7 @@ class TestCrossLayerRollback:
         reflector = Reflector(client=client, config=ReflectorConfig())
         harness = Harness(
             system_prompts={"test": "You are helpful."},
-            reflector=reflector,
+            evolver=LocalEvolver(reflector=reflector),
         )
         state = AgentState(harness=harness)
 
@@ -318,7 +319,7 @@ class TestCrossLayerRollback:
         reflector = Reflector(client=client, config=ReflectorConfig())
         harness = Harness(
             system_prompts={"test": "You are helpful."},
-            reflector=reflector,
+            evolver=LocalEvolver(reflector=reflector),
         )
         state = AgentState(harness=harness)
 
