@@ -1,0 +1,39 @@
+name: Publish to PyPI
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write  # required for trusted publishing
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: pypi
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install build
+      - run: python -m build --sdist --wheel
+      - name: Verify package contents
+        run: |
+          python3 -c "
+          import tarfile, zipfile, glob, sys
+          PRIVATE = ('enterprise', 'enterprise_clawloop', 'business', 'scripts')
+          def check(path):
+              parts = path.split('/')
+              if len(parts) > 1 and '-' in parts[0]: parts = parts[1:]
+              return len(parts) > 0 and parts[0] in PRIVATE
+          for f in glob.glob('dist/*.tar.gz'):
+              for m in tarfile.open(f).getmembers():
+                  if check(m.name): print(f'LEAK: {m.name}'); sys.exit(1)
+          for f in glob.glob('dist/*.whl'):
+              for n in zipfile.ZipFile(f).namelist():
+                  if check(n): print(f'LEAK: {n}'); sys.exit(1)
+          print('Package audit: clean')
+          "
+      - uses: pypa/gh-action-pypi-publish@release/v1
