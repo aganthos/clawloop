@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "clawloop"
 version = "0.0.1"
-description = "ClawLoop — Learning from Experience unified learning API"
+description = "AI agents that learn from experience — observe, learn, improve"
 requires-python = ">=3.11"
 license = {file = "LICENSE"}
 authors = [{name = "Aganthos Inc."}]
