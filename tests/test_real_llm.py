@@ -24,6 +24,7 @@ from clawloop.core.evolution import EvolverConfig, PromptEvolver
 from clawloop.core.intensity import AdaptiveIntensity
 from clawloop.core.loop import AgentState, learning_loop
 from clawloop.core.reflector import Reflector, ReflectorConfig
+from clawloop.evolvers.local import LocalEvolver
 from clawloop.layers.harness import Harness, PromptCandidate, ParetoFront
 from clawloop.llm import LiteLLMClient
 
@@ -74,7 +75,7 @@ class TestRealLLMEndToEnd:
         reflector = Reflector(client=llm, config=ReflectorConfig())
         harness = Harness(
             system_prompts={"math": "You are a math problem solver."},
-            reflector=reflector,
+            evolver=LocalEvolver(reflector=reflector),
         )
         state = AgentState(harness=harness)
 
@@ -169,9 +170,14 @@ class TestRealLLMEndToEnd:
         llm = LiteLLMClient(model=_MODEL)
         reflector = Reflector(client=llm, config=ReflectorConfig())
 
+        evolver = PromptEvolver(llm=llm, config=EvolverConfig(
+            max_mutations_per_step=1,
+            max_crossovers_per_step=0,
+        ))
+
         harness = Harness(
             system_prompts={"math": "You are a math problem solver."},
-            reflector=reflector,
+            evolver=LocalEvolver(reflector=reflector, prompt_evolver=evolver),
         )
 
         seed = PromptCandidate(
@@ -181,11 +187,6 @@ class TestRealLLMEndToEnd:
             generation=0,
         )
         harness.pareto_fronts["math"] = ParetoFront(candidates=[seed])
-
-        evolver = PromptEvolver(llm=llm, config=EvolverConfig(
-            max_mutations_per_step=1,
-            max_crossovers_per_step=0,
-        ))
 
         state = AgentState(harness=harness)
 
@@ -205,7 +206,6 @@ class TestRealLLMEndToEnd:
             tasks=["t1", "t2", "t3"],
             n_episodes=3,
             n_iterations=1,
-            evolver=evolver,
         )
 
         final_entries = len(state.harness.playbook.entries)
@@ -324,9 +324,14 @@ class TestFullPipelineRealLLM:
 
         reflector = Reflector(client=llm, config=ReflectorConfig())
 
+        evolver = PromptEvolver(llm=llm, config=EvolverConfig(
+            max_mutations_per_step=1,
+            max_crossovers_per_step=0,
+        ))
+
         harness = Harness(
             system_prompts={"math": "You are a math problem solver. Answer with just the number."},
-            reflector=reflector,
+            evolver=LocalEvolver(reflector=reflector, prompt_evolver=evolver),
         )
         seed = PromptCandidate(
             id="pc-seed",
@@ -335,11 +340,6 @@ class TestFullPipelineRealLLM:
             generation=0,
         )
         harness.pareto_fronts["math"] = ParetoFront(candidates=[seed])
-
-        evolver = PromptEvolver(llm=llm, config=EvolverConfig(
-            max_mutations_per_step=1,
-            max_crossovers_per_step=0,
-        ))
 
         intensity = AdaptiveIntensity(cooldown_after_request=0.0)
 
@@ -356,7 +356,6 @@ class TestFullPipelineRealLLM:
             n_episodes=4,
             n_iterations=2,
             intensity=intensity,
-            evolver=evolver,
         )
 
         log.info("State ID: %s", sid.combined_hash[:12])

@@ -9,7 +9,7 @@ import threading
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from starlette.applications import Starlette
 from starlette.requests import Request
@@ -20,8 +20,13 @@ from clawloop.collector import EpisodeCollector
 from clawloop.core.loop import AgentState
 from clawloop.core.reflector import Reflector, ReflectorConfig
 from clawloop.core.reward import RewardPipeline
+from clawloop.evolvers.local import LocalEvolver
 from clawloop.layers.harness import Harness
 from clawloop.learner import AsyncLearner
+
+if TYPE_CHECKING:
+    from clawloop.proxy import ProxyApp
+    from clawloop.proxy_config import ProxyConfig
 
 log = logging.getLogger(__name__)
 
@@ -43,9 +48,10 @@ class ClawLoopServer:
         self._batch_size = batch_size
         self._reflector = reflector
 
+        evolver = LocalEvolver(reflector=reflector) if reflector else None
         self.harness = Harness(
             system_prompts={bench: seed_prompt},
-            reflector=reflector,
+            evolver=evolver,
         )
         self.agent_state = AgentState(harness=self.harness)
         self.learner = AsyncLearner(
@@ -189,9 +195,10 @@ class ClawLoopServer:
 
     def reset(self) -> None:
         self.learner.stop()
+        evolver = LocalEvolver(reflector=self._reflector) if self._reflector else None
         self.harness = Harness(
             system_prompts={self.bench: self.seed_prompt},
-            reflector=self._reflector,
+            evolver=evolver,
         )
         self.agent_state.harness = self.harness
         self.collector = EpisodeCollector(
@@ -398,6 +405,7 @@ def create_app(
     model: str = "gpt-4o-mini",
     api_base: str | None = None,
     api_key: str | None = None,
+    proxy_config: "ProxyConfig | None" = None,
 ) -> Starlette:
     import os
 
@@ -409,9 +417,11 @@ def create_app(
 
     # Auto-create Reflector: explicit api_base/api_key, or env vars
     if reflector is None:
-        has_creds = api_base or (
+        has_creds = api_base or api_key or (
             os.environ.get("OPENAI_API_KEY")
             or os.environ.get("ANTHROPIC_API_KEY")
+            or os.environ.get("GEMINI_API_KEY")
+            or os.environ.get("GOOGLE_API_KEY")
         )
         if has_creds:
             try:
@@ -441,10 +451,27 @@ def create_app(
         Route("/episodes", episodes_list, methods=["GET"]),
     ]
 
+    proxy_app: "ProxyApp | None" = None
+    if proxy_config is not None:
+        from clawloop.proxy import ProxyApp
+        from starlette.routing import Mount
+
+        proxy_app = ProxyApp(
+            proxy_config,
+            collector=server.collector,
+            harness=server.harness,
+            mount_prefix="",  # server provides its own Mount("/v1")
+        )
+        routes.append(Mount("/v1", app=proxy_app.asgi_app))
+
     @asynccontextmanager
     async def lifespan(app):
         server.start()
+        if proxy_app is not None:
+            await proxy_app.startup()
         yield
+        if proxy_app is not None:
+            await proxy_app.shutdown()
         server.stop()
 
     app = Starlette(routes=routes, lifespan=lifespan)
@@ -465,7 +492,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="clawloop-server for n8n integration")
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=8400)
-    parser.add_argument("--seed-prompt", default="config/seed_prompt.txt")
+    parser.add_argument("--seed-prompt", default="enterprise_clawloop/config/seed_prompt.txt")
     parser.add_argument("--bench", default="n8n")
     parser.add_argument("--batch-size", type=int, default=5)
     parser.add_argument("--model", default=None, help="LLM model for Reflector (litellm format)")
