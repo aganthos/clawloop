@@ -21,6 +21,7 @@ from clawloop.core.curator import CuratorConfig, PlaybookCurator
 from clawloop.core.embeddings import MockEmbedding
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
 from clawloop.core.evolution import EvolverConfig, PromptEvolver
+from clawloop.evolvers.local import LocalEvolver
 from clawloop.core.intensity import AdaptiveIntensity
 from clawloop.core.loop import AgentState, learning_loop
 from clawloop.core.reflector import Reflector, ReflectorConfig
@@ -101,7 +102,7 @@ class TestSupportQueryRealLayers:
         reflector = Reflector(client=reflector_client, config=ReflectorConfig())
         harness = Harness(
             system_prompts={"test": "You are helpful."},
-            reflector=reflector,
+            evolver=LocalEvolver(reflector=reflector),
         )
 
         state = AgentState(harness=harness)
@@ -147,7 +148,7 @@ class TestSupportQueryRealLayers:
         reflector = Reflector(client=reflector_client, config=ReflectorConfig())
         harness = Harness(
             system_prompts={"test": "You are helpful."},
-            reflector=reflector,
+            evolver=LocalEvolver(reflector=reflector),
         )
 
         state = AgentState(harness=harness)
@@ -170,7 +171,7 @@ class TestSupportQueryRealLayers:
         reflector = Reflector(client=reflector_client, config=ReflectorConfig())
         harness = Harness(
             system_prompts={"test": "You are helpful."},
-            reflector=reflector,
+            evolver=LocalEvolver(reflector=reflector),
         )
         state = AgentState(harness=harness)
         episodes = [_make_episode("f1", reward=0.1), _make_episode("f2", reward=0.2)]
@@ -201,7 +202,7 @@ class TestGenerationFlushReal:
         reflector = Reflector(client=reflector_client, config=ReflectorConfig())
         harness = Harness(
             system_prompts={"test": "You are helpful."},
-            reflector=reflector,
+            evolver=LocalEvolver(reflector=reflector),
         )
         state = AgentState(harness=harness)
 
@@ -240,7 +241,16 @@ class TestEvolutionInLoop:
 
     def test_evolver_produces_pareto_candidates(self) -> None:
         # Set up a Harness with a Pareto front that has one candidate
-        harness = Harness(system_prompts={"test": "You are helpful."})
+        evolver_llm = MockLLMClient(responses=[
+            _mutation_json("You are helpful. Always ask clarifying questions."),
+            _mutation_json("You are helpful and thorough."),  # crossover
+        ])
+        evolver = PromptEvolver(llm=evolver_llm, config=EvolverConfig())
+
+        harness = Harness(
+            system_prompts={"test": "You are helpful."},
+            evolver=LocalEvolver(prompt_evolver=evolver),
+        )
         seed_candidate = PromptCandidate(
             id="pc-seed",
             text="You are helpful.",
@@ -248,12 +258,6 @@ class TestEvolutionInLoop:
             generation=0,
         )
         harness.pareto_fronts["test"] = ParetoFront(candidates=[seed_candidate])
-
-        evolver_llm = MockLLMClient(responses=[
-            _mutation_json("You are helpful. Always ask clarifying questions."),
-            _mutation_json("You are helpful and thorough."),  # crossover
-        ])
-        evolver = PromptEvolver(llm=evolver_llm, config=EvolverConfig())
 
         state = AgentState(harness=harness)
         # Need failure episodes for mutation (support set)
@@ -263,7 +267,6 @@ class TestEvolutionInLoop:
         state, _ = learning_loop(
             adapter=adapter, agent_state=state,
             tasks=["t1"], n_episodes=1, n_iterations=1,
-            evolver=evolver,
         )
 
         front = state.harness.pareto_fronts["test"]
@@ -325,7 +328,7 @@ class TestActivityIntensityReal:
         reflector = Reflector(client=reflector_client, config=ReflectorConfig())
         harness = Harness(
             system_prompts={"test": "You are helpful."},
-            reflector=reflector,
+            evolver=LocalEvolver(reflector=reflector),
         )
 
         intensity = AdaptiveIntensity(cooldown_after_request=9999.0)

@@ -2,11 +2,20 @@
   <img src="clawloop.png" alt="ClawLoop" width="200">
 </p>
 
-# ClawLoop — Learning from Experience
+# ClawLoop — Agents That Learn from Experience
 
-Unified learning API for AI agents. Three learning layers — **harness** (prompt/playbook), **router** (model routing), **weights** (LoRA/GRPO) — all following the same protocol. Tinker/SkyRL compatible.
+Your AI agents run, fail, and forget. ClawLoop closes the loop: it observes
+agent-environment interactions, learns from them, and feeds improvements back
+into the agent. Three learning layers — **harness**, **router**, **weights** —
+all following the same protocol.
+
+<p align="center">
+  <img src="architecture.png" alt="ClawLoop Architecture" width="720">
+</p>
 
 ## Install
+
+Requires Python 3.11+.
 
 ```bash
 pip install -e .
@@ -14,52 +23,108 @@ pip install -e .
 
 For weight training (GPU):
 ```bash
+git submodule update --init clawloop/skyrl
 pip install -e clawloop/skyrl[fsdp]
 ```
 
-## Quickstart
+## Try It in 10 Seconds
 
-### Harness learning (prompt optimization, no GPU)
+No API keys. No setup. Just run:
 
-Set your API key:
 ```bash
-export ANTHROPIC_API_KEY=your-api-key-here
+python examples/demo_math.py --dry-run
 ```
 
-Run:
+```
+Reward curve per iteration:
+  Iter 1: 0.6000  ########################
+  Iter 2: 0.8000  ################################
+  Iter 3: 1.0000  ########################################
+  ...
+```
+
+The agent starts with mistakes, the reflector analyzes failures, learns
+strategies, and injects them into the system prompt. Rewards climb toward
+1.0 as the playbook grows. *(This example is complete — run it as-is.
+Output varies slightly between runs.)*
+
+## What the Code Looks Like
+
+**Add learning to an existing agent (2 lines):**
+
+```python
+import clawloop
+
+wrapped = clawloop.wrap(your_llm_client, collector)
+result = wrapped.complete(messages)  # transparently captures traces for learning
+```
+
+**Run a full learning loop:**
+
+```python
+from clawloop import ClawLoopAgent
+from clawloop.envs.math import MathEnvironment
+
+agent = ClawLoopAgent(
+    task_client=task_llm,
+    reflector_client=reflector_llm,
+    base_system_prompt="You are a math solver.",
+)
+results = agent.learn(MathEnvironment(), iterations=10, episodes_per_iter=5)
+# results["rewards"] → [0.4, 0.6, 0.8, 1.0, ...]
+```
+
+**Config-driven training (no code):**
+
 ```bash
 python examples/train_runner.py examples/configs/math_harness.json
 ```
 
-This runs the math environment with Claude Haiku as the task model and
-Claude Sonnet as the reflector. The reflector analyzes failures and adds
-playbook entries that improve the system prompt over iterations.
+## Choose Your Integration Path
 
-### Weight training (SkyRL GRPO, GPU)
+| You have... | Start here | What it shows |
+|---|---|---|
+| A Python agent | [`examples/demo_math.py`](examples/demo_math.py) | Full learning loop with `ClawLoopAgent` |
+| An n8n or workflow platform | [`examples/n8n/`](examples/n8n/) | Webhook integration, zero Python needed |
+| An OpenAI-compatible agent | [`examples/train_runner.py`](examples/train_runner.py) with configs | CRMArena, Harbor BFCL via litellm |
+| Want zero-code-change learning | [`examples/openclaw_demo.py`](examples/openclaw_demo.py) | Transparent proxy captures traces + injects skills |
+| GPU resources for weight training | [`examples/recipes/`](examples/recipes/) | SkyRL/Tinker GRPO, PPO, full finetune |
 
-```bash
-python examples/train_runner.py examples/configs/math_weight.json
-```
+See [`examples/README.md`](examples/README.md) for details on each path.
 
-Uses SkyRL/Tinker to train LoRA weights via GRPO on the same math tasks.
-Requires a GPU with SkyRL installed.
+## How It Works
 
-### Switch between modes
+**The loop.** An agent interacts with an environment (or production traffic).
+ClawLoop collects episodes — structured traces of messages, tool calls,
+and rewards. Learning layers process these episodes and update the agent.
+Repeat.
 
-Same config shape. Change `"mode"` from `"harness_learning"` to `"weight"`:
+**Harness layer.** An LLM reflector reads execution traces, diagnoses
+failures, and extracts reusable strategies into a playbook. Playbook entries
+are injected into the system prompt and accumulate helpful/harmful scores
+over time. Bad strategies decay and get pruned; good ones persist.
 
-```json
-{"mode": "harness_learning", "env_type": "math", ...}
-{"mode": "weight",           "env_type": "math", "skyrl": {...}, ...}
-```
+**Router layer.** Optimizes which model handles which query type. A
+complexity scorer maps queries to tiers, and the router adjusts based on
+reward/cost efficiency across episodes.
+
+**Weights layer.** Trains model weights — LoRA, full fine-tuning, SFT,
+GRPO, PPO, and more — delegating to [SkyRL/Tinker](https://github.com/NovaSky-AI/SkyRL)
+for the heavy lifting.
+
+**Unified protocol.** All three layers follow the same two-phase protocol:
+`forward_backward()` accumulates updates without mutating state, then
+`optim_step()` applies them atomically. If `optim_step` fails on any layer,
+all layers roll back together.
 
 ## Environments
 
 | env_type | What it does | Needs |
 |----------|-------------|-------|
-| `math` | Built-in arithmetic/competition math | LLM API |
+| `math` | Built-in arithmetic and competition math | LLM API |
 | `harbor` | [Harbor](https://harborframework.com/) sandboxed agent tasks (BFCL, etc.) | Docker + LLM API |
 | `entropic` | [CRMArenaPro](https://github.com/salesforce/CRMArena) A2A benchmark | Entropic bench + LLM API |
+| `openclaw` | Transparent proxy — captures traces + injects playbook skills | Node.js + OpenAI-compatible Chat Completions endpoint |
 
 ## LLM Providers
 
@@ -73,27 +138,33 @@ ClawLoop uses [litellm](https://docs.litellm.ai/) — any provider works:
 
 Set the provider's API key as an environment variable (`ANTHROPIC_API_KEY`,
 `OPENAI_API_KEY`, `GEMINI_API_KEY`). Or pass `api_key` and `api_base` in the
-config for proxy setups.
+config for custom endpoints.
 
-## Examples
-
-See [examples/README.md](examples/README.md) for all configs and Tinker
-cookbook recipes.
-
-## Architecture
+<details>
+<summary><strong>Architecture</strong></summary>
 
 ```
 train(config)
   -> validate_config()          # fail fast
   -> build harness + reflector  # prompt layer
   -> build weights backend      # SkyRL/Tinker (if weight mode)
-  -> build env adapter          # math / harbor / entropic
+  -> build env adapter          # math / harbor / entropic / openclaw
   -> learning_loop()            # collect episodes, forward_backward, optim_step
 ```
 
 Environments are pluggable via `ENV_BUILDERS` registry in `clawloop/train.py`.
 
-## Adding a New Environment
+The learning loop per iteration:
+1. Collect episodes from the environment adapter
+2. Distribute episodes to all active layers as `Datum` objects
+3. `forward_backward()` on each layer — accumulate updates, no state mutation
+4. `optim_step()` on each layer — atomically apply, with cross-layer rollback on failure
+5. Recompute `StateID` (content-addressed hash across all layers)
+
+</details>
+
+<details>
+<summary><strong>Adding a New Environment</strong></summary>
 
 Write a builder function that returns `(adapter, tasks)`:
 
@@ -109,13 +180,18 @@ ENV_BUILDERS["my_env"] = _build_my_env
 
 Your adapter's `run_episode` must return an `Episode` with messages, steps,
 and an `EpisodeSummary` containing reward signals. See `clawloop/envs/math.py`
-(`MathAdapter`) for a minimal example (~60 lines).
+(`MathAdapter`) for a minimal example (~80 lines).
 
-## Limitations
+</details>
+
+<details>
+<summary><strong>Limitations</strong></summary>
 
 - **`mode="full"`** (simultaneous harness + weight training) is disabled.
-  The support-query data split needs rework for GRPO advantage computation.
-  Use `weight` and `harness_learning` separately for now.
+  The on-policy boundary after harness updates needs rework for GRPO advantage
+  computation. Use `weight` and `harness_learning` separately for now.
 - **Episode construction is manual.** There is no `ProblemEnv` base class yet.
   New environments must build `Episode` objects directly. A higher-level
   abstraction (like Tinker cookbook's `ProblemEnv`) is planned.
+
+</details>

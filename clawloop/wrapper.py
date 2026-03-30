@@ -5,7 +5,7 @@ from __future__ import annotations
 import json as _json
 import logging
 import time
-from typing import Any
+from typing import Any, Literal, get_args
 from uuid import uuid4
 
 from clawloop.collector import EpisodeCollector
@@ -15,6 +15,9 @@ from clawloop.core.intensity import AdaptiveIntensity
 from clawloop.core.parse import parse_tool_calls, resolve_oi_span_kind, _safe_session_hash
 
 log = logging.getLogger(__name__)
+
+TraceLevel = Literal["minimal", "standard", "full"]
+_VALID_TRACE_LEVELS: frozenset[str] = frozenset(get_args(TraceLevel))
 
 
 class WrappedClient:
@@ -27,11 +30,27 @@ class WrappedClient:
         *,
         tracer: Any = None,
         intensity: AdaptiveIntensity | None = None,
+        cloud_url: str | None = None,
+        cloud_api_key: str | None = None,
+        trace_level: TraceLevel = "minimal",
     ) -> None:
+        if trace_level not in _VALID_TRACE_LEVELS:
+            raise ValueError(
+                f"trace_level must be one of {sorted(_VALID_TRACE_LEVELS)}, got {trace_level!r}"
+            )
+        if cloud_url is not None and not cloud_url.strip():
+            raise ValueError("cloud_url must be non-empty when provided")
+        if cloud_api_key is not None and not cloud_api_key.strip():
+            raise ValueError("cloud_api_key must be non-empty when provided")
+        if cloud_url and not cloud_api_key:
+            raise ValueError("cloud_api_key is required when cloud_url is set")
         self._client = client
         self._collector = collector
         self._tracer = tracer
         self._intensity = intensity
+        self._cloud_url = cloud_url
+        self._cloud_api_key = cloud_api_key
+        self._trace_level = trace_level
 
         self._llm_kind_attr: str | None = None
         self._llm_kind_value: str | None = None
@@ -169,15 +188,38 @@ def wrap(
     *,
     tracer: Any = None,
     intensity: AdaptiveIntensity | None = None,
+    cloud_url: str | None = None,
+    cloud_api_key: str | None = None,
+    trace_level: TraceLevel = "minimal",
 ) -> WrappedClient:
     """Wrap an LLMClient with live-mode episode collection.
 
     Usage::
 
+        # Local mode (default):
         wrapped = clawloop.wrap(my_client, collector=collector)
         result = wrapped.complete(messages)  # works exactly like before
 
         # With OTel tracing:
         wrapped = clawloop.wrap(my_client, collector=collector, tracer=my_tracer)
+
+        # Cloud mode — send traces to a ClawLoop cloud endpoint.
+        # cloud_api_key is required when cloud_url is set.
+        # trace_level controls verbosity (stored now, used by future transport).
+        wrapped = clawloop.wrap(
+            my_client,
+            collector=collector,
+            cloud_url="https://api.clawloop.dev",
+            cloud_api_key="cl-key-...",
+            trace_level="standard",  # minimal | standard | full
+        )
     """
-    return WrappedClient(client, collector, tracer=tracer, intensity=intensity)
+    return WrappedClient(
+        client,
+        collector,
+        tracer=tracer,
+        intensity=intensity,
+        cloud_url=cloud_url,
+        cloud_api_key=cloud_api_key,
+        trace_level=trace_level,
+    )
