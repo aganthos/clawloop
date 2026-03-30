@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -e ".[dev]"
+      - run: pytest tests/ -x -q --timeout=30
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install build
+      - name: Check for enterprise leaks
+        run: |
+          set -euo pipefail
+          ERRORS=0
+
+          # No enterprise imports in public code
+          MATCHES=$(grep -rn --include="*.py" -E '^\s*(from|import)\s+enterprise' clawloop/ tests/ examples/ 2>/dev/null || true)
+          if [[ -n "$MATCHES" ]]; then
+            echo "FAIL: Public code imports from enterprise:"
+            echo "$MATCHES"
+            ERRORS=$((ERRORS + 1))
+          fi
+
+          # No internal secrets
+          MATCHES=$(grep -rl "kuhhandel-bench-key" clawloop/ tests/ examples/ README.md 2>/dev/null || true)
+          if [[ -n "$MATCHES" ]]; then
+            echo "FAIL: Internal API key found"
+            echo "$MATCHES"
+            ERRORS=$((ERRORS + 1))
+          fi
+
+          # Build and inspect package for leaks
+          python -m build --sdist --wheel
+          python3 -c "
+          import tarfile, zipfile, glob, sys
+          PRIVATE = ('enterprise', 'enterprise_clawloop', 'business')
+          def check(path):
+              parts = path.split('/')
+              if len(parts) > 1 and '-' in parts[0]: parts = parts[1:]
+              return len(parts) > 0 and parts[0] in PRIVATE
+          for f in glob.glob('dist/*.tar.gz'):
+              for m in tarfile.open(f).getmembers():
+                  if check(m.name): print(f'LEAK: {m.name}'); sys.exit(1)
+          for f in glob.glob('dist/*.whl'):
+              for n in zipfile.ZipFile(f).namelist():
+                  if check(n): print(f'LEAK: {n}'); sys.exit(1)
+          print('Package audit: clean')
+          "
+
+          if [[ $ERRORS -gt 0 ]]; then
+            echo "FAILED: $ERRORS leak(s) detected"
+            exit 1
+          fi
+          echo "All checks passed"
