@@ -521,7 +521,7 @@ evolutionary approach.
 
 **Title:**
 ```
-ClawLoop: open-source tool that makes your local LLMs learn from their mistakes — turned a 7B into something that beats o4-mini by 30%
+ClawLoop: source-available tool that makes your local LLMs learn from their mistakes — turned a 7B into something that beats o4-mini by 30%
 ```
 
 **Body:**

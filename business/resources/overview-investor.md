@@ -86,7 +86,7 @@ Prompt engineering by hand works until it doesn't scale. lfx automates the feedb
 
 ### Open Core Model
 
-**Free (open source):**
+**Free (source-available, BSL 1.1):**
 - Harness layer (prompt/playbook evolution)
 - Live mode pipeline (EpisodeCollector, AsyncLearner, `lfx.wrap()`)
 - All reward extractors and exporters (Langfuse, SkyRL)
