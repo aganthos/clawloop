@@ -1,0 +1,28 @@
+{
+    "mode": "harness_learning",
+    "env_type": "harbor",
+    "system_prompt": "You are a function-calling assistant. Write correct JSON function calls to /app/result.json.",
+    "llm_clients": {
+        "reflector": {
+            "model": "gemini/gemini-2.0-flash-lite"
+        }
+    },
+    "harbor": {
+        "task_dirs": [
+            "REPLACE_WITH_TASK_DIR (run: harbor datasets download bfcl_parity@1.0 -o ~/data/bfcl_parity)"
+        ],
+        "trial_config": {
+            "agent": {
+                "name": "oracle",
+                "kwargs": {
+                    "store_all_messages": true
+                }
+            },
+            "environment": {
+                "type": "docker"
+            }
+        }
+    },
+    "n_iterations": 2,
+    "episodes_per_iter": 2
+}
