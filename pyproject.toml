@@ -14,6 +14,7 @@ keywords = ["ai", "agents", "learning", "llm", "reinforcement-learning"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
+    "License :: Other/Proprietary License",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -54,6 +55,7 @@ clawloop-server = "clawloop.server:main"
 [project.urls]
 Homepage = "https://github.com/aganthos/clawloop"
 Repository = "https://github.com/aganthos/clawloop"
+Issues = "https://github.com/aganthos/clawloop/issues"
 
 [tool.hatch.build.targets.sdist]
 include = [

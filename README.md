@@ -4,6 +4,10 @@
 
 # ClawLoop — Agents That Learn from Experience
 
+[![License: BSL 1.1](https://img.shields.io/badge/License-BSL%201.1-blue.svg)](LICENSE)
+[![CI](https://github.com/aganthos/clawloop/actions/workflows/ci.yml/badge.svg)](https://github.com/aganthos/clawloop/actions/workflows/ci.yml)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+
 Your AI agents run, fail, and forget. ClawLoop closes the loop: it observes
 agent-environment interactions, learns from them, and feeds improvements back
 into the agent. Three learning layers — **harness**, **router**, **weights** —
@@ -195,3 +199,24 @@ and an `EpisodeSummary` containing reward signals. See `clawloop/envs/math.py`
   abstraction (like Tinker cookbook's `ProblemEnv`) is planned.
 
 </details>
+
+## License
+
+ClawLoop is licensed under the [Business Source License 1.1](LICENSE) with
+an Additional Use Grant.
+
+**What you can always do**, free and without restriction:
+- Use ClawLoop for development, testing, security review, and academic research
+- Copy, modify, and redistribute the source code
+- Use ClawLoop in production if your organization has less than $10M in
+  annual revenue
+
+**What requires a commercial license:**
+- Production use by organizations with $10M+ annual revenue
+- Building a competing agent-improvement or model-optimization service
+
+**On April 1, 2030**, each version converts automatically to the
+[Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) —
+permissive, forever, no strings.
+
+For commercial licensing, contact [info@aganthos.com](mailto:info@aganthos.com).

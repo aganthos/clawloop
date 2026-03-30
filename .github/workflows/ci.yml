@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -18,12 +21,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - run: pip install -e ".[dev]"
+      - run: pip install -e ".[dev,server,car]"
       - run: pytest tests/ -x -q --timeout=30
         env:
           PYTHONDONTWRITEBYTECODE: "1"
 
-  audit:
+  boundary-audit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,32 +36,48 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install build
-      - name: Check for enterprise leaks
-        run: |
-          set -euo pipefail
-          ERRORS=0
 
-          # No enterprise imports in public code
-          MATCHES=$(grep -rn --include="*.py" -E '^\s*(from|import)\s+enterprise' clawloop/ tests/ examples/ 2>/dev/null || true)
+      - name: No enterprise imports in public code
+        run: |
+          MATCHES=$(grep -rn --include="*.py" -E '^\s*(from|import)\s+enterprise' clawloop/ tests/ examples/ 2>/dev/null | grep -v '\.claude/' || true)
           if [[ -n "$MATCHES" ]]; then
-            echo "FAIL: Public code imports from enterprise:"
+            echo "::error::Enterprise imports found in public code"
             echo "$MATCHES"
-            ERRORS=$((ERRORS + 1))
+            exit 1
           fi
 
-          # No internal secrets
+      - name: No enterprise references in docs
+        run: |
+          MATCHES=$(grep -rl "enterprise/" README.md CONTRIBUTING.md examples/ 2>/dev/null | grep -v '\.claude/' || true)
+          if [[ -n "$MATCHES" ]]; then
+            echo "::error::Public docs reference enterprise/"
+            echo "$MATCHES"
+            exit 1
+          fi
+
+      - name: No internal secrets
+        run: |
           MATCHES=$(grep -rl "kuhhandel-bench-key" clawloop/ tests/ examples/ README.md 2>/dev/null || true)
           if [[ -n "$MATCHES" ]]; then
-            echo "FAIL: Internal API key found"
+            echo "::error::Internal API key found in public code"
             echo "$MATCHES"
-            ERRORS=$((ERRORS + 1))
+            exit 1
           fi
 
-          # Build and inspect package for leaks
+      - name: No residual lfx branding
+        run: |
+          MATCHES=$(grep -rnw --include="*.py" -i 'lfx' clawloop/ tests/ examples/ 2>/dev/null || true)
+          if [[ -n "$MATCHES" ]]; then
+            echo "::warning::Residual lfx branding found"
+            echo "$MATCHES"
+          fi
+
+      - name: Package contents audit
+        run: |
           python -m build --sdist --wheel
           python3 -c "
           import tarfile, zipfile, glob, sys
-          PRIVATE = ('enterprise', 'enterprise_clawloop', 'business')
+          PRIVATE = ('enterprise', 'enterprise_clawloop', 'business', 'scripts')
           def check(path):
               parts = path.split('/')
               if len(parts) > 1 and '-' in parts[0]: parts = parts[1:]
@@ -71,9 +90,3 @@ jobs:
                   if check(n): print(f'LEAK: {n}'); sys.exit(1)
           print('Package audit: clean')
           "
-
-          if [[ $ERRORS -gt 0 ]]; then
-            echo "FAILED: $ERRORS leak(s) detected"
-            exit 1
-          fi
-          echo "All checks passed"
