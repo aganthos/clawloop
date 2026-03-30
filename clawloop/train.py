@@ -135,6 +135,38 @@ def _build_entropic(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]
     return adapter, [f"base_{i}" for i in range(n_tasks)]
 
 
+def _build_openclaw(
+    config: TrainConfig, llm_clients: dict[str, LLMClientConfig]
+) -> tuple:
+    from clawloop.adapters.openclaw import OpenClawAdapter
+
+    openclaw_cfg = dict(config.env_config or {})
+    task_llm = llm_clients.get("task")
+
+    adapter_config = {
+        "task_dir": openclaw_cfg.get("task_dir", "tasks"),
+        "runner_script": openclaw_cfg.get(
+            "runner_script", "examples/openclaw_runner/runner.js"
+        ),
+        "timeout_s": openclaw_cfg.get("timeout_s", 120),
+        "node_bin": openclaw_cfg.get("node_bin", "node"),
+        "upstream_url": openclaw_cfg.get(
+            "upstream_url",
+            task_llm.api_base if task_llm else "",
+        ),
+        "upstream_api_key": openclaw_cfg.get(
+            "upstream_api_key",
+            task_llm.api_key.get_secret_value() if task_llm else "",
+        ),
+        "bench": openclaw_cfg.get("bench", "openclaw"),
+    }
+
+    adapter = OpenClawAdapter()
+    adapter.setup(adapter_config)
+    tasks = adapter.list_tasks("base")
+    return adapter, tasks
+
+
 # ---------------------------------------------------------------------------
 # Environment registry — add new envs here
 # ---------------------------------------------------------------------------
@@ -143,6 +175,7 @@ ENV_BUILDERS: dict[str, Any] = {
     "harbor": _build_harbor,
     "math": _build_math,
     "entropic": _build_entropic,
+    "openclaw": _build_openclaw,
 }
 
 
@@ -235,6 +268,10 @@ def train(config: TrainConfig):
     # 3. Environment adapter — dispatched via registry
     build_env = ENV_BUILDERS[config.env_type]
     adapter, tasks = build_env(config, config.llm_clients)
+
+    # Wire harness into adapter for proxy skill injection (openclaw)
+    if hasattr(adapter, "set_harness"):
+        adapter.set_harness(harness)
 
     # 4. Agent state
     agent_state = AgentState(
