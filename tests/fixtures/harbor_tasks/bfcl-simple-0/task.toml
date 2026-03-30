@@ -1,9 +1,0 @@
-# Minimal Harbor task fixture — targets Harbor task format v1.0
-version = "1.0"
-
-[agent]
-timeout_sec = 60
-
-[environment]
-cpus = 1
-memory_mb = 1024
