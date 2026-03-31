@@ -13,6 +13,18 @@ def client(tmp_path):
     return TestClient(app)
 
 
+@pytest.fixture
+def protected_client(tmp_path):
+    seed = tmp_path / "seed_prompt.txt"
+    seed.write_text("You are a support agent for Acme Corp.")
+    app = create_app(
+        seed_prompt_path=str(seed),
+        bench="n8n",
+        server_api_key="test-server-key",
+    )
+    return TestClient(app)
+
+
 class TestIngest:
     def test_valid_messages(self, client):
         resp = client.post("/ingest", json={
@@ -84,6 +96,31 @@ class TestState:
         assert isinstance(data["playbook_entries"], list)
         assert isinstance(data["metrics"], dict)
         assert "prompt_updated_at" in data
+
+    def test_requires_auth_when_server_key_is_set(self, protected_client):
+        assert protected_client.get("/state").status_code == 401
+
+    def test_accepts_auth_when_server_key_is_set(self, protected_client):
+        resp = protected_client.get(
+            "/state",
+            headers={"Authorization": "Bearer test-server-key"},
+        )
+        assert resp.status_code == 200
+
+    def test_rejects_malformed_auth_when_server_key_is_set(self, protected_client):
+        resp = protected_client.get(
+            "/state",
+            headers={"Authorization": "Basic test-server-key"},
+        )
+        assert resp.status_code == 401
+
+    def test_accepts_api_key_query_param(self, protected_client):
+        resp = protected_client.get("/state?api_key=test-server-key")
+        assert resp.status_code == 200
+
+    def test_rejects_wrong_query_param(self, protected_client):
+        resp = protected_client.get("/state?api_key=wrong-key")
+        assert resp.status_code == 401
 
 
 class TestReset:

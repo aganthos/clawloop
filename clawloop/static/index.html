@@ -417,7 +417,7 @@ function vote(id, score) {
   const ep = episodes.find(e => e.id === id);
   if (ep) ep._vote = score;
   renderEpisodes();
-  fetch('/feedback', {
+  authFetch('/feedback', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ episode_id: id, score })
@@ -566,7 +566,7 @@ function applyMetrics(m) {
 function startSSE() {
   if (sseSource) { sseSource.close(); sseSource = null; }
   try {
-    sseSource = new EventSource('/events');
+    sseSource = new EventSource('/events' + (_apiKey ? '?api_key=' + encodeURIComponent(_apiKey) : ''));
     sseSource.onopen = () => setConn('sse');
     sseSource.onerror = () => {
       sseSource.close(); sseSource = null;
@@ -596,10 +596,27 @@ function stopPolling() {
   clearInterval(pollState);   pollState   = null;
 }
 
+// ── auth-aware fetch ─────────────────────────────────────────────────────────
+let _apiKey = sessionStorage.getItem('clawloop_api_key') || '';
+
+async function authFetch(url, opts = {}) {
+  const headers = Object.assign({}, opts.headers);
+  if (_apiKey) headers['Authorization'] = 'Bearer ' + _apiKey;
+  const r = await fetch(url, Object.assign({}, opts, { headers }));
+  if (r.status === 401 && !opts._retry) {
+    const key = prompt('ClawLoop API key required:');
+    if (!key) return r;
+    _apiKey = key;
+    sessionStorage.setItem('clawloop_api_key', key);
+    return authFetch(url, Object.assign({}, opts, { _retry: true }));
+  }
+  return r;
+}
+
 // ── fetch helpers ─────────────────────────────────────────────────────────────
 async function loadState() {
   try {
-    const r = await fetch('/state');
+    const r = await authFetch('/state');
     if (!r.ok) return;
     applyState(await r.json());
   } catch {}
@@ -607,7 +624,7 @@ async function loadState() {
 
 async function loadMetrics() {
   try {
-    const r = await fetch('/metrics');
+    const r = await authFetch('/metrics');
     if (!r.ok) return;
     applyMetrics(await r.json());
   } catch {}
@@ -617,7 +634,7 @@ async function loadMetrics() {
 async function doReset() {
   if (!confirm('Reset ClawLoop server? All episodes and playbook will be cleared.')) return;
   try {
-    await fetch('/reset', { method: 'POST' });
+    await authFetch('/reset', { method: 'POST' });
     episodes.length = 0;
     rewardTrend.length = 0;
     seedPrompt = null;
@@ -639,7 +656,7 @@ async function openDetail(id) {
   overlay.classList.add('open');
 
   try {
-    const r = await fetch('/episodes');
+    const r = await authFetch('/episodes');
     if (!r.ok) { detail.innerHTML = '<div class="empty">failed to load</div>'; return; }
     const all = await r.json();
     const ep = all.find(e => e.id === id);
@@ -698,7 +715,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(
 // ── load episodes from server (survives page reload) ─────────────────────────
 async function loadEpisodes() {
   try {
-    const r = await fetch('/episodes');
+    const r = await authFetch('/episodes');
     if (!r.ok) return;
     const all = await r.json();
     for (const ep of all) {

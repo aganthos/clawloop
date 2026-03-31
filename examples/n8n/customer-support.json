@@ -16,7 +16,16 @@
     },
     {
       "parameters": {
-        "url": "http://host.docker.internal:8400/state",
+        "url": "={{ $env.CLAWLOOP_BASE_URL || 'http://host.docker.internal:8400' }}/state",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ $env.CLAWLOOP_SERVER_API_KEY ? 'Bearer ' + $env.CLAWLOOP_SERVER_API_KEY : '' }}"
+            }
+          ]
+        },
         "options": {}
       },
       "id": "get-state",
@@ -56,7 +65,16 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://host.docker.internal:8400/ingest",
+        "url": "={{ $env.CLAWLOOP_BASE_URL || 'http://host.docker.internal:8400' }}/ingest",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ $env.CLAWLOOP_SERVER_API_KEY ? 'Bearer ' + $env.CLAWLOOP_SERVER_API_KEY : '' }}"
+            }
+          ]
+        },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"messages\": [\n    {\"role\": \"system\", \"content\": {{ JSON.stringify($('Get ClawLoop State').item.json.system_prompt) }}},\n    {\"role\": \"user\", \"content\": {{ JSON.stringify($('Webhook').item.json.body.message) }}},\n    {\"role\": \"assistant\", \"content\": {{ JSON.stringify($json.choices[0].message.content) }}}\n  ],\n  \"metadata\": {\n    \"conversation_id\": {{ JSON.stringify($execution.id) }},\n    \"model\": \"{{ $env.LLM_MODEL || 'gpt-4o-mini' }}\"\n  }\n}",

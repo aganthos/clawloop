@@ -36,6 +36,8 @@ curl / browser
   a free local setup). The clawloop-server uses litellm for the reflector.
   The n8n workflow calls the LLM directly via OpenAI-compatible HTTP —
   configure `LLM_API_URL` and `LLM_API_KEY` in n8n (see below).
+- `CLAWLOOP_BASE_URL` in n8n if `host.docker.internal` is unavailable on your
+  platform. Example: `http://172.17.0.1:8400`
 
 ## Quick Start
 
@@ -53,7 +55,7 @@ docker run -d --name n8n -p 5678:5678 \
 
 # 3. Start clawloop-server
 #    Set CLAWLOOP_MODEL + the matching provider key (GEMINI_API_KEY, OPENAI_API_KEY, etc.)
-#    Or pass --api-key explicitly.
+#    Or pass --api-key explicitly. The server binds to 127.0.0.1 by default.
 CLAWLOOP_MODEL=gemini/gemini-2.0-flash-lite \
   python -m clawloop.server \
     --seed-prompt seed_prompt.txt \
@@ -63,6 +65,19 @@ CLAWLOOP_MODEL=gemini/gemini-2.0-flash-lite \
 
 # 5. Open the dashboard in your browser
 #    http://localhost:8400/dashboard/
+```
+
+**With Docker n8n (requires non-localhost binding):**
+```bash
+# Docker n8n connects via host.docker.internal, not localhost.
+# Binding to 0.0.0.0 requires an API key for safety.
+CLAWLOOP_SERVER_API_KEY=my-secret-key \
+CLAWLOOP_MODEL=gemini/gemini-2.0-flash-lite \
+  python -m clawloop.server \
+    --host 0.0.0.0 \
+    --seed-prompt seed_prompt.txt \
+    --port 8400
+# Set CLAWLOOP_SERVER_API_KEY in n8n env vars so the workflow can authenticate.
 ```
 
 **With Ollama (free, local):**
@@ -87,9 +102,17 @@ The workflow uses n8n environment variables for LLM configuration:
 - `LLM_API_URL` — defaults to `https://api.openai.com/v1/chat/completions`
 - `LLM_API_KEY` — your API key
 - `LLM_MODEL` — defaults to `gpt-4o-mini`
+- `CLAWLOOP_BASE_URL` — defaults to `http://host.docker.internal:8400`
+- `CLAWLOOP_SERVER_API_KEY` — (optional) API key for the ClawLoop server.
+  Required when clawloop-server is started with `--server-api-key` or
+  `CLAWLOOP_SERVER_API_KEY`. The workflow sends it as `Authorization: Bearer …`.
 
 Set these in n8n: **Settings → Environment Variables**, or pass them to
 `docker run` with `-e`.
+
+On Linux, `host.docker.internal` may not resolve. In that case either:
+- start n8n with `--add-host=host.docker.internal:host-gateway`
+- or set `CLAWLOOP_BASE_URL` to the reachable host address explicitly
 
 No n8n credentials needed — the workflow uses plain HTTP Request nodes.
 
