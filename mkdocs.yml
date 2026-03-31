@@ -1,0 +1,29 @@
+site_name: ClawLoop
+site_description: AI agents that learn from experience
+site_url: https://aganthos.github.io/clawloop
+repo_url: https://github.com/aganthos/clawloop
+repo_name: aganthos/clawloop
+
+theme:
+  name: material
+  palette:
+    scheme: default
+    primary: indigo
+  features:
+    - navigation.sections
+    - content.code.copy
+
+nav:
+  - Home: index.md
+  - Concepts: concepts.md
+  - Getting Started: getting-started.md
+  - Adding Environments: adding-environments.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - toc:
+      permalink: true

@@ -64,7 +64,6 @@ def _build_parser() -> argparse.ArgumentParser:
 ADAPTER_REGISTRY: dict[str, tuple[str, str]] = {
     "entropic": ("clawloop.adapters.entropic", "EntropicAdapter"),
     "car": ("clawloop.adapters.car", "CARAdapter"),
-    "tau2": ("clawloop.adapters.tau2", "Tau2Adapter"),
 }
 
 
@@ -222,11 +221,6 @@ BENCH_SETUP: dict[str, dict[str, Any]] = {
         "data_setup": None,
         "uv_sync_cmd": ["uv", "sync"],
     },
-    # "tau2": {
-    #     "bench_dir": "benchmarks/tau-bench",
-    #     "data_setup": None,
-    #     "uv_sync_cmd": ["uv", "sync"],
-    # },
 }
 
 
