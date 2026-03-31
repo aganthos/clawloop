@@ -38,7 +38,7 @@ ClawLoop uses [litellm](https://docs.litellm.ai/) — any provider works:
 
 ```bash
 export OPENAI_API_KEY=sk-...
-python examples/demo_math.py --model openai/gpt-4o-mini
+python examples/demo_math.py --model openai/gpt-5-nano
 ```
 
 ## Add Learning to Your Agent
@@ -83,8 +83,8 @@ Any litellm-supported provider:
 
 ```json
 {"model": "anthropic/claude-haiku-4-5-20251001"}
-{"model": "openai/gpt-4o-mini"}
-{"model": "gemini/gemini-2.0-flash-lite"}
+{"model": "openai/gpt-5-nano"}
+{"model": "gemini/gemini-2.5-flash-lite"}
 ```
 
 Set the provider's API key as an environment variable (`ANTHROPIC_API_KEY`,
