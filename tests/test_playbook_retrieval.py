@@ -1,7 +1,7 @@
 """Tests for embedding-first playbook retrieval."""
 
 from clawloop.core.embeddings import MockEmbedding
-from clawloop.layers.harness import Harness, Playbook, PlaybookEntry
+from clawloop.learning_layers.harness import Harness, Playbook, PlaybookEntry
 
 
 def _make_playbook() -> Playbook:

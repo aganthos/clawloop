@@ -19,7 +19,7 @@ from clawloop.core.types import (
     SampleResult,
     SaveResult,
 )
-from clawloop.layers.harness import Harness
+from clawloop.learning_layers.harness import Harness
 
 
 @dataclass

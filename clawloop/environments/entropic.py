@@ -21,8 +21,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
-from clawloop.adapters._entropic_rewards import DEFAULT_ENTROPIC_WEIGHTS, map_entropic_scores
-from clawloop.adapters.base import EnvAdapter
+from clawloop.environments._entropic_rewards import DEFAULT_ENTROPIC_WEIGHTS, map_entropic_scores
+from clawloop.environments.base import EnvAdapter
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
 
 if TYPE_CHECKING:
@@ -190,7 +190,7 @@ class EntropicAdapter(EnvAdapter):
         green_proc = None
         try:
             # --- Step 0: Start or reuse purple agent (harness-injected) ---
-            from clawloop.adapters._entropic_purple import (
+            from clawloop.environments._entropic_purple import (
                 EntropicPurpleAgent,
                 start_purple_server,
             )

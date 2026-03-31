@@ -17,9 +17,9 @@ from typing import TYPE_CHECKING, Any
 log = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from clawloop.layers.harness import Harness
-    from clawloop.layers.router import Router
-    from clawloop.layers.weights import Weights
+    from clawloop.learning_layers.harness import Harness
+    from clawloop.learning_layers.router import Router
+    from clawloop.learning_layers.weights import Weights
 
 
 def _safe_default(obj: Any) -> str:

@@ -31,7 +31,7 @@ from typing import Any
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from clawloop.agent import ClawLoopAgent
-from clawloop.envs.math import MathEnvironment, _BUILTIN_PROBLEMS
+from clawloop.environments.math import MathEnvironment, _BUILTIN_PROBLEMS
 from clawloop.llm import LiteLLMClient, MockLLMClient
 
 log = logging.getLogger("clawloop.demo")

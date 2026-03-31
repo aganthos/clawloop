@@ -5,7 +5,7 @@ import pytest
 
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
 from clawloop.core.reward import RewardPipeline
-from clawloop.extractors.judge import JudgeExtractor
+from clawloop.reward_extractors.judge import JudgeExtractor
 
 
 @dataclass
@@ -104,7 +104,7 @@ class TestJudgeExtractor:
 
     def test_pipeline_skips_judge_when_not_needed(self):
         """Pipeline skips judge when high-confidence signals exist."""
-        from clawloop.extractors.execution import ExecutionExtractor
+        from clawloop.reward_extractors.execution import ExecutionExtractor
 
         llm = FakeLLM(["should not be called"])
         judge = JudgeExtractor(client=llm, n_votes=1)

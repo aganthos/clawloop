@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 from clawloop.core.episode import Episode
-from clawloop.layers.harness import Insight, PromptCandidate
+from clawloop.learning_layers.harness import Insight, PromptCandidate
 
 
 # ---------------------------------------------------------------------------

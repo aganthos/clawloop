@@ -5,7 +5,7 @@ ClawLoop environments are pluggable via the `EnvAdapter` interface.
 ## The Adapter Interface
 
 ```python
-from clawloop.adapters.base import EnvAdapter
+from clawloop.environments.base import EnvAdapter
 from clawloop.core.episode import Episode
 from clawloop.core.loop import AgentState
 
@@ -50,12 +50,12 @@ episode = Episode(
 )
 ```
 
-**Existing adapters to learn from:**
+**Existing environments to learn from (simple → complex):**
 
-- [`clawloop/envs/math.py`](https://github.com/aganthos/clawloop/blob/main/clawloop/envs/math.py) — minimal (~80 lines), good starting point
-- [`clawloop/envs/harbor.py`](https://github.com/aganthos/clawloop/blob/main/clawloop/envs/harbor.py) — sandboxed agent tasks via Docker
-- [`clawloop/adapters/car.py`](https://github.com/aganthos/clawloop/blob/main/clawloop/adapters/car.py) — external process orchestration (agentbeats-run)
-- [`clawloop/adapters/entropic.py`](https://github.com/aganthos/clawloop/blob/main/clawloop/adapters/entropic.py) — CRMArena A2A benchmark
+- [`clawloop/environments/math.py`](https://github.com/aganthos/clawloop/blob/main/clawloop/environments/math.py) — minimal (~80 lines), good starting point
+- [`clawloop/environments/harbor.py`](https://github.com/aganthos/clawloop/blob/main/clawloop/environments/harbor.py) — sandboxed agent tasks via Docker
+- [`clawloop/environments/car.py`](https://github.com/aganthos/clawloop/blob/main/clawloop/environments/car.py) — external process orchestration (agentbeats-run)
+- [`clawloop/environments/entropic.py`](https://github.com/aganthos/clawloop/blob/main/clawloop/environments/entropic.py) — CRMArena A2A benchmark
 
 ## Registering Your Adapter
 

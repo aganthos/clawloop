@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from clawloop.core.embeddings import EmbeddingProvider, cosine_similarity, find_similar
-from clawloop.layers.harness import Insight, Playbook, PlaybookEntry
+from clawloop.learning_layers.harness import Insight, Playbook, PlaybookEntry
 
 if TYPE_CHECKING:
     from clawloop.llm import LLMClient

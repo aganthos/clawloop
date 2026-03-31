@@ -17,7 +17,7 @@ from clawloop.core.evolver import (
     HarnessSnapshot,
     Provenance,
 )
-from clawloop.layers.harness import Insight, Playbook, PromptCandidate
+from clawloop.learning_layers.harness import Insight, Playbook, PromptCandidate
 
 log = logging.getLogger(__name__)
 
@@ -140,7 +140,7 @@ class LocalEvolver:
 
     def _rebuild_playbook(self, state: HarnessSnapshot) -> Playbook:
         """Reconstruct a Playbook from snapshot entries for sub-components."""
-        from clawloop.layers.harness import PlaybookEntry
+        from clawloop.learning_layers.harness import PlaybookEntry
 
         entries = []
         for e in state.playbook_entries:

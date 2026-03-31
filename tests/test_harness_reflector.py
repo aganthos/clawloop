@@ -5,8 +5,8 @@ import json
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
 from clawloop.core.reflector import Reflector
 from clawloop.core.types import Datum
-from clawloop.evolvers.local import LocalEvolver
-from clawloop.layers.harness import Harness, PlaybookEntry
+from clawloop.harness_backends.local import LocalEvolver
+from clawloop.learning_layers.harness import Harness, PlaybookEntry
 from clawloop.llm import MockLLMClient
 
 

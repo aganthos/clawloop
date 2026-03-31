@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from clawloop.adapters.entropic import EntropicAdapter
+from clawloop.environments.entropic import EntropicAdapter
 from clawloop.core.loop import AgentState
 
 

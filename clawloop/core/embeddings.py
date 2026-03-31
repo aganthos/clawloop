@@ -14,7 +14,7 @@ import urllib.request
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
-    from clawloop.layers.harness import PlaybookEntry
+    from clawloop.learning_layers.harness import PlaybookEntry
 
 
 # ---------------------------------------------------------------------------

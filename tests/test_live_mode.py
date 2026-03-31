@@ -8,9 +8,9 @@ from clawloop.core.episode import TokenLogProb, ToolCall, TokenUsage
 from clawloop.core.loop import AgentState
 from clawloop.core.reward import RewardPipeline
 from clawloop.exporters.skyrl import SkyRLExporter
-from clawloop.extractors.execution import ExecutionExtractor
-from clawloop.extractors.user_feedback import UserFeedbackExtractor
-from clawloop.layers.harness import Playbook, PlaybookEntry
+from clawloop.reward_extractors.execution import ExecutionExtractor
+from clawloop.reward_extractors.user_feedback import UserFeedbackExtractor
+from clawloop.learning_layers.harness import Playbook, PlaybookEntry
 from clawloop.learner import AsyncLearner
 from clawloop.llm import MockLLMClient
 from clawloop.wrapper import wrap

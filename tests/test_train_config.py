@@ -160,7 +160,7 @@ class TestMathAdapter:
         from unittest.mock import MagicMock
 
         from clawloop.core.episode import Episode
-        from clawloop.envs.math import MathAdapter, MathEnvironment
+        from clawloop.environments.math import MathAdapter, MathEnvironment
 
         env = MathEnvironment()
         mock_client = MagicMock()
@@ -187,7 +187,7 @@ class TestMathAdapter:
     def test_wrong_answer_gives_zero_reward(self):
         from unittest.mock import MagicMock
 
-        from clawloop.envs.math import MathAdapter, MathEnvironment
+        from clawloop.environments.math import MathAdapter, MathEnvironment
 
         env = MathEnvironment()
         mock_client = MagicMock()
@@ -210,7 +210,7 @@ class TestMathAdapter:
     def test_llm_failure_returns_filtered_episode(self):
         from unittest.mock import MagicMock
 
-        from clawloop.envs.math import MathAdapter, MathEnvironment
+        from clawloop.environments.math import MathAdapter, MathEnvironment
 
         env = MathEnvironment()
         mock_client = MagicMock()

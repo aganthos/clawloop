@@ -58,8 +58,8 @@ from clawloop.core.episode import Episode, EpisodeSummary, StepMeta
 from clawloop.core.reflector import Reflector, ReflectorConfig
 from clawloop.core.reward import RewardPipeline
 from clawloop.core.types import Datum
-from clawloop.evolvers.local import LocalEvolver
-from clawloop.layers.harness import Harness
+from clawloop.harness_backends.local import LocalEvolver
+from clawloop.learning_layers.harness import Harness
 from clawloop.llm import LiteLLMClient
 from clawloop.proxy import ProxyApp
 from clawloop.proxy_config import ProxyConfig

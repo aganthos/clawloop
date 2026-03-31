@@ -4,8 +4,8 @@
 import json
 from unittest.mock import MagicMock, patch
 
-from clawloop.adapters._entropic_purple import EntropicPurpleAgent
-from clawloop.layers.harness import Harness
+from clawloop.environments._entropic_purple import EntropicPurpleAgent
+from clawloop.learning_layers.harness import Harness
 
 
 def _make_harness(prompt: str = "") -> Harness:

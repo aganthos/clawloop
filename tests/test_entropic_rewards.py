@@ -1,7 +1,7 @@
 # tests/test_entropic_rewards.py
 """Tests for Entropic CRMArenaPro reward mapping."""
 
-from clawloop.adapters._entropic_rewards import map_entropic_scores, DEFAULT_ENTROPIC_WEIGHTS
+from clawloop.environments._entropic_rewards import map_entropic_scores, DEFAULT_ENTROPIC_WEIGHTS
 
 
 class TestMapEntropicScores:

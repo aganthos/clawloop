@@ -2,7 +2,7 @@
 
 from clawloop.core.curator import PlaybookCurator
 from clawloop.core.embeddings import MockEmbedding, cosine_similarity
-from clawloop.layers.harness import Insight, Playbook, PlaybookEntry
+from clawloop.learning_layers.harness import Insight, Playbook, PlaybookEntry
 from clawloop.llm import MockLLMClient
 
 

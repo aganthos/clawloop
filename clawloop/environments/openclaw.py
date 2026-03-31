@@ -29,7 +29,7 @@ import httpx
 import uvicorn
 from pydantic import SecretStr
 
-from clawloop.adapters.base import EnvAdapter
+from clawloop.environments.base import EnvAdapter
 from clawloop.collector import EpisodeCollector
 from clawloop.core.episode import Episode, EpisodeSummary, Message
 from clawloop.core.reward import RewardPipeline

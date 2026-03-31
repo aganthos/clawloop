@@ -24,8 +24,8 @@ from clawloop.core.evolution import EvolverConfig, PromptEvolver
 from clawloop.core.intensity import AdaptiveIntensity
 from clawloop.core.loop import AgentState, learning_loop
 from clawloop.core.reflector import Reflector, ReflectorConfig
-from clawloop.evolvers.local import LocalEvolver
-from clawloop.layers.harness import Harness, PromptCandidate, ParetoFront
+from clawloop.harness_backends.local import LocalEvolver
+from clawloop.learning_layers.harness import Harness, PromptCandidate, ParetoFront
 from clawloop.llm import LiteLLMClient
 
 log = logging.getLogger(__name__)
@@ -231,7 +231,7 @@ class TestFullyRealE2E:
         """ClawLoopAgent.learn() with real LiteLLMClient for both task and
         reflector, real MathEnvironment for scoring."""
         from clawloop.agent import ClawLoopAgent
-        from clawloop.envs.math import MathEnvironment
+        from clawloop.environments.math import MathEnvironment
 
         task_llm = LiteLLMClient(model=_MODEL)
         reflector_llm = LiteLLMClient(model=_MODEL)
@@ -316,7 +316,7 @@ class TestFullPipelineRealLLM:
     Zero mocks. Everything goes through the actual code paths."""
 
     def test_full_learning_loop_real_everything(self) -> None:
-        from clawloop.envs.math import MathEnvironment
+        from clawloop.environments.math import MathEnvironment
 
         llm = LiteLLMClient(model=_MODEL)
         env = MathEnvironment()

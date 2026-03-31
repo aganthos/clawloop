@@ -8,7 +8,7 @@ from clawloop.core.curator import (
     PlaybookCurator,
 )
 from clawloop.core.embeddings import MockEmbedding
-from clawloop.layers.harness import Playbook, PlaybookEntry
+from clawloop.learning_layers.harness import Playbook, PlaybookEntry
 from clawloop.llm import MockLLMClient
 
 

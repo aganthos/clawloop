@@ -62,8 +62,8 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 ADAPTER_REGISTRY: dict[str, tuple[str, str]] = {
-    "entropic": ("clawloop.adapters.entropic", "EntropicAdapter"),
-    "car": ("clawloop.adapters.car", "CARAdapter"),
+    "entropic": ("clawloop.environments.entropic", "EntropicAdapter"),
+    "car": ("clawloop.environments.car", "CARAdapter"),
 }
 
 

@@ -93,7 +93,7 @@ def _make_llm_client(cfg: LLMClientConfig):
 # ---------------------------------------------------------------------------
 
 def _build_harbor(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]):
-    from clawloop.envs.harbor import HarborAdapter, HarborTaskEnvironment
+    from clawloop.environments.harbor import HarborAdapter, HarborTaskEnvironment
 
     envs = [
         HarborTaskEnvironment(
@@ -107,7 +107,7 @@ def _build_harbor(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]):
 
 
 def _build_math(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]):
-    from clawloop.envs.math import MathAdapter, MathEnvironment
+    from clawloop.environments.math import MathAdapter, MathEnvironment
 
     task_client = _make_llm_client(llm_clients["task"])
     math_env = MathEnvironment()
@@ -116,7 +116,7 @@ def _build_math(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]):
 
 
 def _build_entropic(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]):
-    from clawloop.adapters.entropic import EntropicAdapter
+    from clawloop.environments.entropic import EntropicAdapter
 
     entropic_cfg = dict(config.env_config or {})
     if "task" in llm_clients:
@@ -138,7 +138,7 @@ def _build_entropic(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]
 def _build_openclaw(
     config: TrainConfig, llm_clients: dict[str, LLMClientConfig]
 ) -> tuple:
-    from clawloop.adapters.openclaw import OpenClawAdapter
+    from clawloop.environments.openclaw import OpenClawAdapter
 
     openclaw_cfg = dict(config.env_config or {})
     task_llm = llm_clients.get("task")
@@ -234,9 +234,9 @@ def train(config: TrainConfig):
     """
     from clawloop.core.intensity import AdaptiveIntensity
     from clawloop.core.loop import AgentState, learning_loop
-    from clawloop.layers.harness import Harness
-    from clawloop.layers.router import Router
-    from clawloop.layers.weights import Weights
+    from clawloop.learning_layers.harness import Harness
+    from clawloop.learning_layers.router import Router
+    from clawloop.learning_layers.weights import Weights
 
     layers = validate_config(config)
 
@@ -255,7 +255,7 @@ def train(config: TrainConfig):
     # 2. Weights backend
     backend = None
     if "weights" in layers:
-        from clawloop.backends.skyrl import SkyRLWeightsBackend, SkyRLWeightsConfig
+        from clawloop.weight_backends.skyrl import SkyRLWeightsBackend, SkyRLWeightsConfig
 
         skyrl_cfg = SkyRLWeightsConfig(**config.skyrl)
         backend = SkyRLWeightsBackend(skyrl_cfg)

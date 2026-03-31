@@ -11,7 +11,7 @@ import pytest
 
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
 from clawloop.core.loop import AgentState, learning_loop
-from clawloop.layers.harness import Harness
+from clawloop.learning_layers.harness import Harness
 
 
 def _make_episode(

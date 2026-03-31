@@ -59,8 +59,8 @@ the episode already has a high-confidence signal.
         OutcomeExtractor (needs env) and Judge (costs tokens) stay opt-in.
         Uses local imports to avoid circular dependencies.
         """
-        from clawloop.extractors.execution import ExecutionExtractor
-        from clawloop.extractors.user_feedback import UserFeedbackExtractor
+        from clawloop.reward_extractors.execution import ExecutionExtractor
+        from clawloop.reward_extractors.user_feedback import UserFeedbackExtractor
 
         return cls([ExecutionExtractor(), UserFeedbackExtractor()])
 

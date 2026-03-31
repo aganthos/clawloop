@@ -1,9 +1,9 @@
 """Tests for clawloop.core.state."""
 
 from clawloop.core.state import StateID, _canonical_json, _sha256
-from clawloop.layers.harness import Harness, ToolConfig
-from clawloop.layers.router import Router
-from clawloop.layers.weights import Weights
+from clawloop.learning_layers.harness import Harness, ToolConfig
+from clawloop.learning_layers.router import Router
+from clawloop.learning_layers.weights import Weights
 
 
 class TestCanonicalJson:

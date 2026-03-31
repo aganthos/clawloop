@@ -1,4 +1,4 @@
-"""Tests for clawloop.backends.skyrl — SkyRLWeightsBackend + SkyRLWeightsConfig.
+"""Tests for clawloop.weight_backends.skyrl — SkyRLWeightsBackend + SkyRLWeightsConfig.
 
 Mock tests bypass __init__ (no real SkyRL/GPU needed).
 Real-type tests are conditional on SkyRL submodule availability.
@@ -11,8 +11,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from clawloop.backends.base import BackendError
-from clawloop.backends.skyrl import SkyRLWeightsBackend, SkyRLWeightsConfig
+from clawloop.weight_backends.base import BackendError
+from clawloop.weight_backends.skyrl import SkyRLWeightsBackend, SkyRLWeightsConfig
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
 from clawloop.core.types import Datum, Future, SampleContext
 

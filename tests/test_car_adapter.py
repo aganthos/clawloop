@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 import pytest
 
-from clawloop.adapters.car import CARAdapter
+from clawloop.environments.car import CARAdapter
 from clawloop.core.loop import AgentState
 
 

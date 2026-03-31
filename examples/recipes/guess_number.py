@@ -33,9 +33,9 @@ from clawloop.core.intensity import AdaptiveIntensity
 from clawloop.core.loop import AgentState, learning_loop
 from clawloop.core.reward import RewardSignal
 from clawloop.core.types import SampleContext
-from clawloop.layers.harness import Harness
-from clawloop.layers.router import Router
-from clawloop.layers.weights import Weights
+from clawloop.learning_layers.harness import Harness
+from clawloop.learning_layers.router import Router
+from clawloop.learning_layers.weights import Weights
 from clawloop.train import MODE_LAYERS
 
 log = logging.getLogger("clawloop.recipe.guess_number")
@@ -217,7 +217,7 @@ def main():
     # 2. Weights — SkyRL backend (Tinker-compatible)
     backend = None
     if "weights" in layers:
-        from clawloop.backends.skyrl import SkyRLWeightsBackend, SkyRLWeightsConfig
+        from clawloop.weight_backends.skyrl import SkyRLWeightsBackend, SkyRLWeightsConfig
         backend = SkyRLWeightsBackend(SkyRLWeightsConfig(
             base_model=args.model,
             backend_type="skyrl_train",

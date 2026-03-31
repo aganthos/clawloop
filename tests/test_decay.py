@@ -2,7 +2,7 @@
 
 import time
 
-from clawloop.layers.harness import PlaybookEntry
+from clawloop.learning_layers.harness import PlaybookEntry
 
 
 class TestEffectiveScoreDecay:

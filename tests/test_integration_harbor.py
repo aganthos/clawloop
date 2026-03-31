@@ -14,7 +14,7 @@ import pytest
 
 from clawloop.core.episode import Episode
 from clawloop.core.loop import AgentState
-from clawloop.envs.harbor import HarborTaskEnvironment
+from clawloop.environments.harbor import HarborTaskEnvironment
 from clawloop.exporters.skyrl import SkyRLExporter
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures" / "harbor_tasks"

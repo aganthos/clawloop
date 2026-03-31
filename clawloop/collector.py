@@ -20,7 +20,7 @@ from clawloop.core.episode import (
 from clawloop.core.intensity import AdaptiveIntensity
 from clawloop.core.parse import parse_logprobs, parse_tool_calls
 from clawloop.core.reward import RewardPipeline, RewardSignal
-from clawloop.extractors.formatting import FormattingFilter
+from clawloop.reward_extractors.formatting import FormattingFilter
 
 log = logging.getLogger(__name__)
 

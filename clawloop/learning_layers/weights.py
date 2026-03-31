@@ -23,7 +23,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from clawloop.backends.base import ClawLoopBackend
+    from clawloop.weight_backends.base import ClawLoopBackend
 
 from clawloop.core.types import (
     Datum, FBResult, Future, LoadResult, OptimResult,

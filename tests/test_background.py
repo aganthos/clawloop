@@ -10,7 +10,7 @@ from clawloop.core.background import (
     PlaybookConsolidation,
 )
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
-from clawloop.layers.harness import Playbook, PlaybookEntry
+from clawloop.learning_layers.harness import Playbook, PlaybookEntry
 
 
 def _make_episode(task_id="t1", reward=0.5):

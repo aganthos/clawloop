@@ -8,7 +8,7 @@ import pytest
 from clawloop.agent import ClawLoopAgent
 from clawloop.core.env import EvalResult, Sample, StaticTaskEnvironment
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
-from clawloop.layers.harness import Insight, PlaybookEntry
+from clawloop.learning_layers.harness import Insight, PlaybookEntry
 from clawloop.llm import MockLLMClient
 
 
