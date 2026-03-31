@@ -1,4 +1,4 @@
-# clawloop/adapters/entropic.py
+# clawloop/environments/entropic.py
 """Entropic CRMArenaPro adapter — orchestrates the green agent with clawloop harness.
 
 Starts the entropic green agent as a long-running A2A server, starts a clawloop
