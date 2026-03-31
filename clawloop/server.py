@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import secrets
 import threading
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -12,6 +13,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from starlette.applications import Starlette
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, StreamingResponse
 from starlette.routing import Route
@@ -31,6 +33,33 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 VALID_ROLES = frozenset({"system", "user", "assistant", "tool"})
+LOCAL_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
+
+
+class ServerAuthMiddleware(BaseHTTPMiddleware):
+    """Protect API routes when a server API key is configured."""
+
+    def __init__(self, app: Any, api_key: str | None) -> None:
+        super().__init__(app)
+        self._api_key = api_key or ""
+
+    async def dispatch(self, request: Request, call_next: Any) -> Any:
+        if not self._api_key:
+            return await call_next(request)
+        if request.url.path.startswith("/dashboard"):
+            return await call_next(request)
+        auth = request.headers.get("authorization", "")
+        scheme, _, token = auth.partition(" ")
+        # SSE (EventSource) cannot send headers; accept ?api_key= for /events
+        qs_key = request.query_params.get("api_key", "")
+        has_valid_header = scheme.lower() == "bearer" and secrets.compare_digest(token, self._api_key)
+        has_valid_qs = qs_key and secrets.compare_digest(qs_key, self._api_key)
+        if not (has_valid_header or has_valid_qs):
+            return JSONResponse(
+                {"error": "unauthorized", "detail": "Invalid or missing API key"},
+                status_code=401,
+            )
+        return await call_next(request)
 
 
 class ClawLoopServer:
@@ -405,6 +434,7 @@ def create_app(
     model: str = "gpt-4o-mini",
     api_base: str | None = None,
     api_key: str | None = None,
+    server_api_key: str | None = None,
     proxy_config: "ProxyConfig | None" = None,
 ) -> Starlette:
     import os
@@ -475,6 +505,7 @@ def create_app(
         server.stop()
 
     app = Starlette(routes=routes, lifespan=lifespan)
+    app.add_middleware(ServerAuthMiddleware, api_key=server_api_key)
 
     static_dir = Path(__file__).parent / "static"
     if static_dir.exists():
@@ -490,7 +521,7 @@ def main() -> None:
     import argparse
     import os
     parser = argparse.ArgumentParser(description="clawloop-server for n8n integration")
-    parser.add_argument("--host", default="0.0.0.0")
+    parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8400)
     parser.add_argument("--seed-prompt", default=None)
     parser.add_argument("--bench", default="n8n")
@@ -498,6 +529,7 @@ def main() -> None:
     parser.add_argument("--model", default=None, help="LLM model for Reflector (litellm format)")
     parser.add_argument("--api-base", default=None, help="LLM API base URL")
     parser.add_argument("--api-key", default=None, help="LLM API key")
+    parser.add_argument("--server-api-key", default=None, help="Protect API endpoints with Authorization: Bearer ...")
     parser.add_argument("--log-level", default="INFO")
     args = parser.parse_args()
     logging.basicConfig(level=getattr(logging, args.log_level.upper()))
@@ -506,11 +538,19 @@ def main() -> None:
     api_base = args.api_base or os.environ.get("CLAWLOOP_API_BASE") or None
     api_key = args.api_key or os.environ.get("CLAWLOOP_API_KEY") or None
     model = args.model or os.environ.get("CLAWLOOP_MODEL") or "gpt-4o-mini"
+    server_api_key = args.server_api_key or os.environ.get("CLAWLOOP_SERVER_API_KEY") or None
+
+    if args.host not in LOCAL_HOSTS and not server_api_key:
+        raise SystemExit(
+            "Refusing to bind clawloop-server to a non-local host without "
+            "CLAWLOOP_SERVER_API_KEY or --server-api-key."
+        )
 
     app = create_app(
         seed_prompt_path=args.seed_prompt, bench=args.bench,
         batch_size=args.batch_size, model=model,
         api_base=api_base, api_key=api_key,
+        server_api_key=server_api_key,
     )
     import uvicorn
     uvicorn.run(app, host=args.host, port=args.port)

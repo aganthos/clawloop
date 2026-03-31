@@ -37,20 +37,20 @@ jobs:
           python-version: "3.12"
       - run: pip install build
 
-      - name: No enterprise imports in public code
+      - name: No private imports in public code
         run: |
-          MATCHES=$(grep -rn --include="*.py" -E '^\s*(from|import)\s+enterprise' clawloop/ tests/ examples/ 2>/dev/null | grep -v '\.claude/' || true)
+          MATCHES=$(grep -rn --include="*.py" -E '^\s*(from|import)\s+private_' clawloop/ tests/ examples/ 2>/dev/null | grep -v '\.claude/' || true)
           if [[ -n "$MATCHES" ]]; then
-            echo "::error::Enterprise imports found in public code"
+            echo "::error::Private imports found in public code"
             echo "$MATCHES"
             exit 1
           fi
 
-      - name: No enterprise references in docs
+      - name: No private placeholders in docs
         run: |
-          MATCHES=$(grep -rl "enterprise/" README.md CONTRIBUTING.md examples/ 2>/dev/null | grep -v '\.claude/' || true)
+          MATCHES=$(grep -rl "private/" README.md CONTRIBUTING.md examples/ 2>/dev/null | grep -v '\.claude/' || true)
           if [[ -n "$MATCHES" ]]; then
-            echo "::error::Public docs reference enterprise/"
+            echo "::error::Public docs reference private placeholders"
             echo "$MATCHES"
             exit 1
           fi
@@ -64,11 +64,11 @@ jobs:
             exit 1
           fi
 
-      - name: No residual lfx branding
+      - name: No residual legacy branding
         run: |
           MATCHES=$(grep -rnw --include="*.py" -i 'lfx' clawloop/ tests/ examples/ 2>/dev/null || true)
           if [[ -n "$MATCHES" ]]; then
-            echo "::warning::Residual lfx branding found"
+            echo "::warning::Residual legacy branding found"
             echo "$MATCHES"
           fi
 
@@ -77,7 +77,7 @@ jobs:
           python -m build --sdist --wheel
           python3 -c "
           import tarfile, zipfile, glob, sys
-          PRIVATE = ('enterprise', 'enterprise_clawloop', 'business', 'scripts')
+          PRIVATE = ('private', 'scripts')
           def check(path):
               parts = path.split('/')
               if len(parts) > 1 and '-' in parts[0]: parts = parts[1:]

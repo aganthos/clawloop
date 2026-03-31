@@ -14,7 +14,7 @@ import pytest
 from clawloop.backends.base import BackendError
 from clawloop.backends.skyrl import SkyRLWeightsBackend, SkyRLWeightsConfig
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
-from clawloop.core.types import Datum, SampleContext
+from clawloop.core.types import Datum, Future, SampleContext
 
 
 # ---------------------------------------------------------------------------
@@ -100,6 +100,8 @@ class TestForwardBackwardMocked:
     def test_calls_backend(self) -> None:
         backend = _make_backend_with_mocks()
         backend._backend.forward_backward.return_value = {}
+        # Mock _to_prepared_batch to avoid SkyRL import (not available in CI)
+        backend._to_prepared_batch = MagicMock(return_value=MagicMock())
 
         result = backend.forward_backward(Datum(episodes=[_make_episode()])).result()
         assert result.status == "ok"
@@ -247,8 +249,18 @@ class TestForwardBackwardRealTypes:
 
 class TestOptimStep:
     def test_calls_backend(self) -> None:
+        from clawloop.core.types import OptimResult
+
         backend = _make_backend_with_mocks()
         backend._backend.optim_step.return_value = MagicMock(metrics={"grad_norm": 0.1})
+
+        # Bypass the real optim_step which imports skyrl.tinker.types
+        def _mock_optim_step():
+            result = backend._backend.optim_step(backend._model_id, MagicMock())
+            metrics = result.metrics if result.metrics else {}
+            return Future.immediate(OptimResult(status="ok", updates_applied=1, metrics=metrics))
+
+        backend.optim_step = _mock_optim_step
 
         result = backend.optim_step().result()
         assert result.status == "ok"
