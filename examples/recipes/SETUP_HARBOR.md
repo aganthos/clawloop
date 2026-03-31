@@ -93,9 +93,8 @@ To change provider, edit the `trial_config` in the recipe or pass
 ## 5. Lambda GPU Box Setup
 
 ```bash
-# Already done if you followed scripts/gpu_validation/setup.sh
 # Just add Harbor:
-source ~/aganthos/.venv/bin/activate
+source ~/clawloop/.venv/bin/activate
 uv pip install harbor
 
 # Docker should already be running
@@ -105,7 +104,7 @@ docker ps
 harbor datasets download bfcl_parity@1.0 -o ~/data/bfcl_parity
 
 # Run weight training
-cd ~/aganthos
+cd ~/clawloop
 PYTHONPATH=$PWD:$PYTHONPATH python examples/recipes/harbor_bfcl.py \
     --mode weight \
     --task-dir ~/data/bfcl_parity \
