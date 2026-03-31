@@ -23,11 +23,11 @@ jobs:
         run: |
           python3 -c "
           import tarfile, zipfile, glob, sys
-          PRIVATE = ('enterprise', 'enterprise_clawloop', 'business', 'scripts')
+          ALLOWED = {'clawloop', 'tests', 'examples', 'LICENSE', 'README.md', 'CONTRIBUTING.md', 'CHANGELOG.md', 'PKG-INFO'}
           def check(path):
               parts = path.split('/')
               if len(parts) > 1 and '-' in parts[0]: parts = parts[1:]
-              return len(parts) > 0 and parts[0] in PRIVATE
+              return len(parts) > 0 and parts[0] not in ALLOWED
           for f in glob.glob('dist/*.tar.gz'):
               for m in tarfile.open(f).getmembers():
                   if check(m.name): print(f'LEAK: {m.name}'); sys.exit(1)

@@ -109,9 +109,13 @@ class EntropicAdapter(EnvAdapter):
 
     def setup(self, config: dict[str, Any]) -> None:
         self._model = config.get("model", "anthropic/claude-haiku-4-5-20251001")
-        self._bench_path = Path(
-            config.get("entropic_bench_path", "benchmarks/a2a/entropic-crmarenapro")
-        )
+        entropic_bench_path = config.get("entropic_bench_path")
+        if not entropic_bench_path:
+            raise ValueError(
+                "entropic_bench_path is required in config — "
+                "point it at your local clone of entropic-crmarenapro"
+            )
+        self._bench_path = Path(entropic_bench_path)
         self._output_dir = Path(
             config.get("output", f"./runs/entropic/{int(time.time())}")
         )

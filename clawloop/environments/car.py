@@ -37,9 +37,13 @@ class CARAdapter(EnvAdapter):
 
     def setup(self, config: dict[str, Any]) -> None:
         self._model = config.get("model", "anthropic/claude-haiku-4-5-20251001")
-        self._car_bench_path = Path(
-            config.get("car_bench_path", "benchmarks/a2a/car-bench")
-        )
+        car_bench_path = config.get("car_bench_path")
+        if not car_bench_path:
+            raise ValueError(
+                "car_bench_path is required in config — "
+                "point it at your local clone of CAR-bench"
+            )
+        self._car_bench_path = Path(car_bench_path)
         self._output_dir = Path(
             config.get("output", f"./runs/car/{int(time.time())}")
         )
