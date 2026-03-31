@@ -9,7 +9,7 @@ from clawloop.completion import CompletionResult
 from clawloop.core.env import EvalResult, Sample, StaticTaskEnvironment
 from clawloop.core.episode import TokenLogProb
 from clawloop.core.reward import RewardPipeline, RewardSignal
-from clawloop.evolvers.local import LocalEvolver
+from clawloop.harness_backends.local import LocalEvolver
 from clawloop.learner import AsyncLearner
 from clawloop.llm import LiteLLMClient, MockLLMClient
 from clawloop.wrapper import wrap

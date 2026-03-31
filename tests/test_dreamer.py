@@ -4,7 +4,7 @@ import json
 
 from clawloop.core.background import BackgroundState, EpisodeDreamer
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
-from clawloop.layers.harness import Playbook, PlaybookEntry
+from clawloop.learning_layers.harness import Playbook, PlaybookEntry
 from clawloop.llm import MockLLMClient
 
 

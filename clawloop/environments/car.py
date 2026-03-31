@@ -17,8 +17,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
-from clawloop.adapters._car_rewards import DEFAULT_CAR_WEIGHTS, map_car_scores
-from clawloop.adapters.base import EnvAdapter
+from clawloop.environments._car_rewards import DEFAULT_CAR_WEIGHTS, map_car_scores
+from clawloop.environments.base import EnvAdapter
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
 
 if TYPE_CHECKING:

@@ -1,8 +1,8 @@
-"""Tests for clawloop.layers (harness, router, weights)."""
+"""Tests for clawloop.learning_layers (harness, router, weights)."""
 
 import json
 
-from clawloop.layers.harness import (
+from clawloop.learning_layers.harness import (
     Harness,
     Insight,
     ParetoFront,
@@ -11,8 +11,8 @@ from clawloop.layers.harness import (
     PromptCandidate,
     ToolConfig,
 )
-from clawloop.layers.router import QueryFeatures, Router, Tier
-from clawloop.layers.weights import GRPOConfig, Weights
+from clawloop.learning_layers.router import QueryFeatures, Router, Tier
+from clawloop.learning_layers.weights import GRPOConfig, Weights
 
 
 # -- ToolConfig --

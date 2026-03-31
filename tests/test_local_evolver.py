@@ -5,8 +5,8 @@ from unittest.mock import MagicMock
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
 from clawloop.core.evolver import EvolverContext, EvolverResult, HarnessSnapshot
 from clawloop.core.reward import RewardSignal
-from clawloop.evolvers.local import LocalEvolver
-from clawloop.layers.harness import Insight, Playbook, PromptCandidate
+from clawloop.harness_backends.local import LocalEvolver
+from clawloop.learning_layers.harness import Insight, Playbook, PromptCandidate
 
 
 def _make_episode(reward: float = 0.5, bench: str = "test") -> Episode:

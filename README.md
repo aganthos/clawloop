@@ -67,7 +67,7 @@ result = wrapped.complete(messages)  # transparently captures traces for learnin
 
 ```python
 from clawloop import ClawLoopAgent
-from clawloop.envs.math import MathEnvironment
+from clawloop.environments.math import MathEnvironment
 
 agent = ClawLoopAgent(
     task_client=task_llm,
@@ -183,7 +183,7 @@ ENV_BUILDERS["my_env"] = _build_my_env
 ```
 
 Your adapter's `run_episode` must return an `Episode` with messages, steps,
-and an `EpisodeSummary` containing reward signals. See `clawloop/envs/math.py`
+and an `EpisodeSummary` containing reward signals. See `clawloop/environments/math.py`
 (`MathAdapter`) for a minimal example (~80 lines).
 
 </details>

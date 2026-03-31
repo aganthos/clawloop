@@ -15,7 +15,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any
 
-from clawloop.layers.harness import Insight, Playbook
+from clawloop.learning_layers.harness import Insight, Playbook
 
 log = logging.getLogger(__name__)
 

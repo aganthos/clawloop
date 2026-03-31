@@ -34,8 +34,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
 from clawloop.core.reflector import Reflector, ReflectorConfig
 from clawloop.core.types import Datum
-from clawloop.evolvers.local import LocalEvolver
-from clawloop.layers.harness import Harness, PlaybookEntry
+from clawloop.harness_backends.local import LocalEvolver
+from clawloop.learning_layers.harness import Harness, PlaybookEntry
 from clawloop.llm import LiteLLMClient, MockLLMClient
 
 

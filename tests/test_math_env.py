@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from clawloop.core.env import EvalResult, Sample
-from clawloop.envs.math import MathEnvironment, extract_answer
+from clawloop.environments.math import MathEnvironment, extract_answer
 
 
 # ---------------------------------------------------------------------------

@@ -1,13 +1,14 @@
-"""Tests for clawloop.backends — BackendError, SkyRLBackendInitError, ClawLoopBackend protocol."""
+"""Tests for clawloop.weight_backends — BackendError, SkyRLBackendInitError, ClawLoopBackend protocol."""
 
 from __future__ import annotations
 
 import pytest
 
-from clawloop.backends import BackendError, ClawLoopBackend, SkyRLBackendInitError, HarnessLearningBackend, HarnessLearningConfig
+from clawloop.weight_backends import BackendError, ClawLoopBackend, SkyRLBackendInitError
+from clawloop.learning_layers import HarnessLearningBackend, HarnessLearningConfig
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
 from clawloop.core.types import Datum, SampleContext
-from clawloop.layers.harness import Harness
+from clawloop.learning_layers.harness import Harness
 
 
 def _make_episode(reward: float = 0.8) -> Episode:

@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 from clawloop.core.episode import Episode, EpisodeSummary, Message
 from clawloop.core.loop import AgentState
 from clawloop.core.types import FBResult, Future
-from clawloop.layers.harness import Harness, Playbook, PlaybookEntry
+from clawloop.learning_layers.harness import Harness, Playbook, PlaybookEntry
 from clawloop.learner import AsyncLearner
 
 

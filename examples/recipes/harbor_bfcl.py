@@ -43,10 +43,10 @@ def run_harness_learning(args):
     from clawloop.core.intensity import AdaptiveIntensity
     from clawloop.core.loop import AgentState, learning_loop
     from clawloop.core.reflector import Reflector
-    from clawloop.envs.harbor import HarborAdapter, HarborTaskEnvironment
-    from clawloop.layers.harness import Harness
-    from clawloop.layers.router import Router
-    from clawloop.layers.weights import Weights
+    from clawloop.environments.harbor import HarborAdapter, HarborTaskEnvironment
+    from clawloop.learning_layers.harness import Harness
+    from clawloop.learning_layers.router import Router
+    from clawloop.learning_layers.weights import Weights
     from clawloop.llm import LiteLLMClient
 
     task_dirs = _find_task_dirs(args.task_dir)

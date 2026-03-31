@@ -3,7 +3,7 @@
 from clawloop.core.episode import Episode, EpisodeSummary, Message
 from clawloop.core.reward import RewardSignal
 from clawloop.core.types import Datum
-from clawloop.layers.harness import Harness, Insight, Playbook, PlaybookEntry
+from clawloop.learning_layers.harness import Harness, Insight, Playbook, PlaybookEntry
 
 
 def _ep_with_signal(name: str, value: float, confidence: float = 1.0) -> Episode:

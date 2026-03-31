@@ -8,7 +8,7 @@ import pytest
 
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
 from clawloop.core.evolution import EvolverConfig, PromptEvolver
-from clawloop.layers.harness import PromptCandidate
+from clawloop.learning_layers.harness import PromptCandidate
 from clawloop.llm import MockLLMClient
 
 

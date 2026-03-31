@@ -56,7 +56,7 @@ Or use the full agent API:
 
 ```python
 from clawloop import ClawLoopAgent
-from clawloop.envs.math import MathEnvironment
+from clawloop.environments.math import MathEnvironment
 
 agent = ClawLoopAgent(
     task_client=task_llm,

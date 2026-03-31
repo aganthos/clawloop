@@ -6,7 +6,7 @@ pruning, capping, and metrics without requiring external services.
 """
 
 from clawloop.core.curator import CuratorConfig, PlaybookCurator
-from clawloop.layers.harness import Insight, Playbook, PlaybookEntry
+from clawloop.learning_layers.harness import Insight, Playbook, PlaybookEntry
 
 
 class TestLightweightCurator:

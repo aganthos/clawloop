@@ -21,14 +21,14 @@ from clawloop.core.curator import CuratorConfig, PlaybookCurator
 from clawloop.core.embeddings import MockEmbedding
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
 from clawloop.core.evolution import EvolverConfig, PromptEvolver
-from clawloop.evolvers.local import LocalEvolver
+from clawloop.harness_backends.local import LocalEvolver
 from clawloop.core.intensity import AdaptiveIntensity
 from clawloop.core.loop import AgentState, learning_loop
 from clawloop.core.reflector import Reflector, ReflectorConfig
 from clawloop.core.reward import RewardPipeline
 from clawloop.core.types import Datum
-from clawloop.envs.math import MathEnvironment
-from clawloop.layers.harness import Harness, Playbook, PlaybookEntry, PromptCandidate, ParetoFront
+from clawloop.environments.math import MathEnvironment
+from clawloop.learning_layers.harness import Harness, Playbook, PlaybookEntry, PromptCandidate, ParetoFront
 from clawloop.llm import MockLLMClient
 from clawloop.wrapper import WrappedClient, wrap
 

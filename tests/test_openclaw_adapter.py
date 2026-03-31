@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from clawloop.adapters.openclaw import OpenClawAdapter
+from clawloop.environments.openclaw import OpenClawAdapter
 from clawloop.core.loop import AgentState
 
 

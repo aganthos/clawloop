@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from typing import Any
 from uuid import uuid4
 
-from clawloop.backends.base import BackendError, SkyRLBackendInitError
+from clawloop.weight_backends.base import BackendError, SkyRLBackendInitError
 from clawloop.core.types import (
     Datum,
     FBResult,

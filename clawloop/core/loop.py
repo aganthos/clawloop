@@ -22,9 +22,9 @@ from clawloop.core.evolution_log import EvolutionEntry, EvolutionLog
 from clawloop.core.intensity import AdaptiveIntensity
 from clawloop.core.state import StateID
 from clawloop.core.types import Datum, FBResult, Future, OptimResult
-from clawloop.layers.harness import Harness
-from clawloop.layers.router import Router
-from clawloop.layers.weights import Weights
+from clawloop.learning_layers.harness import Harness
+from clawloop.learning_layers.router import Router
+from clawloop.learning_layers.weights import Weights
 
 log = logging.getLogger(__name__)
 

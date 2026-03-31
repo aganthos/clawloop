@@ -24,8 +24,8 @@ from clawloop.core.evolution import EvolverConfig, PromptEvolver
 from clawloop.core.evolver import EvolverContext, HarnessSnapshot
 from clawloop.core.reflector import Reflector, ReflectorConfig
 from clawloop.core.types import Datum
-from clawloop.evolvers.local import LocalEvolver
-from clawloop.layers.harness import Harness, PlaybookEntry, PromptCandidate, ParetoFront
+from clawloop.harness_backends.local import LocalEvolver
+from clawloop.learning_layers.harness import Harness, PlaybookEntry, PromptCandidate, ParetoFront
 from clawloop.llm import LiteLLMClient
 
 log = logging.getLogger(__name__)

@@ -23,8 +23,8 @@ from clawloop.core.intensity import AdaptiveIntensity
 from clawloop.core.paradigm import ParadigmBreakthrough
 from clawloop.core.reflector import Reflector
 from clawloop.core.types import Datum
-from clawloop.evolvers.local import LocalEvolver
-from clawloop.layers.harness import Harness, Playbook, PlaybookEntry
+from clawloop.harness_backends.local import LocalEvolver
+from clawloop.learning_layers.harness import Harness, Playbook, PlaybookEntry
 
 log = logging.getLogger(__name__)
 

@@ -14,7 +14,7 @@ from typing import Any
 
 from clawloop.core.episode import Episode
 from clawloop.core.parse import extract_json
-from clawloop.layers.harness import PromptCandidate
+from clawloop.learning_layers.harness import PromptCandidate
 
 log = logging.getLogger(__name__)
 

@@ -4,7 +4,7 @@ import json
 
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
 from clawloop.core.reflector import Reflector, ReflectorConfig
-from clawloop.layers.harness import Insight, Playbook, PlaybookEntry
+from clawloop.learning_layers.harness import Insight, Playbook, PlaybookEntry
 from clawloop.llm import MockLLMClient
 
 

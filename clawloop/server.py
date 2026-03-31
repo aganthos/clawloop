@@ -22,8 +22,8 @@ from clawloop.collector import EpisodeCollector
 from clawloop.core.loop import AgentState
 from clawloop.core.reflector import Reflector, ReflectorConfig
 from clawloop.core.reward import RewardPipeline
-from clawloop.evolvers.local import LocalEvolver
-from clawloop.layers.harness import Harness
+from clawloop.harness_backends.local import LocalEvolver
+from clawloop.learning_layers.harness import Harness
 from clawloop.learner import AsyncLearner
 
 if TYPE_CHECKING:

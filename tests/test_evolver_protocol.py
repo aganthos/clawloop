@@ -58,7 +58,7 @@ def test_harness_snapshot_serializable():
 
 
 def test_evolver_result_with_all_fields():
-    from clawloop.layers.harness import Insight
+    from clawloop.learning_layers.harness import Insight
 
     result = EvolverResult(
         insights=[Insight(action="add", content="test insight", tags=["test"])],

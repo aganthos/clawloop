@@ -1,7 +1,7 @@
 # tests/test_car_rewards.py
 """Tests for CAR-bench reward mapping."""
 
-from clawloop.adapters._car_rewards import map_car_scores, DEFAULT_CAR_WEIGHTS
+from clawloop.environments._car_rewards import map_car_scores, DEFAULT_CAR_WEIGHTS
 
 
 class TestMapCarScores:

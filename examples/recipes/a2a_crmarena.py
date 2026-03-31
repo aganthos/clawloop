@@ -38,13 +38,13 @@ log = logging.getLogger("clawloop.recipe.a2a_crmarena")
 # ---------------------------------------------------------------------------
 
 def run_harness_learning(args):
-    from clawloop.adapters.entropic import EntropicAdapter
+    from clawloop.environments.entropic import EntropicAdapter
     from clawloop.core.intensity import AdaptiveIntensity
     from clawloop.core.loop import AgentState, learning_loop
     from clawloop.core.reflector import Reflector
-    from clawloop.layers.harness import Harness
-    from clawloop.layers.router import Router
-    from clawloop.layers.weights import Weights
+    from clawloop.learning_layers.harness import Harness
+    from clawloop.learning_layers.router import Router
+    from clawloop.learning_layers.weights import Weights
     from clawloop.llm import LiteLLMClient
 
     harness = Harness(system_prompts={
@@ -90,12 +90,12 @@ def run_harness_learning(args):
 # ---------------------------------------------------------------------------
 
 def run_weight_training(args):
-    from clawloop.adapters.entropic import EntropicAdapter
-    from clawloop.backends.skyrl import SkyRLWeightsBackend, SkyRLWeightsConfig
+    from clawloop.environments.entropic import EntropicAdapter
+    from clawloop.weight_backends.skyrl import SkyRLWeightsBackend, SkyRLWeightsConfig
     from clawloop.core.loop import AgentState, learning_loop
-    from clawloop.layers.harness import Harness
-    from clawloop.layers.router import Router
-    from clawloop.layers.weights import Weights
+    from clawloop.learning_layers.harness import Harness
+    from clawloop.learning_layers.router import Router
+    from clawloop.learning_layers.weights import Weights
 
     harness = Harness(system_prompts={
         "entropic": (

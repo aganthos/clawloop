@@ -44,9 +44,9 @@ def run_harness_learning(args):
     from clawloop.core.reflector import Reflector
     from clawloop.core.reward import RewardSignal
     from clawloop.core.types import SampleContext
-    from clawloop.layers.harness import Harness
-    from clawloop.layers.router import Router
-    from clawloop.layers.weights import Weights
+    from clawloop.learning_layers.harness import Harness
+    from clawloop.learning_layers.router import Router
+    from clawloop.learning_layers.weights import Weights
     from clawloop.llm import LiteLLMClient
 
     harness = Harness(system_prompts={

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 
 from clawloop.core.paradigm import ParadigmBreakthrough, ParadigmConfig
-from clawloop.layers.harness import Insight, Playbook, PlaybookEntry
+from clawloop.learning_layers.harness import Insight, Playbook, PlaybookEntry
 from clawloop.llm import MockLLMClient
 
 

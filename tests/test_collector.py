@@ -5,7 +5,7 @@ import threading
 from clawloop.collector import EpisodeCollector
 from clawloop.core.episode import Message
 from clawloop.core.reward import RewardPipeline
-from clawloop.extractors.formatting import FormattingFilter
+from clawloop.reward_extractors.formatting import FormattingFilter
 
 
 class _TrackingCallback:
@@ -314,7 +314,7 @@ class TestIngestExternal:
         assert ep.steps == []
 
     def test_external_episodes_get_reward_pipeline(self) -> None:
-        from clawloop.extractors.execution import ExecutionExtractor
+        from clawloop.reward_extractors.execution import ExecutionExtractor
         collector = EpisodeCollector(
             pipeline=RewardPipeline([ExecutionExtractor()]),
             batch_size=100,

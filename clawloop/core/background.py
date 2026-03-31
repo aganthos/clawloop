@@ -16,7 +16,7 @@ from typing import Any, Protocol, runtime_checkable
 
 from clawloop.core.episode import Episode
 from clawloop.core.parse import extract_json
-from clawloop.layers.harness import Insight, Playbook, PlaybookEntry
+from clawloop.learning_layers.harness import Insight, Playbook, PlaybookEntry
 
 log = logging.getLogger(__name__)
 

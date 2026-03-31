@@ -3,7 +3,7 @@
 import json
 
 from clawloop.agent import ClawLoopAgent
-from clawloop.envs.math import MathEnvironment
+from clawloop.environments.math import MathEnvironment
 from clawloop.llm import MockLLMClient
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
 
