@@ -24,3 +24,6 @@ build/
 dist/
 examples/openclaw_runner/node_modules/
 examples/openclaw_runner/package-lock.json
+
+# Runtime artifacts
+playbook.json

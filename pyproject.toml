@@ -46,8 +46,6 @@ server = [
     "uvicorn>=0.20",
     "httpx>=0.24",
 ]
-# tau2 = ["tau-bench"]  # deferred — not yet on PyPI
-
 [project.scripts]
 clawloop = "clawloop.cli:main"
 clawloop-server = "clawloop.server:main"
@@ -56,6 +54,7 @@ clawloop-server = "clawloop.server:main"
 Homepage = "https://github.com/aganthos/clawloop"
 Repository = "https://github.com/aganthos/clawloop"
 Issues = "https://github.com/aganthos/clawloop/issues"
+Website = "https://aganthos.com"
 
 [tool.hatch.build.targets.sdist]
 include = [

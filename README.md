@@ -200,6 +200,22 @@ and an `EpisodeSummary` containing reward signals. See `clawloop/envs/math.py`
 
 </details>
 
+## Enterprise
+
+ClawLoop Enterprise adds premium learning backends and production
+infrastructure on top of the community edition.
+
+- **Advanced evolution** — multi-island evolutionary search (SkyDiscover
+  AdaEvolve) explores the prompt and playbook space more broadly than the
+  community reflector, with async execution and concurrency control
+- **Persistent playbooks** — versioned storage with rollback so learned
+  strategies survive restarts
+- **Managed weight training** — GPU workers for LoRA and GRPO without
+  self-hosting
+- **Logging & lineage** — episode archive with provenance tracking
+
+Contact [info@aganthos.com](mailto:info@aganthos.com) to learn more.
+
 ## License
 
 ClawLoop is licensed under the [Business Source License 1.1](LICENSE) with

@@ -35,8 +35,6 @@ REWARD_METRICS = list(DEFAULT_CAR_WEIGHTS.keys())
 class CARAdapter(EnvAdapter):
     """Adapter for CAR-bench. Runs agentbeats-run per learning iteration."""
 
-    CAR_BENCH_TESTED_COMMIT = "TBD"
-
     def setup(self, config: dict[str, Any]) -> None:
         self._model = config.get("model", "anthropic/claude-haiku-4-5-20251001")
         self._car_bench_path = Path(
