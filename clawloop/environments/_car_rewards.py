@@ -1,4 +1,4 @@
-# clawloop/adapters/_car_rewards.py
+# clawloop/environments/_car_rewards.py
 """CAR-bench reward mapping — converts CAR metrics to clawloop RewardSignals."""
 
 from __future__ import annotations

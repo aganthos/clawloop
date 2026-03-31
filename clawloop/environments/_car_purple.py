@@ -1,4 +1,4 @@
-# clawloop/adapters/_car_purple.py
+# clawloop/environments/_car_purple.py
 """A2A purple agent server for CAR-bench with clawloop harness injection."""
 
 from __future__ import annotations

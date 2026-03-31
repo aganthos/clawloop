@@ -1,4 +1,4 @@
-# clawloop/adapters/car.py
+# clawloop/environments/car.py
 """CAR-bench adapter — orchestrates agentbeats-run with clawloop harness injection.
 
 Writes harness prompt to a JSON file, generates a scenario.toml that spawns
