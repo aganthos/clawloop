@@ -54,6 +54,7 @@ clawloop-server = "clawloop.server:main"
 Homepage = "https://github.com/aganthos/clawloop"
 Repository = "https://github.com/aganthos/clawloop"
 Issues = "https://github.com/aganthos/clawloop/issues"
+Documentation = "https://aganthos.github.io/clawloop"
 Website = "https://aganthos.com"
 
 [tool.hatch.build.targets.sdist]
