@@ -57,16 +57,17 @@ All three layers implement the **Layer Protocol** — a two-phase contract:
 
 ### Harness
 
-Prompt optimization and memory. Combines three mechanisms:
+The agent's full configuration surface: system prompt, playbook (learned
+strategies), and tool schemas. The harness layer optimizes all three through
+pluggable **Evolver** backends.
 
-- **Reflector** — LLM reads episode traces, extracts reusable strategies as
-  `Insight` objects (not task-specific answers, but general patterns)
-- **Playbook Curator** — retrieve-classify-revise pipeline that integrates
-  insights, merges duplicates, resolves conflicts, and prunes bad entries
-- **GEPA** — Pareto-front prompt evolution via mutation and crossover
+The community `LocalEvolver` combines a Reflector (extracts reusable insights
+from episode traces), a Playbook Curator (merges, deduplicates, prunes), and
+GEPA (Pareto-front prompt evolution). Enterprise backends swap in broader
+search algorithms. The harness itself is agnostic to which evolver drives it.
 
 ```python
-harness.system_prompt("math")  # returns prompt with injected playbook entries
+harness.system_prompt("math")  # prompt + injected playbook entries + tool config
 harness.playbook               # current learned strategies
 ```
 
@@ -82,12 +83,15 @@ router.classify(features) # returns tier: LIGHT, MEDIUM, HEAVY, REASONING
 
 ### Weights
 
-Model fine-tuning via SkyRL. Tracks base model, LoRA adapters, and GRPO
-training configuration.
+Model weight training. Delegates to pluggable backends — the default
+[SkyRL/Tinker](https://github.com/NovaSky-AI/SkyRL) backend supports
+GRPO, PPO, SFT, DPO, LoRA, and full fine-tuning. The weights layer
+computes per-task advantages from episodes and passes them to whichever
+training method the backend is configured to use.
 
 ```python
-weights.active_adapter  # current LoRA adapter reference
-weights.grpo_config     # GRPOConfig with learning rate, KL coeff, etc.
+weights.active_adapter  # current adapter reference (if applicable)
+weights.grpo_config     # training hyperparameters
 ```
 
 ## State
