@@ -221,7 +221,7 @@ class Episode:
     id: str
     state_id: str  # hash of layers used
     task_id: str
-    bench: str  # "entropic" | "car" | "tau2" | ...
+    bench: str  # "entropic" | "car" | ...
     messages: list[Message]
     step_boundaries: list[int]  # indices into messages where each agent turn starts
     steps: list[StepMeta]
