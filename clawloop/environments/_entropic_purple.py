@@ -1,4 +1,4 @@
-# clawloop/adapters/_entropic_purple.py
+# clawloop/environments/_entropic_purple.py
 """A2A purple agent server for Entropic CRMArenaPro with clawloop harness injection.
 
 The entropic green agent sends CRM task prompts as plain text via A2A
