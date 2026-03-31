@@ -29,7 +29,8 @@ Your `run_episode` must return an `Episode` with messages, steps, and reward
 signals:
 
 ```python
-from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta, RewardSignal
+from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
+from clawloop.core.reward import RewardSignal
 
 episode = Episode(
     id=str(uuid4()),
@@ -42,15 +43,19 @@ episode = Episode(
         Message(role="assistant", content=agent_response),
     ],
     step_boundaries=[1],  # agent turn starts at message index 1
-    steps=[StepMeta(t=0, reward=score, done=True)],
+    steps=[StepMeta(t=0, reward=score, done=True, timing_ms=0.0)],
     summary=EpisodeSummary(
-        signals={"outcome": RewardSignal(value=score, source="outcome")},
+        signals={"outcome": RewardSignal(name="outcome", value=score, confidence=1.0)},
     ),
 )
 ```
 
-See `clawloop/envs/math.py` (`MathAdapter`) for a minimal working example
-(~80 lines).
+**Existing adapters to learn from:**
+
+- [`clawloop/envs/math.py`](https://github.com/aganthos/clawloop/blob/main/clawloop/envs/math.py) — minimal (~80 lines), good starting point
+- [`clawloop/envs/harbor.py`](https://github.com/aganthos/clawloop/blob/main/clawloop/envs/harbor.py) — sandboxed agent tasks via Docker
+- [`clawloop/adapters/car.py`](https://github.com/aganthos/clawloop/blob/main/clawloop/adapters/car.py) — external process orchestration (agentbeats-run)
+- [`clawloop/adapters/entropic.py`](https://github.com/aganthos/clawloop/blob/main/clawloop/adapters/entropic.py) — CRMArena A2A benchmark
 
 ## Registering Your Adapter
 

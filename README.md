@@ -137,7 +137,7 @@ ClawLoop uses [litellm](https://docs.litellm.ai/) — any provider works:
 ```json
 {"model": "anthropic/claude-haiku-4-5-20251001"}
 {"model": "openai/gpt-5-nano"}
-{"model": "gemini/gemini-2.5-flash-lite"}
+{"model": "gemini/gemini-3.1-flash-lite"}
 ```
 
 Set the provider's API key as an environment variable (`ANTHROPIC_API_KEY`,

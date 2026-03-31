@@ -25,7 +25,7 @@ Use `ClawLoopAgent` with any litellm-supported LLM:
 ANTHROPIC_API_KEY=... python examples/demo_math.py
 
 # With OpenAI
-CLAWLOOP_TASK_MODEL=openai/gpt-4o-mini CLAWLOOP_REFLECTOR_MODEL=openai/gpt-4o \
+CLAWLOOP_TASK_MODEL=openai/gpt-5-nano CLAWLOOP_REFLECTOR_MODEL=openai/gpt-5 \
     python examples/demo_math.py
 ```
 
