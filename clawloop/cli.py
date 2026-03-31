@@ -1,4 +1,4 @@
-"""ClawLoop CLI — entry point for run, eval, compare, and gate commands."""
+"""ClawLoop CLI — entry point for run, eval, and benchmark setup commands."""
 
 from __future__ import annotations
 
@@ -52,23 +52,6 @@ def _build_parser() -> argparse.ArgumentParser:
         "--episodes", type=int, default=10, help="Number of episodes"
     )
     eval_p.add_argument("--config", type=str, default=None, help="Config JSON file")
-
-    # -- compare --
-    cmp_p = sub.add_parser(
-        "compare", help="Compare two states on a benchmark"
-    )
-    cmp_p.add_argument("--bench", required=True)
-    cmp_p.add_argument("--state-a", required=True, help="First state config JSON")
-    cmp_p.add_argument("--state-b", required=True, help="Second state config JSON")
-    cmp_p.add_argument("--episodes", type=int, default=10)
-
-    # -- gate --
-    gate_p = sub.add_parser("gate", help="Run deploy-time regression gate")
-    gate_p.add_argument("--candidate", required=True, help="Candidate episodes JSON")
-    gate_p.add_argument(
-        "--production", required=True, help="Production episodes JSON"
-    )
-    gate_p.add_argument("--threshold", type=float, default=0.0)
 
     # -- setup-bench --
     setup_p = sub.add_parser("setup-bench", help="Install benchmark dependencies")
@@ -227,16 +210,6 @@ def cmd_eval(args: argparse.Namespace) -> None:
         print("No episodes collected.")
 
 
-def cmd_compare(args: argparse.Namespace) -> None:
-    print("Compare command: not yet implemented", file=sys.stderr)
-    sys.exit(1)
-
-
-def cmd_gate(args: argparse.Namespace) -> None:
-    print("Gate command: not yet implemented", file=sys.stderr)
-    sys.exit(1)
-
-
 # Benchmark setup registry: bench -> (setup_script_path, uv_sync_extras)
 BENCH_SETUP: dict[str, dict[str, Any]] = {
     "car": {
@@ -310,8 +283,6 @@ def main() -> None:
     handlers = {
         "run": cmd_run,
         "eval": cmd_eval,
-        "compare": cmd_compare,
-        "gate": cmd_gate,
         "setup-bench": cmd_setup_bench,
     }
     handlers[args.command](args)

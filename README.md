@@ -200,17 +200,6 @@ and an `EpisodeSummary` containing reward signals. See `clawloop/envs/math.py`
 
 </details>
 
-## Enterprise
-
-Need advanced evolution algorithms, managed training infrastructure, or
-dedicated support? ClawLoop Enterprise extends the community edition with:
-
-- **Advanced evolvers** — SkyDiscover-backed prompt evolution, EvoX, and more
-- **Managed weight training** — hosted LoRA/GRPO pipelines, no GPU management
-- **Priority support and SLA**
-
-Contact [info@aganthos.com](mailto:info@aganthos.com) to learn more.
-
 ## License
 
 ClawLoop is licensed under the [Business Source License 1.1](LICENSE) with

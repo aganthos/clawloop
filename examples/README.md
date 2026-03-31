@@ -41,6 +41,8 @@ and the server learns in the background.
 
 See [`n8n/README.md`](n8n/README.md) for setup, the importable workflow, and
 a demo script that shows a customer support agent improving across rounds.
+Set `CLAWLOOP_BASE_URL` in n8n if your Docker host cannot reach
+`host.docker.internal`.
 
 ### I have an OpenAI-compatible agent or API
 
