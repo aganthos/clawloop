@@ -1,4 +1,4 @@
-# clawloop/adapters/_entropic_rewards.py
+# clawloop/environments/_entropic_rewards.py
 """Entropic CRMArenaPro reward mapping — 7-dimension scores to clawloop RewardSignals."""
 
 from __future__ import annotations

@@ -1,4 +1,4 @@
-# clawloop/adapters/openclaw.py
+# clawloop/environments/openclaw.py
 """OpenClaw adapter — runs pi-mono agent tasks via the LLM proxy.
 
 The adapter starts a ProxyApp on an ephemeral port, then spawns a Node runner
