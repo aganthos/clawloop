@@ -136,8 +136,8 @@ ClawLoop uses [litellm](https://docs.litellm.ai/) — any provider works:
 
 ```json
 {"model": "anthropic/claude-haiku-4-5-20251001"}
-{"model": "openai/gpt-4o-mini"}
-{"model": "gemini/gemini-2.0-flash-lite"}
+{"model": "openai/gpt-5-nano"}
+{"model": "gemini/gemini-3.1-flash-lite"}
 ```
 
 Set the provider's API key as an environment variable (`ANTHROPIC_API_KEY`,
@@ -199,6 +199,21 @@ and an `EpisodeSummary` containing reward signals. See `clawloop/envs/math.py`
   abstraction (like Tinker cookbook's `ProblemEnv`) is planned.
 
 </details>
+
+## Enterprise
+
+ClawLoop Enterprise adds premium learning backends and managed
+infrastructure on top of the community edition.
+
+- **Premium evolution backends** — broader search over prompts, playbooks,
+  and agent configurations than the community `LocalEvolver`
+- **Persistent playbooks** — versioned storage with rollback so learned
+  strategies survive restarts
+- **Managed training infrastructure** — hosted compute for weight training
+  without self-hosting GPUs
+- **Logging & lineage** — episode archive with provenance tracking
+
+Contact [info@aganthos.com](mailto:info@aganthos.com) to learn more.
 
 ## License
 
