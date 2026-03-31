@@ -95,7 +95,7 @@ class Evolver(Protocol):
     Receives episode traces + full harness state, returns holistic
     improvements across playbook, prompts, and paradigm.
 
-    Implementations: LocalEvolver (community), CloudEvolver (enterprise).
+    Implementations: LocalEvolver and other optimization backends.
     """
 
     def evolve(

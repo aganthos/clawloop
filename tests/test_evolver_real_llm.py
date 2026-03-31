@@ -6,7 +6,7 @@ Validates the Evolver contract end-to-end with a real LLM:
 3. Multi-cycle learning loop accumulates playbook entries
 4. HarnessSnapshot serialization roundtrip preserves real data
 
-Uses Gemini Flash Lite via GOOGLE_API_KEY. No proxy, no enterprise code.
+Uses Gemini Flash Lite via GOOGLE_API_KEY. No proxy required.
 Skipped automatically if GOOGLE_API_KEY is not set.
 """
 

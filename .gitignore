@@ -1,22 +1,22 @@
-
-# Benchmark artifacts
-# Enterprise code must never exist in public repo
-# IDE
 # OS
-# Python
-# Secrets
 *.egg-info/
 *.pyc
 *.whl
 .DS_Store
+
+# IDE
 .claude
-.env
 .idea/
 .pytest_cache/
 .vscode/
-/enterprise/
-/enterprise_clawloop/
+
+# Secrets
+.env
+
+# Python
 __pycache__/
+
+# Benchmark artifacts
 benchmarks/*/.env
 benchmarks/*/.venv/
 benchmarks/*/output/
