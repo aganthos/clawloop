@@ -8,7 +8,7 @@ theme:
   name: material
   palette:
     scheme: default
-    primary: deep purple
+    primary: indigo
   features:
     - navigation.sections
     - content.code.copy

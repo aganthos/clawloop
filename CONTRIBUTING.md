@@ -18,16 +18,19 @@ ClawLoop has three learning layers that all follow the same protocol:
 
 ```
 clawloop/
-  core/         # Data structures, protocols, learning loop
-  layers/       # Harness (prompt), Router (model selection), Weights (RL/finetune)
-  adapters/     # Benchmark connectors (entropic, car, openclaw)
-  evolvers/     # Evolution backends (LocalEvolver)
-  envs/         # Task environments (math, harbor)
-  extractors/   # Reward signal extraction
-  backends/     # SkyRL GRPO integration
-  exporters/    # OTel, SkyRL, router export
-  callbacks/    # litellm integration
-  utils/        # Async bridge
+  core/         # Types (Episode, Datum, StateID), protocols (Layer, Evolver),
+                #   and the learning loop itself
+  layers/       # The three learning layers: Harness, Router, Weights
+  envs/         # Built-in task environments (math, harbor) — simple, self-contained
+  adapters/     # Connectors for external benchmarks (CAR-bench, CRMArena, OpenClaw)
+                #   that require process orchestration or network calls
+  evolvers/     # Harness optimization backends (LocalEvolver ships by default)
+  backends/     # Weight training backends (SkyRL integration for GRPO/PPO/SFT)
+  extractors/   # Compute reward signals from raw episode traces
+  exporters/    # Send data out: OpenTelemetry spans, SkyRL training format,
+                #   router tuning tuples
+  callbacks/    # Hook into litellm call lifecycle to capture traces
+  utils/        # Small helpers (async bridge)
 ```
 
 **Key types:** `Episode`, `EpisodeSummary`, `Datum`, `AgentState`, `StateID`
@@ -45,7 +48,16 @@ them as `Datum` objects, runs forward_backward then optim_step on each layer.
 2. Your `run_episode()` must return an `Episode` with messages, steps, and
    an `EpisodeSummary` containing reward signals
 3. Register it in `clawloop/train.py` via `ENV_BUILDERS`
-4. See `clawloop/envs/math.py` for a minimal example (~80 lines)
+
+Existing adapters to learn from:
+
+- `clawloop/envs/math.py` — minimal example (~80 lines)
+- `clawloop/envs/harbor.py` — sandboxed agent tasks via Docker
+- `clawloop/adapters/car.py` — CAR-bench integration with external process orchestration
+- `clawloop/adapters/entropic.py` — CRMArena A2A benchmark
+
+See [Adding Environments](https://aganthos.github.io/clawloop/adding-environments/)
+for a full walkthrough.
 
 ## Testing
 
