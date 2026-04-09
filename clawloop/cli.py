@@ -96,14 +96,15 @@ def _load_config(path: str | None) -> dict[str, Any]:
         sys.exit(1)
 
 
-def _build_reflector(config: dict[str, Any]) -> Any | None:
-    """Create a Reflector with LiteLLMClient if api_base is configured."""
+def _build_evolver(config: dict[str, Any]) -> Any | None:
+    """Create a LocalEvolver with Reflector if api_base is configured."""
     api_base = config.get("api_base")
     if not api_base:
         log.warning("No api_base in config — Reflector disabled (no learning)")
         return None
 
     from clawloop.core.reflector import Reflector, ReflectorConfig
+    from clawloop.harness_backends.local import LocalEvolver
     from clawloop.llm import LiteLLMClient
 
     model = config.get("reflector_model", config.get("model", "anthropic/claude-haiku-4-5-20251001"))
@@ -114,7 +115,8 @@ def _build_reflector(config: dict[str, Any]) -> Any | None:
     )
     log.info("Reflector enabled: model=%s via %s", model, api_base)
     rbs = config.get("reflection_batch_size", 1)
-    return Reflector(client=client, config=ReflectorConfig(reflection_batch_size=rbs))
+    reflector = Reflector(client=client, config=ReflectorConfig(reflection_batch_size=rbs))
+    return LocalEvolver(reflector=reflector)
 
 
 def _ensure_output_dir(config: dict[str, Any], bench: str) -> None:
@@ -148,10 +150,10 @@ def cmd_run(args: argparse.Namespace) -> None:
     if args.seed is not None:
         random.seed(args.seed)
 
-    # Wire Reflector into harness for ICL learning
-    reflector = _build_reflector(config)
-    agent_state = AgentState()
-    agent_state.harness.reflector = reflector
+    # Wire LocalEvolver (with Reflector) into harness for ICL learning
+    from clawloop.learning_layers.harness import Harness
+    evolver = _build_evolver(config)
+    agent_state = AgentState(harness=Harness(evolver=evolver))
 
     try:
         tasks = adapter.list_tasks()

@@ -41,22 +41,20 @@ def run_harness_learning(args):
     from clawloop.environments.entropic import EntropicAdapter
     from clawloop.core.intensity import AdaptiveIntensity
     from clawloop.core.loop import AgentState, learning_loop
-    from clawloop.core.reflector import Reflector
     from clawloop.learning_layers.harness import Harness
     from clawloop.learning_layers.router import Router
     from clawloop.learning_layers.weights import Weights
-    from clawloop.llm import LiteLLMClient
+    from examples.recipes.common import build_local_evolver
 
-    harness = Harness(system_prompts={
-        "entropic": (
-            "You are a CRM assistant. Help users with service requests accurately. "
-            "Verify information before making changes. Handle schema drift gracefully."
-        ),
-    })
-    if args.reflector_model:
-        harness.reflector = Reflector(client=LiteLLMClient(
-            model=args.reflector_model, api_key=args.api_key, api_base=args.api_base,
-        ))
+    harness = Harness(
+        system_prompts={
+            "entropic": (
+                "You are a CRM assistant. Help users with service requests accurately. "
+                "Verify information before making changes. Handle schema drift gracefully."
+            ),
+        },
+        evolver=build_local_evolver(args.reflector_model, args.api_key, args.api_base),
+    )
 
     adapter = EntropicAdapter()
     adapter.setup({

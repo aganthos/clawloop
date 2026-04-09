@@ -1,0 +1,10 @@
+{
+  "_comment": "TauBench harness learning config. Set domain to retail or airline.",
+  "domain": "retail",
+  "llm_agent": "gemini/gemini-2.0-flash-lite",
+  "llm_user": "gemini/gemini-2.0-flash-lite",
+  "max_steps": 30,
+  "max_concurrency": 8,
+  "task_split": "test",
+  "num_tasks": 10
+}
