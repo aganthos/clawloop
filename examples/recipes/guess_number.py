@@ -201,18 +201,17 @@ def main():
     log.info("mode=%s layers=%s", args.mode, layers)
 
     # 1. Harness
-    harness = Harness(system_prompts={
-        "guess_number": (
-            "You are playing a number guessing game. Use binary search strategy. "
-            f"The number is between 0 and {MAX_VAL}. Reply with just your guess."
-        ),
-    })
-    if "harness" in layers:
-        from clawloop.core.reflector import Reflector
-        from clawloop.llm import LiteLLMClient
-        harness.reflector = Reflector(client=LiteLLMClient(
-            model=args.reflector_model, api_key=args.api_key, api_base=args.api_base,
-        ))
+    from examples.recipes.common import build_local_evolver
+    harness = Harness(
+        system_prompts={
+            "guess_number": (
+                "You are playing a number guessing game. Use binary search strategy. "
+                f"The number is between 0 and {MAX_VAL}. Reply with just your guess."
+            ),
+        },
+        evolver=build_local_evolver(args.reflector_model, args.api_key, args.api_base)
+        if "harness" in layers else None,
+    )
 
     # 2. Weights — SkyRL backend (Tinker-compatible)
     backend = None

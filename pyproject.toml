@@ -46,6 +46,9 @@ server = [
     "uvicorn>=0.20",
     "httpx>=0.24",
 ]
+taubench = [
+    "tau2 @ git+https://github.com/sierra-research/tau2-bench.git@dev/tau3",
+]
 [project.scripts]
 clawloop = "clawloop.cli:main"
 clawloop-server = "clawloop.server:main"
@@ -56,6 +59,10 @@ Repository = "https://github.com/aganthos/clawloop"
 Issues = "https://github.com/aganthos/clawloop/issues"
 Documentation = "https://aganthos.github.io/clawloop"
 Website = "https://aganthos.com"
+
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.hatch.build.targets.sdist]
 include = [
