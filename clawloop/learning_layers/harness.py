@@ -424,6 +424,16 @@ class Harness:
     # Max entries returned in full-playbook fallback
     _max_retrieval_entries: int = 50
 
+    _REMOVED_ATTRS: frozenset[str] = frozenset({"reflector"})
+
+    def __setattr__(self, name: str, value: object) -> None:
+        if name in self._REMOVED_ATTRS:
+            raise AttributeError(
+                f"'Harness.{name}' was removed. "
+                f"Use Harness(evolver=LocalEvolver({name}=...)) instead."
+            )
+        super().__setattr__(name, value)
+
     def system_prompt(
         self,
         bench: str,
@@ -586,6 +596,10 @@ class Harness:
                         result.action, result.entries_affected,
                     )
                     if result.action != "skip_redundant":
+                        # Stamp generation on newly created entries so the
+                        # auto-prune patience window is correct.
+                        if result.new_entry is not None and result.new_entry.generation == 0:
+                            result.new_entry.generation = self.playbook_generation
                         structural_change = True
                         applied += 1
                 else:
@@ -594,6 +608,7 @@ class Harness:
                         content=insight.content,
                         tags=insight.tags,
                         source_episode_ids=list(insight.source_episode_ids),
+                        generation=self.playbook_generation,
                     )
                     self.playbook.add(entry)
                     structural_change = True
@@ -659,10 +674,19 @@ class Harness:
                     log.warning("Dropping insight — source_episode_ids must be list[str]")
                     continue
 
-            # Tag character whitelist
+            # Tag character whitelist — sanitize rather than drop the insight.
+            # LLMs often produce tags with spaces or punctuation; normalise them
+            # (lowercase, spaces→underscores, strip remaining invalid chars).
             if any(not _TAG_RE.match(t) for t in insight.tags if t):
-                log.warning("Dropping insight — tags contain invalid characters")
-                continue
+                cleaned = []
+                for t in insight.tags:
+                    t = re.sub(r"\s+", "_", t.lower().strip())
+                    t = re.sub(r"[^a-zA-Z0-9\-_]", "", t)
+                    if t:
+                        cleaned.append(t)
+                insight = insight.__class__(
+                    **{**insight.__dict__, "tags": cleaned}
+                )
 
             # Content length
             if len(insight.content) > _MAX_INSIGHT_CONTENT_LENGTH:
@@ -959,12 +983,33 @@ class Harness:
                         entry.decay_rate = max(entry.decay_rate, deprecation_decay)
                         updates += 1
 
-            # Auto-prune entries with sustained negative score
-            # Only prune entries that have enough signal (helpful+harmful >= 3)
+            # Auto-prune entries with sustained strongly-negative score.
+            #
+            # Thresholds (informed by ACE's more conservative approach):
+            #   min_generations = 3  — entry must survive at least 3 learning
+            #                          iterations (playbook_generation advances on
+            #                          each structural change) before it is eligible
+            #                          for pruning; this prevents churn in weak-model
+            #                          regimes where everything fails regardless of
+            #                          playbook content
+            #   score < -3           — require 3+ more harmful than helpful signals,
+            #                          not just any negative score
+            #
+            # Note: "harmful" = episode failed AND entry was attributed to it
+            # (tag match, embedding match, or all-entries fallback).  With the
+            # fallback active, all entries are penalised by every failed episode,
+            # so the score threshold matters more than the generation guard.
+            #
+            # ACE never auto-prunes (LLM issues explicit REMOVE). We keep
+            # auto-prune as a safety valve but make it patient.
+            _PRUNE_MIN_GENERATIONS = 3
+            _PRUNE_MIN_SCORE = -3
             before_prune = len(self.playbook.entries)
+            current_gen = self.playbook_generation
             self.playbook.entries = [
                 e for e in self.playbook.entries
-                if e.score() >= 0.0 or (e.helpful + e.harmful) < 3
+                if e.score() >= _PRUNE_MIN_SCORE
+                or (current_gen - e.generation) < _PRUNE_MIN_GENERATIONS
             ]
             pruned = before_prune - len(self.playbook.entries)
             if pruned:

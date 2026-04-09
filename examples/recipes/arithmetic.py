@@ -41,20 +41,20 @@ def run_harness_learning(args):
     from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
     from clawloop.core.intensity import AdaptiveIntensity
     from clawloop.core.loop import AgentState, learning_loop
-    from clawloop.core.reflector import Reflector
     from clawloop.core.reward import RewardSignal
     from clawloop.core.types import SampleContext
     from clawloop.learning_layers.harness import Harness
     from clawloop.learning_layers.router import Router
     from clawloop.learning_layers.weights import Weights
     from clawloop.llm import LiteLLMClient
+    from examples.recipes.common import build_local_evolver
 
-    harness = Harness(system_prompts={
-        "arithmetic": "Solve arithmetic problems step by step. Put your final answer in \\boxed{} notation.",
-    })
-    harness.reflector = Reflector(client=LiteLLMClient(
-        model=args.reflector_model, api_key=args.api_key, api_base=args.api_base,
-    ))
+    harness = Harness(
+        system_prompts={
+            "arithmetic": "Solve arithmetic problems step by step. Put your final answer in \\boxed{} notation.",
+        },
+        evolver=build_local_evolver(args.reflector_model, args.api_key, args.api_base),
+    )
     task_client = LiteLLMClient(model=args.task_model, api_key=args.api_key, api_base=args.api_base)
 
     problems = [(random.randint(1, 100), random.randint(1, 100)) for _ in range(200)]

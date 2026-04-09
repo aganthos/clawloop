@@ -98,10 +98,11 @@ class TestInsightValidation:
         result = Harness._validate_insights([insight])
         assert len(result) == 1
 
-    def test_rejects_invalid_tag_chars(self) -> None:
+    def test_sanitizes_invalid_tag_chars(self) -> None:
         insight = Insight(action="add", content="tip", tags=["good-tag", "bad tag!"])
         result = Harness._validate_insights([insight])
-        assert len(result) == 0
+        assert len(result) == 1
+        assert result[0].tags == ["good-tag", "bad_tag"]
 
     def test_accepts_valid_tags(self) -> None:
         insight = Insight(

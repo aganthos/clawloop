@@ -8,10 +8,19 @@ from clawloop.environments.enterpriseops_gym import (
     build_adapter_from_hf,
 )
 
+
+def __getattr__(name: str):
+    if name == "TauBenchAdapter":
+        from clawloop.environments.taubench import TauBenchAdapter
+        return TauBenchAdapter
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
 __all__ = [
     "EnvAdapter",
     "HarborAdapter",
     "HarborTaskEnvironment",
+    "TauBenchAdapter",
     "EnterpriseOpsGymAdapter",
     "EnterpriseOpsGymEnvironment",
     "build_adapter_from_hf",

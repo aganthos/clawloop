@@ -132,3 +132,11 @@ class TestHarnessReflector:
         prompt = h.system_prompt("math")
         assert "Solve problems carefully." in prompt
         assert "verify input format" in prompt
+
+
+def test_harness_reflector_setattr_raises():
+    """Harness.__setattr__ guard must catch the old dead-slot pattern."""
+    import pytest
+    h = Harness()
+    with pytest.raises(AttributeError, match="reflector.*removed"):
+        h.reflector = object()

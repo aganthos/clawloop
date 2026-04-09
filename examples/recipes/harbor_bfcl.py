@@ -42,12 +42,11 @@ def run_harness_learning(args):
 
     from clawloop.core.intensity import AdaptiveIntensity
     from clawloop.core.loop import AgentState, learning_loop
-    from clawloop.core.reflector import Reflector
     from clawloop.environments.harbor import HarborAdapter, HarborTaskEnvironment
     from clawloop.learning_layers.harness import Harness
     from clawloop.learning_layers.router import Router
     from clawloop.learning_layers.weights import Weights
-    from clawloop.llm import LiteLLMClient
+    from examples.recipes.common import build_local_evolver
 
     task_dirs = _find_task_dirs(args.task_dir)
     if not task_dirs:
@@ -55,16 +54,16 @@ def run_harness_learning(args):
         sys.exit(1)
     log.info("Found %d Harbor tasks in %s", len(task_dirs), args.task_dir)
 
-    harness = Harness(system_prompts={
-        "harbor": (
-            "You are a function-calling assistant. When given a function schema "
-            "and a natural language request, write the correct JSON function call. "
-            "Write your result to /app/result.json as a JSON array."
-        ),
-    })
-    harness.reflector = Reflector(client=LiteLLMClient(
-        model=args.reflector_model, api_key=args.api_key, api_base=args.api_base,
-    ))
+    harness = Harness(
+        system_prompts={
+            "harbor": (
+                "You are a function-calling assistant. When given a function schema "
+                "and a natural language request, write the correct JSON function call. "
+                "Write your result to /app/result.json as a JSON array."
+            ),
+        },
+        evolver=build_local_evolver(args.reflector_model, args.api_key, args.api_base),
+    )
 
     trial_config = {
         "agent": {

@@ -240,17 +240,20 @@ def train(config: TrainConfig):
 
     layers = validate_config(config)
 
-    # 1. Harness — always created; reflector wired only if harness is active
+    # 1. Harness — reflector wired via LocalEvolver when harness layer is active
     prompts = {b: config.system_prompt for b in config.benches}
     # Auto-register env_type as prompt key so harness.sample(bench=env_type) works
     prompts.setdefault(config.env_type, config.system_prompt)
-    harness = Harness(system_prompts=prompts)
 
+    evolver = None
     if "harness" in layers:
         from clawloop.core.reflector import Reflector
+        from clawloop.harness_backends.local import LocalEvolver
 
         reflector_client = _make_llm_client(config.llm_clients["reflector"])
-        harness.reflector = Reflector(client=reflector_client)
+        evolver = LocalEvolver(reflector=Reflector(client=reflector_client))
+
+    harness = Harness(system_prompts=prompts, evolver=evolver)
 
     # 2. Weights backend
     backend = None
