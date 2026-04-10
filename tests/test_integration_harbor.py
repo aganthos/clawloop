@@ -32,9 +32,18 @@ def _make_env_from_fixture(task_name: str) -> HarborTaskEnvironment:
     env._trial_config = {"agent": {"name": "test-agent", "kwargs": {}}, "task": {}}
     env._reward_transform = None
     env._train_on_truncated = True
-    env._Trial = MagicMock()
-    env._TrialConfig = MagicMock()
     return env
+
+
+def _run_episode_with_mock(env, agent_state, mock_results):
+    """Run env.run_episode with Trial.create and trial.run mocked."""
+    mock_trial = MagicMock()
+    mock_trial.run = AsyncMock(return_value=mock_results)
+    mock_trial_cls = MagicMock()
+    mock_trial_cls.create = AsyncMock(return_value=mock_trial)
+    env._Trial = mock_trial_cls
+    env._TrialConfig = MagicMock()
+    return asyncio.run(env.run_episode(agent_state))
 
 
 def _mock_trial_success(reward: float = 1.0, messages: list | None = None):
@@ -97,11 +106,7 @@ class TestHarborEpisodeFromFixture:
 
     def test_successful_trial_produces_episode(self) -> None:
         env = _make_env_from_fixture("bfcl-simple-0")
-        mock_trial = MagicMock()
-        mock_trial.run = AsyncMock(return_value=_mock_trial_success(reward=1.0))
-        env._Trial.return_value = mock_trial
-
-        ep = asyncio.run(env.run_episode(AgentState()))
+        ep = _run_episode_with_mock(env, AgentState(), _mock_trial_success(reward=1.0))
         assert isinstance(ep, Episode)
         assert ep.task_id == "bfcl-simple-0"
         assert ep.bench == "harbor"
@@ -111,11 +116,7 @@ class TestHarborEpisodeFromFixture:
 
     def test_zero_reward_trial(self) -> None:
         env = _make_env_from_fixture("bfcl-fail-0")
-        mock_trial = MagicMock()
-        mock_trial.run = AsyncMock(return_value=_mock_trial_success(reward=0.0))
-        env._Trial.return_value = mock_trial
-
-        ep = asyncio.run(env.run_episode(AgentState()))
+        ep = _run_episode_with_mock(env, AgentState(), _mock_trial_success(reward=0.0))
         assert "outcome" in ep.summary.signals
         # reward=0.0 through total_reward setter: 0.0*2-1 = -1.0
         assert ep.summary.signals["outcome"].value == pytest.approx(-1.0)
@@ -125,18 +126,16 @@ class TestHarborEpisodeFromFixture:
         mock_trial = MagicMock()
         exc = type("AgentTimeoutError", (Exception,), {})
         mock_trial.run = AsyncMock(side_effect=exc("timeout"))
-        env._Trial.return_value = mock_trial
-
+        mock_trial_cls = MagicMock()
+        mock_trial_cls.create = AsyncMock(return_value=mock_trial)
+        env._Trial = mock_trial_cls
+        env._TrialConfig = MagicMock()
         ep = asyncio.run(env.run_episode(AgentState()))
         assert ep.summary.filtered is True
 
     def test_episode_has_valid_step_structure(self) -> None:
         env = _make_env_from_fixture("bfcl-simple-0")
-        mock_trial = MagicMock()
-        mock_trial.run = AsyncMock(return_value=_mock_trial_success())
-        env._Trial.return_value = mock_trial
-
-        ep = asyncio.run(env.run_episode(AgentState()))
+        ep = _run_episode_with_mock(env, AgentState(), _mock_trial_success())
         assert len(ep.steps) > 0
         assert ep.steps[-1].done is True
         assert len(ep.step_boundaries) > 0
@@ -154,10 +153,7 @@ class TestFullTranslationPath:
 
         # Build episode from fixture
         env = _make_env_from_fixture("bfcl-simple-0")
-        mock_trial = MagicMock()
-        mock_trial.run = AsyncMock(return_value=_mock_trial_success(reward=1.0))
-        env._Trial.return_value = mock_trial
-        ep = asyncio.run(env.run_episode(AgentState()))
+        ep = _run_episode_with_mock(env, AgentState(), _mock_trial_success(reward=1.0))
 
         # Run through exporter
         exporter = SkyRLExporter(tokenizer=FakeTokenizer())
@@ -179,10 +175,7 @@ class TestFullTranslationPath:
         episodes = []
         for _ in range(3):
             env = _make_env_from_fixture("bfcl-simple-0")
-            mock_trial = MagicMock()
-            mock_trial.run = AsyncMock(return_value=_mock_trial_success(reward=0.8))
-            env._Trial.return_value = mock_trial
-            ep = asyncio.run(env.run_episode(AgentState()))
+            ep = _run_episode_with_mock(env, AgentState(), _mock_trial_success(reward=0.8))
             episodes.append(ep)
 
         exporter = SkyRLExporter(tokenizer=FakeTokenizer())
@@ -259,10 +252,7 @@ class TestRealTokenizerPath:
             pytest.skip(f"Model {model_name} not cached locally")
 
         env = _make_env_from_fixture("bfcl-simple-0")
-        mock_trial = MagicMock()
-        mock_trial.run = AsyncMock(return_value=_mock_trial_success())
-        env._Trial.return_value = mock_trial
-        ep = asyncio.run(env.run_episode(AgentState()))
+        ep = _run_episode_with_mock(env, AgentState(), _mock_trial_success())
 
         exporter = SkyRLExporter(tokenizer=tok)
         output = exporter.export([ep])
