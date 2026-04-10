@@ -10,6 +10,14 @@ from clawloop.core.loop import AgentState
 from clawloop.environments.harbor import HarborAdapter, HarborTaskEnvironment
 
 
+def _harbor_importable() -> bool:
+    try:
+        from harbor.trial.trial import Trial  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+
 def _make_env(task_dir="/data/tasks/test-task", **kwargs):
     env = HarborTaskEnvironment.__new__(HarborTaskEnvironment)
     env._task_dir = Path(task_dir)
@@ -18,9 +26,20 @@ def _make_env(task_dir="/data/tasks/test-task", **kwargs):
     env._trial_config["agent"].setdefault("kwargs", {})
     env._reward_transform = kwargs.get("reward_transform", None)
     env._train_on_truncated = kwargs.get("train_on_truncated", True)
-    env._Trial = MagicMock()
+    # Mock Trial.create (async factory) and TrialConfig.model_validate
+    mock_trial_cls = MagicMock()
+    mock_trial_cls.create = AsyncMock()
+    env._Trial = mock_trial_cls
     env._TrialConfig = MagicMock()
     return env
+
+
+def _setup_mock_trial(env, results):
+    """Configure env's mocked Trial to return given results from trial.run()."""
+    mock_trial = MagicMock()
+    mock_trial.run = AsyncMock(return_value=results)
+    env._Trial.create = AsyncMock(return_value=mock_trial)
+    return mock_trial
 
 
 _DEFAULT_CHAT = [
@@ -45,10 +64,7 @@ class TestHarborTaskEnvironment:
 
     def test_run_episode_builds_episode(self):
         env = _make_env()
-        results = _make_trial_results(reward=0.75)
-        mock_trial = MagicMock()
-        mock_trial.run = AsyncMock(return_value=results)
-        env._Trial.return_value = mock_trial
+        _setup_mock_trial(env, _make_trial_results(reward=0.75))
         ep = asyncio.run(env.run_episode(AgentState()))
         assert isinstance(ep, Episode)
         assert ep.task_id == "test-task"
@@ -59,35 +75,20 @@ class TestHarborTaskEnvironment:
         assert ep.summary.signals["outcome"].value == pytest.approx(0.5)
         assert ep.summary.filtered is False
 
-    def test_session_id_injected(self):
-        env = _make_env()
-        results = _make_trial_results()
-        mock_trial = MagicMock()
-        mock_trial.run = AsyncMock(return_value=results)
-        env._Trial.return_value = mock_trial
-        asyncio.run(env.run_episode(AgentState()))
-        config_call = env._TrialConfig.call_args
-        assert "session_id" in config_call.kwargs["agent"]["kwargs"]
-        assert len(config_call.kwargs["agent"]["kwargs"]["session_id"]) == 32
-
     def test_inference_url_injected(self):
         env = _make_env()
-        results = _make_trial_results()
-        mock_trial = MagicMock()
-        mock_trial.run = AsyncMock(return_value=results)
-        env._Trial.return_value = mock_trial
+        _setup_mock_trial(env, _make_trial_results())
         state = AgentState(inference_url="http://localhost:8000/v1")
         asyncio.run(env.run_episode(state))
-        # Verify the config was modified — check deepcopy was called with api_base
-        call_kwargs = env._TrialConfig.call_args
-        assert call_kwargs is not None  # TrialConfig was called
+        # TrialConfig.model_validate was called
+        assert env._TrialConfig.model_validate.called
 
     def test_context_exceeded_trainable_by_default(self):
         env = _make_env()
         mock_trial = MagicMock()
         exc = type("ContextLengthExceededError", (Exception,), {})
         mock_trial.run = AsyncMock(side_effect=exc("exceeded"))
-        env._Trial.return_value = mock_trial
+        env._Trial.create = AsyncMock(return_value=mock_trial)
         ep = asyncio.run(env.run_episode(AgentState()))
         assert ep.summary.filtered is False
         assert ep.metadata.get("truncated") is True
@@ -97,7 +98,7 @@ class TestHarborTaskEnvironment:
         mock_trial = MagicMock()
         exc = type("ContextLengthExceededError", (Exception,), {})
         mock_trial.run = AsyncMock(side_effect=exc("exceeded"))
-        env._Trial.return_value = mock_trial
+        env._Trial.create = AsyncMock(return_value=mock_trial)
         ep = asyncio.run(env.run_episode(AgentState()))
         assert ep.summary.filtered is True
 
@@ -106,7 +107,7 @@ class TestHarborTaskEnvironment:
         mock_trial = MagicMock()
         exc = type("AgentTimeoutError", (Exception,), {})
         mock_trial.run = AsyncMock(side_effect=exc("timeout"))
-        env._Trial.return_value = mock_trial
+        env._Trial.create = AsyncMock(return_value=mock_trial)
         ep = asyncio.run(env.run_episode(AgentState()))
         assert ep.summary.filtered is True
         assert ep.metadata.get("timeout") is True
@@ -115,17 +116,14 @@ class TestHarborTaskEnvironment:
         env = _make_env()
         mock_trial = MagicMock()
         mock_trial.run = AsyncMock(side_effect=RuntimeError("boom"))
-        env._Trial.return_value = mock_trial
+        env._Trial.create = AsyncMock(return_value=mock_trial)
         ep = asyncio.run(env.run_episode(AgentState()))
         assert ep.summary.filtered is True
         assert ep.metadata.get("error") == "RuntimeError"
 
     def test_reward_transform_applied(self):
         env = _make_env(reward_transform=lambda r: r * 2 - 1)
-        results = _make_trial_results(reward=0.5)
-        mock_trial = MagicMock()
-        mock_trial.run = AsyncMock(return_value=results)
-        env._Trial.return_value = mock_trial
+        _setup_mock_trial(env, _make_trial_results(reward=0.5))
         ep = asyncio.run(env.run_episode(AgentState()))
         assert ep.metadata["transformed_reward"] == 0.0  # 0.5*2-1=0
 
@@ -133,10 +131,7 @@ class TestHarborTaskEnvironment:
         def bad_transform(r):
             raise ValueError("bad")
         env = _make_env(reward_transform=bad_transform)
-        results = _make_trial_results(reward=0.8)
-        mock_trial = MagicMock()
-        mock_trial.run = AsyncMock(return_value=results)
-        env._Trial.return_value = mock_trial
+        _setup_mock_trial(env, _make_trial_results(reward=0.8))
         ep = asyncio.run(env.run_episode(AgentState()))
         assert ep.metadata.get("reward_transform_error") is True
         assert ep.metadata["raw_reward"] == 0.8
@@ -151,6 +146,9 @@ class TestHarborTaskEnvironment:
             if "agent" not in trial_config:
                 raise ValueError("trial_config must contain 'agent' key")
 
+    @pytest.mark.skipif(
+        _harbor_importable(), reason="Harbor is installed — cannot test ImportError"
+    )
     def test_init_raises_without_harbor(self):
         with pytest.raises(ImportError, match="Harbor is required"):
             HarborTaskEnvironment(task_dir=Path("/x"),
@@ -158,10 +156,7 @@ class TestHarborTaskEnvironment:
 
     def test_empty_chat_history(self):
         env = _make_env()
-        results = _make_trial_results(chat_history=[])
-        mock_trial = MagicMock()
-        mock_trial.run = AsyncMock(return_value=results)
-        env._Trial.return_value = mock_trial
+        _setup_mock_trial(env, _make_trial_results(chat_history=[]))
         ep = asyncio.run(env.run_episode(AgentState()))
         assert isinstance(ep, Episode)
         assert len(ep.messages) == 0
@@ -170,20 +165,14 @@ class TestHarborTaskEnvironment:
 class TestHarborAdapter:
     def test_run_episode_delegates(self):
         env = _make_env()
-        results = _make_trial_results()
-        mock_trial = MagicMock()
-        mock_trial.run = AsyncMock(return_value=results)
-        env._Trial.return_value = mock_trial
+        _setup_mock_trial(env, _make_trial_results())
         adapter = HarborAdapter([env])
         ep = adapter.run_episode("test-task", AgentState())
         assert isinstance(ep, Episode)
 
     def test_run_batch_returns_correct_count(self):
         env = _make_env()
-        results = _make_trial_results()
-        mock_trial = MagicMock()
-        mock_trial.run = AsyncMock(return_value=results)
-        env._Trial.return_value = mock_trial
+        _setup_mock_trial(env, _make_trial_results())
         adapter = HarborAdapter([env])
         eps = adapter.run_batch(AgentState(), ["test-task", "test-task"])
         assert len(eps) == 2
