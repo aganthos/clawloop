@@ -51,25 +51,44 @@ class HarborTaskEnvironment:
     async def run_episode(self, agent_state: AgentState) -> Episode:
         config = deepcopy(self._trial_config)
         config["task"]["path"] = str(self._task_dir)
-        config["agent"]["kwargs"]["session_id"] = uuid4().hex
+        # Note: session_id removed — it caused Gemini API errors (expects int,
+        # not hex string). Harbor's trial_name already provides uniqueness.
 
         if hasattr(agent_state, "inference_url") and agent_state.inference_url:
             config["agent"]["kwargs"]["api_base"] = agent_state.inference_url
 
+        harness_prompt = None
         if hasattr(agent_state, "harness") and agent_state.harness:
             try:
                 # Try task-specific bench first, fall back to "harbor" bench
                 sample_result = agent_state.harness.sample(SampleContext(bench=self._task_dir.name))
-                prompt = sample_result.result().output
-                if not prompt:
+                harness_prompt = sample_result.result().output
+                if not harness_prompt:
                     sample_result = agent_state.harness.sample(SampleContext(bench="harbor"))
-                    prompt = sample_result.result().output
-                if prompt:  # Only override when harness returns a non-empty prompt
-                    config["agent"]["kwargs"]["system_prompt_override"] = prompt
+                    harness_prompt = sample_result.result().output
             except Exception:
                 log.debug("Failed to sample system prompt from harness", exc_info=True)
 
-        trial = self._Trial(self._TrialConfig(**config))
+        trial_config = self._TrialConfig.model_validate(config)
+        trial = await self._Trial.create(trial_config)
+
+        # Append harness prompt AFTER task instruction. Placing it after
+        # (not before) reduces the risk of learned entries overriding the
+        # task, but does not fully prevent it. This works with any Harbor
+        # agent since they all receive task.instruction.
+        # NOTE: Accesses Trial._task (private). Harbor has no public API for
+        # instruction mutation as of v0.3. Tested against commit d1052cf.
+        if harness_prompt:
+            task_obj = getattr(trial, "task", None) or getattr(trial, "_task", None)
+            if task_obj and hasattr(task_obj, "instruction"):
+                original = task_obj.instruction
+                task_obj.instruction = (
+                    original + "\n\n---\n\n"
+                    "## Learned strategies (supplementary guidance)\n\n"
+                    + harness_prompt
+                )
+            else:
+                log.warning("Cannot inject harness prompt — trial has no task object")
         try:
             results = await trial.run()
         except Exception as e:

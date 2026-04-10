@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClawLoop Learning Viewer</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d0d0d; --bg2: #141414; --bg3: #1c1c1c;
+    --border: #2a2a2a; --text: #c8c8c8; --dim: #666;
+    --accent: #4fc3f7; --green: #69f0ae; --red: #ff5252;
+    --yellow: #ffd740; --orange: #ffab40;
+    --font: 'Courier New', Courier, monospace;
+  }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 13px; padding: 0; }
+
+  /* ── header ── */
+  #header {
+    background: var(--bg3); border-bottom: 1px solid var(--border);
+    padding: 12px 24px; display: flex; align-items: center; gap: 24px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { color: var(--accent); font-weight: bold; font-size: 16px; letter-spacing: 2px; }
+  .subtitle { color: var(--dim); font-size: 12px; }
+  #status { margin-left: auto; display: flex; gap: 16px; align-items: center; }
+  .stat-box { text-align: center; }
+  .stat-val { font-size: 20px; font-weight: bold; }
+  .stat-label { font-size: 10px; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; }
+  .stat-val.green { color: var(--green); }
+  .stat-val.accent { color: var(--accent); }
+  .stat-val.yellow { color: var(--yellow); }
+  #mode-badge { padding: 2px 10px; border-radius: 3px; font-size: 11px; font-weight: bold;
+    text-transform: uppercase; letter-spacing: 1px; }
+  #mode-badge.live { border: 1px solid var(--green); color: var(--green); }
+  #mode-badge.done { border: 1px solid var(--dim); color: var(--dim); }
+  #mode-badge.demo { border: 1px solid var(--yellow); color: var(--yellow); }
+
+  /* ── grid ── */
+  #grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); }
+  .panel { background: var(--bg2); padding: 16px 20px; min-height: 280px; }
+  .panel-title { color: var(--accent); font-size: 12px; text-transform: uppercase;
+    letter-spacing: 2px; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+
+  /* ── chart ── */
+  .chart-container { position: relative; width: 100%; height: 220px; }
+  canvas { width: 100% !important; height: 100% !important; }
+
+  /* ── playbook entries ── */
+  .entry { background: var(--bg3); border: 1px solid var(--border); border-radius: 4px;
+    padding: 8px 12px; margin-bottom: 6px; font-size: 12px; line-height: 1.4; }
+  .entry-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  .entry-id { color: var(--dim); font-size: 10px; }
+  .entry-iter { color: var(--yellow); font-size: 10px; }
+  .entry-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+  .tag { background: var(--bg); border: 1px solid var(--border); border-radius: 2px;
+    padding: 1px 6px; font-size: 10px; color: var(--dim); }
+
+  /* ── task grid ── */
+  .task-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; }
+  .task-cell { background: var(--bg3); border: 1px solid var(--border); border-radius: 3px;
+    padding: 6px 8px; font-size: 11px; }
+  .task-name { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+  .task-reward { font-weight: bold; }
+  .task-reward.pass { color: var(--green); }
+  .task-reward.fail { color: var(--red); }
+  .task-reward.partial { color: var(--yellow); }
+
+  /* ── full width ── */
+  .full-width { grid-column: 1 / -1; }
+
+  /* ── file picker ── */
+  #file-picker { display: none; background: var(--bg3); padding: 24px; text-align: center;
+    border-bottom: 1px solid var(--border); }
+  #file-picker.show { display: block; }
+  #file-picker button { background: var(--accent); color: var(--bg); border: none;
+    padding: 10px 24px; font-family: var(--font); font-size: 14px; cursor: pointer;
+    border-radius: 4px; font-weight: bold; }
+  #file-picker button:hover { opacity: 0.9; }
+  #file-picker p { color: var(--dim); margin-bottom: 12px; }
+  .or-demo { color: var(--dim); margin: 12px 0; }
+  #demo-btn { background: var(--yellow) !important; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <span class="logo">CLAWLOOP</span>
+  <span class="subtitle">Learning Viewer</span>
+  <div id="status">
+    <div class="stat-box"><div class="stat-val accent" id="iter-val">0</div><div class="stat-label">Iteration</div></div>
+    <div class="stat-box"><div class="stat-val green" id="train-val">0.00</div><div class="stat-label">Train Avg</div></div>
+    <div class="stat-box"><div class="stat-val yellow" id="eval-val">0.00</div><div class="stat-label">Eval Avg</div></div>
+    <div class="stat-box"><div class="stat-val accent" id="pb-val">0</div><div class="stat-label">Playbook</div></div>
+    <span id="mode-badge" class="demo">DEMO</span>
+    <button id="reset-btn" onclick="resetToStart()" style="display:none;background:transparent;border:1px solid var(--dim);color:var(--dim);padding:4px 12px;font-family:var(--font);font-size:11px;cursor:pointer;border-radius:3px;">RESET</button>
+  </div>
+</div>
+
+<div id="file-picker" class="show">
+  <p>Load experiment data to visualize the learning curve.</p>
+  <button onclick="pickFiles()">Open experiment.jsonl + eval.jsonl</button>
+  <div class="or-demo">or</div>
+  <button id="demo-btn" onclick="loadDemo()">Load Demo Data</button>
+</div>
+
+<div id="grid">
+  <div class="panel">
+    <div class="panel-title">Learning Curve</div>
+    <div class="chart-container"><canvas id="reward-chart"></canvas></div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Playbook Growth</div>
+    <div class="chart-container"><canvas id="playbook-chart"></canvas></div>
+  </div>
+  <div class="panel full-width">
+    <div class="panel-title">Learned Insights (Playbook)</div>
+    <div id="entries-list" style="max-height:300px;overflow-y:auto;"></div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Eval Tasks (Latest)</div>
+    <div id="eval-tasks" class="task-grid"></div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">System Prompt (Current)</div>
+    <div id="system-prompt" style="max-height:240px;overflow-y:auto;font-size:11px;color:var(--dim);white-space:pre-wrap;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:10px;line-height:1.5;"></div>
+  </div>
+</div>
+
+<script>
+// ── Chart drawing (no dependencies, pure canvas) ──
+
+function drawChart(canvas, datasets, opts = {}) {
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  const W = rect.width, H = rect.height;
+  const pad = { top: 20, right: 20, bottom: 30, left: 50 };
+  const plotW = W - pad.left - pad.right;
+  const plotH = H - pad.top - pad.bottom;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Find ranges
+  let maxX = 1, minY = Infinity, maxY = -Infinity;
+  for (const ds of datasets) {
+    for (const p of ds.data) {
+      maxX = Math.max(maxX, p.x);
+      minY = Math.min(minY, p.y);
+      maxY = Math.max(maxY, p.y);
+    }
+  }
+  if (opts.yMin !== undefined) minY = opts.yMin;
+  if (opts.yMax !== undefined) maxY = opts.yMax;
+  if (minY === maxY) { minY -= 0.5; maxY += 0.5; }
+  const yRange = maxY - minY || 1;
+
+  const toX = x => pad.left + (x / maxX) * plotW;
+  const toY = y => pad.top + plotH - ((y - minY) / yRange) * plotH;
+
+  // Grid
+  ctx.strokeStyle = '#2a2a2a'; ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + (plotH / 4) * i;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+  }
+
+  // Axes labels
+  ctx.fillStyle = '#666'; ctx.font = '10px Courier New'; ctx.textAlign = 'right';
+  for (let i = 0; i <= 4; i++) {
+    const val = maxY - (yRange / 4) * i;
+    const y = pad.top + (plotH / 4) * i;
+    ctx.fillText(val.toFixed(2), pad.left - 6, y + 3);
+  }
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= maxX; i++) {
+    ctx.fillText(i.toString(), toX(i), H - 8);
+  }
+
+  // Lines
+  for (const ds of datasets) {
+    if (ds.data.length < 1) continue;
+    ctx.strokeStyle = ds.color; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ds.data.forEach((p, i) => { i === 0 ? ctx.moveTo(toX(p.x), toY(p.y)) : ctx.lineTo(toX(p.x), toY(p.y)); });
+    ctx.stroke();
+    // Dots
+    ctx.fillStyle = ds.color;
+    for (const p of ds.data) {
+      ctx.beginPath(); ctx.arc(toX(p.x), toY(p.y), 3, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  // Legend
+  ctx.font = '11px Courier New'; ctx.textAlign = 'left';
+  let lx = pad.left + 8;
+  for (const ds of datasets) {
+    ctx.fillStyle = ds.color;
+    ctx.fillRect(lx, pad.top - 14, 12, 3);
+    ctx.fillText(ds.label, lx + 16, pad.top - 8);
+    lx += ctx.measureText(ds.label).width + 36;
+  }
+}
+
+// ── Helpers ──
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function iterColor(iter) {
+  const colors = ['#4fc3f7','#69f0ae','#ffd740','#ffab40','#ff5252','#ce93d8','#4dd0e1','#aed581','#f48fb1','#90a4ae'];
+  return colors[(iter || 0) % colors.length];
+}
+
+// ── State ──
+let trainData = [], evalData = [], playbookData = [], entries = [], evalTasks = {};
+let pollInterval = null;
+
+function render() {
+  const rc = document.getElementById('reward-chart');
+  const pc = document.getElementById('playbook-chart');
+
+  drawChart(rc, [
+    { label: 'Train', color: '#69f0ae', data: trainData },
+    { label: 'Eval', color: '#ffd740', data: evalData },
+  ], { yMin: -1, yMax: 1 });
+
+  drawChart(pc, [
+    { label: 'Entries', color: '#4fc3f7', data: playbookData },
+  ], { yMin: 0 });
+
+  // Stats
+  if (trainData.length) document.getElementById('iter-val').textContent = trainData[trainData.length-1].x;
+  if (trainData.length) document.getElementById('train-val').textContent = trainData[trainData.length-1].y.toFixed(3);
+  if (evalData.length) document.getElementById('eval-val').textContent = evalData[evalData.length-1].y.toFixed(3);
+  if (playbookData.length) document.getElementById('pb-val').textContent = Math.round(playbookData[playbookData.length-1].y);
+
+  // Entries
+  const el = document.getElementById('entries-list');
+  el.innerHTML = entries.slice().reverse().map(e => `
+    <div class="entry">
+      <div class="entry-header">
+        <span class="entry-id">${esc(e.id || '')}</span>
+        <span class="entry-iter" style="background:${iterColor(e.iter)};color:var(--bg);padding:1px 6px;border-radius:2px;">iter ${e.iter !== undefined ? esc(String(e.iter)) : '?'}</span>
+      </div>
+      ${esc(e.content)}
+      <div class="entry-tags">${(e.tags||[]).map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>
+    </div>
+  `).join('');
+
+  // System prompt
+  const sp = document.getElementById('system-prompt');
+  if (entries.length) {
+    const learned = entries.map((e, i) => `${i+1}. ${e.content}`).join('\n');
+    sp.textContent = '## Learned strategies:\n' + learned;
+  } else {
+    sp.textContent = '(no entries yet)';
+  }
+
+  // Eval tasks
+  const et = document.getElementById('eval-tasks');
+  et.innerHTML = Object.entries(evalTasks).map(([name, info]) => {
+    const r = info.reward;
+    const cls = r >= 0.9 ? 'pass' : r <= -0.5 ? 'fail' : 'partial';
+    return `<div class="task-cell"><div class="task-name" title="${esc(name)}">${esc(name)}</div><div class="task-reward ${cls}">${r.toFixed(2)}</div></div>`;
+  }).join('');
+}
+
+// ── Parse JSONL ──
+function parseJsonl(text) {
+  return text.trim().split('\n').filter(Boolean).map(line => {
+    try { return JSON.parse(line); } catch(e) { return null; }
+  }).filter(Boolean);
+}
+
+function resetToStart() {
+  trainData = []; evalData = []; playbookData = []; entries = []; evalTasks = {};
+  if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+  document.getElementById('file-picker').classList.add('show');
+  document.getElementById('reset-btn').style.display = 'none';
+  document.getElementById('iter-val').textContent = '0';
+  document.getElementById('train-val').textContent = '0.00';
+  document.getElementById('eval-val').textContent = '0.00';
+  document.getElementById('pb-val').textContent = '0';
+  document.getElementById('entries-list').innerHTML = '';
+  document.getElementById('eval-tasks').innerHTML = '';
+  const rc = document.getElementById('reward-chart').getContext('2d');
+  const pc = document.getElementById('playbook-chart').getContext('2d');
+  rc.clearRect(0, 0, rc.canvas.width, rc.canvas.height);
+  pc.clearRect(0, 0, pc.canvas.width, pc.canvas.height);
+}
+
+function loadExperimentData(expText, evalText) {
+  const expEntries = parseJsonl(expText);
+  const evalEntries = parseJsonl(evalText || '');
+
+  trainData = expEntries.map(e => ({ x: e.iteration, y: e.avg_reward }));
+  evalData = evalEntries.map(e => ({ x: e.iteration, y: e.avg_reward }));
+  playbookData = expEntries.map(e => ({ x: e.iteration, y: e.playbook_size || 0 }));
+
+  // Collect all playbook entries with the iteration they first appeared
+  const seenIds = new Set();
+  entries = [];
+  for (const exp of expEntries) {
+    for (const pe of (exp.playbook_entries || [])) {
+      if (!seenIds.has(pe.id)) {
+        seenIds.add(pe.id);
+        entries.push({ id: pe.id, content: pe.content, tags: pe.tags || [], iter: exp.iteration });
+      }
+    }
+  }
+
+  // Latest eval tasks
+  if (evalEntries.length) {
+    const latest = evalEntries[evalEntries.length - 1];
+    evalTasks = {};
+    for (const [name, info] of Object.entries(latest.per_task || {})) {
+      evalTasks[name] = info;
+    }
+  }
+
+  render();
+}
+
+// ── File picker ──
+function pickFiles() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.multiple = true; input.accept = '.jsonl';
+  input.onchange = async () => {
+    let expText = '', evalText = '';
+    for (const f of input.files) {
+      const text = await f.text();
+      if (f.name.includes('eval')) evalText = text;
+      else expText = text;
+    }
+    if (expText) {
+      document.getElementById('file-picker').classList.remove('show');
+      document.getElementById('mode-badge').textContent = 'FILE';
+      document.getElementById('mode-badge').className = 'done';
+      document.getElementById('reset-btn').style.display = '';
+      loadExperimentData(expText, evalText);
+    }
+  };
+  input.click();
+}
+
+// ── Demo data ──
+function loadDemo() {
+  document.getElementById('file-picker').classList.remove('show');
+  document.getElementById('mode-badge').textContent = 'DEMO';
+  document.getElementById('mode-badge').className = 'demo';
+  document.getElementById('reset-btn').style.display = '';
+
+  // Simulate a learning curve that goes up
+  const iters = 10;
+  let expLines = [], evalLines = [];
+  let pbEntries = [];
+  const demoEntries = [
+    { content: "Write result as JSON array to /app/result.json", tags: ["format", "harbor"] },
+    { content: "Parse function schema carefully before calling", tags: ["parsing", "harbor"] },
+    { content: "For multiple functions, call each one separately", tags: ["multiple", "strategy"] },
+    { content: "Verify file exists after writing with ls /app/", tags: ["verification", "harbor"] },
+    { content: "Handle optional parameters by checking if specified", tags: ["params", "strategy"] },
+    { content: "For parallel calls, execute all then write combined result", tags: ["parallel", "strategy"] },
+    { content: "When unsure of param type, check schema constraints", tags: ["types", "parsing"] },
+    { content: "Always include required params, omit optional if unspecified", tags: ["params", "accuracy"] },
+  ];
+
+  for (let i = 0; i < iters; i++) {
+    // Train reward: starts low (~0.2), goes up to ~0.85 with noise
+    const trainBase = 0.2 + (0.6 * i / (iters - 1));
+    const trainR = Math.min(1, Math.max(-1, trainBase + (Math.random() - 0.5) * 0.15));
+    // Eval reward: trails behind train noticeably
+    const evalBase = 0.1 + (0.45 * i / (iters - 1));
+    const evalR = Math.min(1, Math.max(-1, evalBase + (Math.random() - 0.5) * 0.2));
+
+    // Add 1-2 entries per iteration early, 0-1 later
+    const nNew = i < 4 ? Math.ceil(Math.random() * 2) : (Math.random() > 0.6 ? 1 : 0);
+    for (let j = 0; j < nNew && pbEntries.length < demoEntries.length; j++) {
+      const de = demoEntries[pbEntries.length];
+      pbEntries.push({ id: `str-${pbEntries.length}`, ...de, helpful: i * 2, harmful: 0 });
+    }
+
+    expLines.push(JSON.stringify({
+      iteration: i, timestamp: Date.now()/1000, n_episodes: 3,
+      avg_reward: trainR, min_reward: trainR - 0.2, max_reward: Math.min(1, trainR + 0.2),
+      per_task: {}, fb_results: { harness: { status: "ok", metrics: { insights_generated: nNew } } },
+      playbook_size: pbEntries.length,
+      playbook_entries: pbEntries.map(e => ({...e, content: e.content.substring(0, 200)})),
+    }));
+
+    const evalPerTask = {};
+    ['bfcl-simple-3', 'bfcl-simple-7', 'bfcl-multiple-2', 'bfcl-multiple-4', 'bfcl-parallel-1'].forEach((t, ti) => {
+      const base = ti < 2 ? evalR + 0.1 : evalR - 0.1;
+      evalPerTask[t] = { reward: Math.min(1, Math.max(-1, base + (Math.random()-0.5)*0.2)), filtered: false, n_messages: 5+i };
+    });
+    evalLines.push(JSON.stringify({
+      iteration: i, timestamp: Date.now()/1000, n_episodes: 5,
+      avg_reward: evalR, min_reward: evalR - 0.3, max_reward: Math.min(1, evalR + 0.2),
+      per_task: evalPerTask, playbook_size: pbEntries.length,
+    }));
+  }
+
+  // Animate: show one iteration at a time
+  let animIter = 0;
+
+  function animStep() {
+    if (animIter >= iters) return;
+    loadExperimentData(
+      expLines.slice(0, animIter + 1).join('\n'),
+      evalLines.slice(0, animIter + 1).join('\n')
+    );
+    animIter++;
+    if (animIter < iters) setTimeout(animStep, 800);
+  }
+  setTimeout(animStep, 300);
+}
+
+// ── Polling for live data ──
+async function startPolling(expUrl, evalUrl) {
+  document.getElementById('file-picker').classList.remove('show');
+  document.getElementById('mode-badge').textContent = 'LIVE';
+  document.getElementById('mode-badge').className = 'live';
+  document.getElementById('reset-btn').style.display = '';
+
+  async function poll() {
+    try {
+      const [expResp, evalResp] = await Promise.all([
+        fetch(expUrl).then(r => r.ok ? r.text() : ''),
+        fetch(evalUrl).then(r => r.ok ? r.text() : '').catch(() => ''),
+      ]);
+      if (expResp) loadExperimentData(expResp, evalResp);
+    } catch(e) { /* retry next interval */ }
+  }
+  poll();
+  pollInterval = setInterval(poll, 3000);
+}
+
+// ── Auto-load from URL params ──
+const params = new URLSearchParams(window.location.search);
+if (params.has('dir')) {
+  // Can't read local files via fetch, show file picker
+  document.getElementById('file-picker').querySelector('p').textContent =
+    `Select experiment.jsonl and eval.jsonl from: ${params.get('dir')}`;
+} else if (params.has('exp')) {
+  startPolling(params.get('exp'), params.get('eval') || '');
+}
+
+// Resize handler
+window.addEventListener('resize', () => { if (trainData.length) render(); });
+</script>
+</body>
+</html>

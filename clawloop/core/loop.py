@@ -15,7 +15,7 @@ import random
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Callable, Protocol
 
 from clawloop.core.episode import Episode
 from clawloop.core.evolution_log import EvolutionEntry, EvolutionLog
@@ -144,6 +144,7 @@ def learning_loop(
     active_layers: list[str] | None = None,
     intensity: AdaptiveIntensity | None = None,
     output_dir: str | Path | None = None,
+    after_iteration: "Callable[[int, AgentState, list[Episode]], None] | None" = None,
 ) -> tuple[AgentState, StateID]:
     """Run the unified learning loop.
 
@@ -164,6 +165,9 @@ def learning_loop(
     intensity:
         Optional adaptive intensity controller that gates when the
         evolver fires (saves LLM calls).
+    after_iteration:
+        Optional callback ``f(iteration, agent_state, episodes)`` called
+        after each iteration completes (e.g. for eval scoring).
 
     Returns
     -------
@@ -381,6 +385,13 @@ def learning_loop(
             ))
 
         prev_avg_reward = avg_reward
+
+        # 7. Optional after-iteration callback (e.g. eval scoring)
+        if after_iteration is not None:
+            try:
+                after_iteration(iteration, agent_state, episodes)
+            except Exception:
+                log.exception("after_iteration callback failed")
 
     log.info("Loop complete — final state: %s", state_id.combined_hash[:12])
     return agent_state, state_id
