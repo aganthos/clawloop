@@ -82,6 +82,32 @@ UPSTREAM_URL=https://api.openai.com/v1 UPSTREAM_KEY=$OPENAI_API_KEY \
 Requires Node.js and an OpenAI-compatible Chat Completions endpoint.
 See [`openclaw_demo.py`](openclaw_demo.py) for the full annotated example.
 
+### I have a running OpenClaw instance (Hetzner, Mac Mini, etc.)
+
+Connect ClawLoop to your **remote** OpenClaw via SSH — no changes to your
+OpenClaw config, nothing installed permanently:
+
+```bash
+# With Google Gemini:
+UPSTREAM_KEY=your-key python examples/openclaw_demo_remote.py \
+    --host YOUR_HOST \
+    --upstream-url "https://generativelanguage.googleapis.com/v1beta/openai" \
+    --model gemini-2.5-flash-lite
+
+# With a local model (Ollama on the same server):
+python examples/openclaw_demo_remote.py \
+    --host YOUR_HOST \
+    --local-model localhost:11434 \
+    --model qwen3.5:0.8b
+```
+
+Runs 10 benchmark tasks, learns strategies, re-runs with playbook injection,
+and prints a before/after comparison. Works with any Docker host with SSH
+access — Hetzner VPS, Mac Mini, DGX Spark, etc.
+
+See [`openclaw_demo_remote.py`](openclaw_demo_remote.py) for full docs,
+prerequisites, and all provider options.
+
 ### I have GPU resources for weight training
 
 The [recipes/](recipes/) directory contains SkyRL/Tinker-compatible scripts
@@ -109,4 +135,5 @@ See [`recipes/README.md`](recipes/README.md) for setup and details.
 | Harbor BFCL | Gemini + Docker | Oracle + Docker + SkyRL |
 | Entropic A2A | Gemini | Gemini + SkyRL |
 | OpenClaw Proxy | OpenAI | -- |
+| OpenClaw Remote | Gemini, Ollama (qwen3, qwen3.5) | -- |
 | n8n Integration | any provider | -- |
