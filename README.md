@@ -92,6 +92,7 @@ python examples/train_runner.py examples/configs/math_harness.json
 | An n8n or workflow platform | [`examples/n8n/`](examples/n8n/) | Webhook integration, zero Python needed |
 | An OpenAI-compatible agent | [`examples/train_runner.py`](examples/train_runner.py) with configs | CRMArena, Harbor BFCL via litellm |
 | Want zero-code-change learning | [`examples/openclaw_demo.py`](examples/openclaw_demo.py) | Transparent proxy captures traces + injects skills |
+| A running OpenClaw instance | [`examples/openclaw_demo_remote.py`](examples/openclaw_demo_remote.py) | SSH into your OpenClaw, learn from traces, show improvement |
 | GPU resources for weight training | [`examples/recipes/`](examples/recipes/) | SkyRL/Tinker GRPO, PPO, full finetune |
 
 See [`examples/README.md`](examples/README.md) for details on each path.
