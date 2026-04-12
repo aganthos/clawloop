@@ -183,10 +183,17 @@ class EpisodeCollector:
             # Attach response_logprobs at construction (no post-mutation)
             if i == last_assistant_idx and response_logprobs and not msg_logprobs:
                 msg_logprobs = parse_logprobs(response_logprobs)
+            # Reasoning model fallback: if content is None but reasoning
+            # exists (Qwen3, DeepSeek-R1, OpenAI o1/o3), use reasoning.
+            # Use explicit None check — empty string "" is a valid content
+            # (e.g. tool-call-only responses).
+            msg_content = m.get("content")
+            if msg_content is None:
+                msg_content = m.get("reasoning") or m.get("reasoning_content") or ""
             ep_messages.append(
                 Message(
                     role=m.get("role", "user"),
-                    content=m.get("content", ""),
+                    content=msg_content,
                     name=m.get("name"),
                     tool_calls=parse_tool_calls(m.get("tool_calls")),
                     tool_call_id=m.get("tool_call_id"),

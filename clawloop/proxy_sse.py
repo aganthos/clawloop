@@ -50,6 +50,7 @@ def parse_sse_bytes(
     # --- accumulate message ------------------------------------------------
     role: str | None = None
     content_parts: list[str] = []
+    reasoning_parts: list[str] = []  # reasoning/thinking tokens (Qwen3, DeepSeek-R1, etc.)
     # tool_calls keyed by index → {id, type, function: {name, arguments}}
     tool_calls_by_index: dict[int, dict] = {}
     usage: dict | None = None
@@ -76,6 +77,11 @@ def parse_sse_bytes(
         # content
         if "content" in delta and delta["content"] is not None:
             content_parts.append(delta["content"])
+
+        # reasoning tokens (Ollama uses "reasoning", OpenAI uses "reasoning_content")
+        for rkey in ("reasoning", "reasoning_content"):
+            if rkey in delta and delta[rkey] is not None:
+                reasoning_parts.append(delta[rkey])
 
         # tool_calls
         if "tool_calls" in delta:
@@ -105,7 +111,17 @@ def parse_sse_bytes(
     msg: dict = {"role": role or "assistant"}
 
     content = "".join(content_parts) if content_parts else None
+    reasoning = "".join(reasoning_parts) if reasoning_parts else None
+
+    # If content is empty but reasoning exists (thinking models like Qwen3,
+    # DeepSeek-R1), use reasoning as content so episodes aren't empty.
+    if not content and reasoning:
+        content = reasoning
     msg["content"] = content
+
+    # Preserve reasoning separately for training pipelines
+    if reasoning:
+        msg["reasoning"] = reasoning
 
     if tool_calls_by_index:
         msg["tool_calls"] = [
