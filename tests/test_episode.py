@@ -282,3 +282,45 @@ class TestMessageLogprobs:
         msg = Message(role="assistant", content="hi", logprobs=lps)
         d = msg.to_openai_dict()
         assert "logprobs" not in d
+
+
+class TestMessageReasoningContent:
+    def test_default_is_none(self) -> None:
+        msg = Message(role="assistant", content="hi")
+        assert msg.reasoning_content is None
+
+    def test_stored_alongside_content(self) -> None:
+        msg = Message(
+            role="assistant",
+            content="final answer",
+            reasoning_content="step by step thinking",
+        )
+        assert msg.content == "final answer"
+        assert msg.reasoning_content == "step by step thinking"
+
+    def test_empty_string_preserved(self) -> None:
+        msg = Message(role="assistant", content="x", reasoning_content="")
+        assert msg.reasoning_content == ""
+
+    def test_not_in_openai_dict(self) -> None:
+        """to_openai_dict() is the OpenAI Chat Completions request shape.
+        reasoning_content is an internal record field — must not be emitted.
+        """
+        msg = Message(
+            role="assistant", content="x", reasoning_content="y"
+        )
+        d = msg.to_openai_dict()
+        assert "reasoning_content" not in d
+        assert "reasoning" not in d
+        assert d == {"role": "assistant", "content": "x"}
+
+    def test_openai_dict_roundtrip_is_lossy(self) -> None:
+        """Document the contract: Message -> to_openai_dict -> Message loses
+        reasoning_content. Future maintainers must not assume lossless
+        round-trips through the OpenAI wire format."""
+        original = Message(
+            role="assistant", content="x", reasoning_content="y"
+        )
+        d = original.to_openai_dict()
+        reconstructed = Message(role=d["role"], content=d["content"])
+        assert reconstructed.reasoning_content is None

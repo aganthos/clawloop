@@ -329,3 +329,165 @@ class TestIngestExternal:
         )
         assert "execution" in ep.summary.signals
         assert ep.summary.signals["execution"].value < 0
+
+
+class TestReasoningContentIngestion:
+    """Reasoning normalization at the collector boundary."""
+
+    def _collector(self):
+        return EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+
+    def test_preserves_canonical_reasoning_content_key(self):
+        ep = self._collector().ingest_external([
+            {"role": "user", "content": "hi"},
+            {"role": "assistant", "content": "final",
+             "reasoning_content": "step-by-step thinking"},
+        ])
+        asst = ep.messages[-1]
+        assert asst.content == "final"
+        assert asst.reasoning_content == "step-by-step thinking"
+
+    def test_normalizes_legacy_reasoning_key(self):
+        ep = self._collector().ingest_external([
+            {"role": "user", "content": "hi"},
+            {"role": "assistant", "content": "final", "reasoning": "legacy"},
+        ])
+        assert ep.messages[-1].reasoning_content == "legacy"
+
+    def test_empty_content_falls_back_to_reasoning_for_compat(self):
+        ep = self._collector().ingest_external([
+            {"role": "user", "content": "hi"},
+            {"role": "assistant", "content": None, "reasoning_content": "T"},
+        ])
+        asst = ep.messages[-1]
+        assert asst.content == "T"
+        assert asst.reasoning_content == "T"
+
+    def test_both_content_and_reasoning_preserved_independently(self):
+        ep = self._collector().ingest_external([
+            {"role": "user", "content": "hi"},
+            {"role": "assistant", "content": "final",
+             "reasoning_content": "thinking"},
+        ])
+        asst = ep.messages[-1]
+        assert asst.content == "final"
+        assert asst.reasoning_content == "thinking"
+
+    def test_empty_string_reasoning_preserved_not_coerced(self):
+        ep = self._collector().ingest_external([
+            {"role": "user", "content": "hi"},
+            {"role": "assistant", "content": "x", "reasoning_content": ""},
+        ])
+        assert ep.messages[-1].reasoning_content == ""
+
+    def test_canonical_key_wins_over_legacy_when_both_present(self):
+        ep = self._collector().ingest_external([
+            {"role": "user", "content": "hi"},
+            {"role": "assistant", "content": "x",
+             "reasoning_content": "canonical", "reasoning": "legacy"},
+        ])
+        assert ep.messages[-1].reasoning_content == "canonical"
+
+    def test_no_reasoning_keys_leaves_field_none(self):
+        ep = self._collector().ingest_external([
+            {"role": "user", "content": "hi"},
+            {"role": "assistant", "content": "x"},
+        ])
+        assert ep.messages[-1].reasoning_content is None
+
+    def test_canonical_none_falls_back_to_legacy(self):
+        """When reasoning_content is explicitly None, fall back to the
+        legacy reasoning key if it has a non-None value."""
+        ep = self._collector().ingest_external([
+            {"role": "user", "content": "hi"},
+            {"role": "assistant", "content": "x",
+             "reasoning_content": None, "reasoning": "from-legacy"},
+        ])
+        assert ep.messages[-1].reasoning_content == "from-legacy"
+
+    def test_content_fallback_only_for_assistant_role(self):
+        """Reasoning-into-content fallback is assistant-only. A malformed
+        non-assistant message with content=None doesn't get reasoning
+        injected into content."""
+        ep = self._collector().ingest_external([
+            {"role": "user", "content": None, "reasoning": "leak"},
+            {"role": "assistant", "content": "ok"},
+        ])
+        assert ep.messages[0].content == ""
+        assert ep.messages[0].reasoning_content == "leak"
+
+
+class TestReasoningContentE2E:
+    """Integration: SSE parser → collector → Message. Covers the real
+    regression boundary for reasoning preservation end-to-end."""
+
+    def _collector(self):
+        return EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
+
+    def test_sse_stream_with_reasoning_content_key(self):
+        """OpenAI-style stream using reasoning_content delta key."""
+        from clawloop.proxy_sse import parse_sse_bytes
+
+        sse = (
+            b'data: {"choices":[{"delta":{"role":"assistant"}}]}\n\n'
+            b'data: {"choices":[{"delta":{"reasoning_content":"let me think"}}]}\n\n'
+            b'data: {"choices":[{"delta":{"reasoning_content":" carefully"}}]}\n\n'
+            b'data: {"choices":[{"delta":{"content":"42"}}]}\n\n'
+            b'data: [DONE]\n\n'
+        )
+        msg, _usage, complete = parse_sse_bytes(sse)
+        assert complete
+        assert msg is not None
+
+        ep = self._collector().ingest_external([
+            {"role": "user", "content": "q"},
+            msg,
+        ])
+        asst = ep.messages[-1]
+        assert asst.content == "42"
+        assert asst.reasoning_content == "let me think carefully"
+
+    def test_sse_stream_with_ollama_reasoning_key(self):
+        """Ollama-style stream using legacy reasoning delta key."""
+        from clawloop.proxy_sse import parse_sse_bytes
+
+        sse = (
+            b'data: {"choices":[{"delta":{"role":"assistant"}}]}\n\n'
+            b'data: {"choices":[{"delta":{"reasoning":"ollama thinking"}}]}\n\n'
+            b'data: {"choices":[{"delta":{"content":"ans"}}]}\n\n'
+            b'data: [DONE]\n\n'
+        )
+        msg, _usage, _ = parse_sse_bytes(sse)
+        assert msg is not None
+
+        ep = self._collector().ingest_external([
+            {"role": "user", "content": "q"},
+            msg,
+        ])
+        asst = ep.messages[-1]
+        assert asst.content == "ans"
+        assert asst.reasoning_content == "ollama thinking"
+
+    def test_sse_reasoning_only_turn_back_compat(self):
+        """When the SSE stream has reasoning but no content (thinking-only
+        turn), the parser inlines reasoning into content. The collector
+        should also set reasoning_content on the Message."""
+        from clawloop.proxy_sse import parse_sse_bytes
+
+        sse = (
+            b'data: {"choices":[{"delta":{"role":"assistant"}}]}\n\n'
+            b'data: {"choices":[{"delta":{"reasoning_content":"deep thought"}}]}\n\n'
+            b'data: [DONE]\n\n'
+        )
+        msg, _, _ = parse_sse_bytes(sse)
+        assert msg is not None
+        # Parser inlines reasoning into content when content is empty
+        assert msg["content"] == "deep thought"
+
+        ep = self._collector().ingest_external([
+            {"role": "user", "content": "q"},
+            msg,
+        ])
+        asst = ep.messages[-1]
+        assert asst.content == "deep thought"
+        assert asst.reasoning_content == "deep thought"
