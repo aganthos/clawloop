@@ -71,6 +71,7 @@ class Message:
     token_count: int | None = None
     model: str | None = None  # which model generated this
     logprobs: list[TokenLogProb] | None = None  # per-token log probs from generation
+    reasoning_content: str | None = None  # thinking / CoT from reasoning models
 
     def to_openai_dict(self) -> dict[str, Any]:
         """Serialize to the dict format expected by OpenAI-compatible APIs."""
