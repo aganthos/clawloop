@@ -183,13 +183,23 @@ class EpisodeCollector:
             # Attach response_logprobs at construction (no post-mutation)
             if i == last_assistant_idx and response_logprobs and not msg_logprobs:
                 msg_logprobs = parse_logprobs(response_logprobs)
-            # Reasoning model fallback: if content is None but reasoning
-            # exists (Qwen3, DeepSeek-R1, OpenAI o1/o3), use reasoning.
-            # Use explicit None check — empty string "" is a valid content
-            # (e.g. tool-call-only responses).
+            # Reasoning normalization: canonical field is reasoning_content
+            # (OpenAI o-series, Qwen3, Z.AI/GLM). Legacy alias: reasoning
+            # (Ollama, our own parse_sse_bytes). Prefer canonical, but fall
+            # back to legacy if canonical is absent or explicitly None.
+            raw_reasoning = m.get("reasoning_content")
+            if raw_reasoning is None:
+                raw_reasoning = m.get("reasoning")
+
             msg_content = m.get("content")
-            if msg_content is None:
-                msg_content = m.get("reasoning") or m.get("reasoning_content") or ""
+            if msg_content is None and m.get("role") == "assistant":
+                # Back-compat: reasoning-only assistant turns still surface
+                # in content so existing dashboards / exporters see non-empty
+                # strings. Canonical reasoning also in reasoning_content.
+                msg_content = raw_reasoning if raw_reasoning is not None else ""
+            elif msg_content is None:
+                msg_content = ""
+
             ep_messages.append(
                 Message(
                     role=m.get("role", "user"),
@@ -199,6 +209,7 @@ class EpisodeCollector:
                     tool_call_id=m.get("tool_call_id"),
                     model=m.get("model"),
                     logprobs=msg_logprobs,
+                    reasoning_content=raw_reasoning,
                 )
             )
 
