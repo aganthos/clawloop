@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import threading
 import time
 from pathlib import Path
@@ -44,6 +45,8 @@ def _write_line(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "a", encoding="utf-8") as f:
         f.write(json.dumps(payload, separators=(",", ":")) + "\n")
+        f.flush()
+        os.fsync(f.fileno())
 
 
 class JsonlArchiveStore:
@@ -120,6 +123,8 @@ class JsonlArchiveStore:
         with self._lock:
             with open(path, "a", encoding="utf-8") as f:
                 f.write("\n".join(lines) + "\n")
+                f.flush()
+                os.fsync(f.fileno())
 
     def log_variant(self, variant: AgentVariant) -> None:
         payload = {
@@ -155,9 +160,9 @@ class JsonlArchiveStore:
     # Linear scans. Intentional: the public store optimizes for safe,
     # simple writes. Indexed queries live in enterprise SqliteArchiveStore.
     #
-    # Note on concurrency: reads hold the same mutex as writes to avoid
-    # racing with an in-flight append. This is fine for local debugging
-    # workloads; busy producers should prefer the enterprise SQLite store.
+    # Reads are lock-free: the store is append-only, so readers see a
+    # consistent prefix on POSIX. Partial tail lines from concurrent
+    # writes are caught by the JSONDecodeError handler.
     # ------------------------------------------------------------------
 
     def get_run(self, run_id: str) -> RunRecord | None:
@@ -167,7 +172,7 @@ class JsonlArchiveStore:
 
         best: dict | None = None
         completion: dict | None = None
-        with self._lock, open(path, encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             for line in f:
                 try:
                     rec = json.loads(line)
@@ -218,7 +223,7 @@ class JsonlArchiveStore:
         tag_set = set(domain_tags)
         starts: dict[str, dict] = {}
         completions: dict[str, dict] = {}
-        with self._lock, open(path, encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             for line in f:
                 try:
                     rec = json.loads(line)
