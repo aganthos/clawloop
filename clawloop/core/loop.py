@@ -17,6 +17,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Protocol
 
+from clawloop.archive.null_store import NullArchiveStore
+from clawloop.archive.schema import (
+    AgentVariant,
+    EpisodeRecord,
+    IterationRecord,
+    RunRecord,
+)
+from clawloop.archive.store import ArchiveStore
 from clawloop.core.episode import Episode
 from clawloop.core.evolution_log import EvolutionEntry, EvolutionLog
 from clawloop.core.intensity import AdaptiveIntensity
@@ -25,6 +33,7 @@ from clawloop.core.types import Datum, FBResult, Future, OptimResult
 from clawloop.learning_layers.harness import Harness
 from clawloop.learning_layers.router import Router
 from clawloop.learning_layers.weights import Weights
+from clawloop.utils.content_hash import canonical_hash
 
 log = logging.getLogger(__name__)
 
@@ -134,6 +143,16 @@ class AdapterLike(Protocol):
     def run_episode(self, task: Any, agent_state: AgentState) -> Episode: ...
 
 
+def _build_agent_config(agent_state: AgentState) -> dict[str, Any]:
+    """Extract serializable agent config snapshot for archive identity."""
+    config: dict[str, Any] = {}
+    if isinstance(agent_state.harness, Harness):
+        config["system_prompts"] = dict(agent_state.harness.system_prompts)
+        config["playbook"] = agent_state.harness.playbook.to_dict()
+    config["router"] = agent_state.router.to_dict()
+    return config
+
+
 def learning_loop(
     adapter: AdapterLike,
     agent_state: AgentState,
@@ -145,6 +164,9 @@ def learning_loop(
     intensity: AdaptiveIntensity | None = None,
     output_dir: str | Path | None = None,
     after_iteration: "Callable[[int, AgentState, list[Episode]], None] | None" = None,
+    archive: ArchiveStore | None = None,
+    bench: str = "unknown",
+    domain_tags: list[str] | None = None,
 ) -> tuple[AgentState, StateID]:
     """Run the unified learning loop.
 
@@ -178,6 +200,56 @@ def learning_loop(
     layers = agent_state.get_layers(active_layers)
     exp_log = ExperimentLog(output_dir)
     evo_log = EvolutionLog(output_dir)
+    _archive: ArchiveStore = archive if archive is not None else NullArchiveStore()
+    _run_id = RunRecord.new_id()
+    _initial_config = _build_agent_config(agent_state)
+    _initial_variant_hash = canonical_hash(_initial_config)
+    _now = time.time()
+    try:
+        _archive.log_run_start(
+            RunRecord(
+                run_id=_run_id,
+                bench=bench,
+                domain_tags=list(domain_tags or []),
+                agent_config=_initial_config,
+                config_hash=_initial_variant_hash,
+                n_iterations=n_iterations,
+                best_reward=0.0,
+                improvement_delta=0.0,
+                total_cost_tokens=0,
+                parent_run_id=None,
+                created_at=_now,
+                completed_at=None,
+            )
+        )
+    except Exception:
+        log.warning("Archive: failed to log run start", exc_info=True)
+    try:
+        _archive.log_variant(
+            AgentVariant(
+                variant_hash=_initial_variant_hash,
+                system_prompt=(
+                    next(iter(agent_state.harness.system_prompts.values()), "")
+                    if isinstance(agent_state.harness, Harness)
+                    else ""
+                ),
+                playbook_snapshot=(
+                    agent_state.harness.playbook.to_dict()
+                    if isinstance(agent_state.harness, Harness)
+                    else {}
+                ),
+                model="",
+                tools=[],
+                first_seen_run_id=_run_id,
+                created_at=_now,
+            )
+        )
+    except Exception:
+        log.warning("Archive: failed to log initial variant", exc_info=True)
+    _prev_variant_hash = _initial_variant_hash
+    _best_reward: float | None = None  # None until first iteration — handles negative rewards
+    _initial_reward: float | None = None
+    _total_cost = 0
     prev_avg_reward = 0.0
     log.info("Starting learning loop — initial state: %s", state_id.combined_hash[:12])
 
@@ -209,6 +281,44 @@ def learning_loop(
             else 0.0
         )
         log.info("  Collected %d episodes, avg reward: %.4f", len(episodes), avg_reward)
+
+        if episodes:
+            _ep_records: list[EpisodeRecord] = []
+            for ep in episodes:
+                tool_call_count = sum(len(m.tool_calls or []) for m in ep.messages)
+                _ep_records.append(
+                    EpisodeRecord(
+                        run_id=_run_id,
+                        iteration_num=iteration,
+                        episode_id=ep.id,
+                        task_id=ep.task_id,
+                        bench=ep.bench,
+                        model=ep.model or "",
+                        reward=ep.summary.normalized_reward(),
+                        signals={
+                            k: {"value": s.value, "confidence": s.confidence}
+                            for k, s in ep.summary.signals.items()
+                        } if ep.summary.signals else {},
+                        n_steps=ep.n_steps(),
+                        n_tool_calls=tool_call_count,
+                        token_usage=(
+                            {
+                                "prompt_tokens": ep.summary.token_usage.prompt_tokens,
+                                "completion_tokens": ep.summary.token_usage.completion_tokens,
+                                "total_tokens": ep.summary.token_usage.total_tokens,
+                            }
+                            if ep.summary.token_usage
+                            else {}
+                        ),
+                        latency_ms=int(ep.summary.timing.total_ms if ep.summary.timing else 0),
+                        messages_ref=f"traces/{ep.id}.json",
+                        created_at=ep.created_at if ep.created_at is not None else time.time(),
+                    )
+                )
+            try:
+                _archive.log_episodes(_ep_records)
+            except Exception:
+                log.warning("Archive: failed to log episodes", exc_info=True)
 
         # Record reward for adaptive intensity
         if intensity is not None:
@@ -384,6 +494,63 @@ def learning_loop(
                 ),
             ))
 
+        try:
+            _cur_config = _build_agent_config(agent_state)
+            _cur_variant_hash = canonical_hash(_cur_config)
+            _evolver_action: dict[str, Any] = {}
+            for name, result in fb_results.items():
+                if result.status == "ok":
+                    _evolver_action[name] = result.metrics
+            _iter_cost = sum(
+                r.metrics.get("tokens_used", 0)
+                for r in fb_results.values()
+                if r.status == "ok"
+            )
+            _total_cost += _iter_cost
+            _archive.log_iteration(
+                IterationRecord(
+                    run_id=_run_id,
+                    iteration_num=iteration,
+                    harness_snapshot_hash=state_id.harness_hash,
+                    mean_reward=avg_reward,
+                    reward_trajectory=[ep.summary.normalized_reward() for ep in episodes],
+                    evolver_action=_evolver_action,
+                    cost_tokens=_iter_cost,
+                    parent_variant_hash=_prev_variant_hash,
+                    child_variant_hash=_cur_variant_hash,
+                    reward_delta=avg_reward - prev_avg_reward,
+                    created_at=time.time(),
+                )
+            )
+            if _cur_variant_hash != _prev_variant_hash:
+                _archive.log_variant(
+                    AgentVariant(
+                        variant_hash=_cur_variant_hash,
+                        system_prompt=(
+                            next(iter(agent_state.harness.system_prompts.values()), "")
+                            if isinstance(agent_state.harness, Harness)
+                            else ""
+                        ),
+                        playbook_snapshot=(
+                            agent_state.harness.playbook.to_dict()
+                            if isinstance(agent_state.harness, Harness)
+                            else {}
+                        ),
+                        model="",
+                        tools=[],
+                        first_seen_run_id=_run_id,
+                        created_at=time.time(),
+                    )
+                )
+                _prev_variant_hash = _cur_variant_hash
+        except Exception:
+            log.warning("Archive: failed to log iteration %d", iteration, exc_info=True)
+
+        if _best_reward is None or avg_reward > _best_reward:
+            _best_reward = avg_reward
+        if _initial_reward is None:
+            _initial_reward = avg_reward
+
         prev_avg_reward = avg_reward
 
         # 7. Optional after-iteration callback (e.g. eval scoring)
@@ -392,6 +559,18 @@ def learning_loop(
                 after_iteration(iteration, agent_state, episodes)
             except Exception:
                 log.exception("after_iteration callback failed")
+
+    try:
+        final_best = _best_reward if _best_reward is not None else 0.0
+        final_initial = _initial_reward if _initial_reward is not None else 0.0
+        _archive.log_run_complete(
+            _run_id,
+            final_best,
+            final_best - final_initial,
+            total_cost_tokens=_total_cost,
+        )
+    except Exception:
+        log.warning("Archive: failed to log run complete", exc_info=True)
 
     log.info("Loop complete — final state: %s", state_id.combined_hash[:12])
     return agent_state, state_id
