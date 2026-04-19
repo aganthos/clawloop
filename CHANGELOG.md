@@ -1,7 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.1.0 (2026-04-19)
 
+Public launch release.
+
+- README: lead with clone + uv install, BSL 1.1 framing, visible limitations
+- Tightened `litellm` dependency bounds (`>=1.0,<2.0,!=1.82.7,!=1.82.8`)
 - Evolver protocol: unified Reflector + GEPA + Paradigm behind `Evolver` interface
 - OpenClaw adapter: transparent proxy for any OpenAI-compatible agent
 - n8n integration: webhook-based learning for workflow platforms
