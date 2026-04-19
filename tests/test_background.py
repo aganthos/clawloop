@@ -6,7 +6,6 @@ from unittest.mock import MagicMock
 from clawloop.core.background import (
     BackgroundScheduler,
     BackgroundState,
-    EpisodeDreamer,
     PlaybookConsolidation,
 )
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
@@ -30,9 +29,11 @@ def _make_episode(task_id="t1", reward=0.5):
 
 
 def _make_playbook():
-    return Playbook(entries=[
-        PlaybookEntry(id="e1", content="Always greet the user"),
-    ])
+    return Playbook(
+        entries=[
+            PlaybookEntry(id="e1", content="Always greet the user"),
+        ]
+    )
 
 
 @dataclass
@@ -149,7 +150,10 @@ class TestPlaybookConsolidation:
     def test_playbook_consolidation_runs_curator(self) -> None:
         curator = MagicMock()
         curator.consolidate.return_value = MagicMock(
-            before=10, after=8, merged=1, pruned=1,
+            before=10,
+            after=8,
+            merged=1,
+            pruned=1,
         )
         consolidation = PlaybookConsolidation(curator=curator)
         playbook = _make_playbook()

@@ -5,9 +5,6 @@ Harness, Reflector, Weights, Router, learning loop, and background system.
 """
 
 import json
-import time
-
-import pytest
 
 from clawloop.agent import ClawLoopAgent
 from clawloop.collector import EpisodeCollector
@@ -21,30 +18,39 @@ from clawloop.core.curator import CuratorConfig, PlaybookCurator
 from clawloop.core.embeddings import MockEmbedding
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
 from clawloop.core.evolution import EvolverConfig, PromptEvolver
-from clawloop.harness_backends.local import LocalEvolver
 from clawloop.core.intensity import AdaptiveIntensity
 from clawloop.core.loop import AgentState, learning_loop
 from clawloop.core.reflector import Reflector, ReflectorConfig
 from clawloop.core.reward import RewardPipeline
-from clawloop.core.types import Datum
 from clawloop.environments.math import MathEnvironment
-from clawloop.learning_layers.harness import Harness, Playbook, PlaybookEntry, PromptCandidate, ParetoFront
+from clawloop.harness_backends.local import LocalEvolver
+from clawloop.learning_layers.harness import (
+    Harness,
+    ParetoFront,
+    Playbook,
+    PlaybookEntry,
+    PromptCandidate,
+)
 from clawloop.llm import MockLLMClient
-from clawloop.wrapper import WrappedClient, wrap
-
+from clawloop.wrapper import wrap
 
 # ---------------------------------------------------------------------------
 # Shared helpers
 # ---------------------------------------------------------------------------
 
+
 def _insight_json(content: str, action: str = "add", tags: list[str] | None = None) -> str:
-    return json.dumps([{
-        "action": action,
-        "content": content,
-        "target_entry_id": None,
-        "tags": tags or ["strategy"],
-        "source_episode_ids": [],
-    }])
+    return json.dumps(
+        [
+            {
+                "action": action,
+                "content": content,
+                "target_entry_id": None,
+                "tags": tags or ["strategy"],
+                "source_episode_ids": [],
+            }
+        ]
+    )
 
 
 def _mutation_json(text: str) -> str:
@@ -52,16 +58,23 @@ def _mutation_json(text: str) -> str:
 
 
 def _dreamer_json(content: str) -> str:
-    return json.dumps([{
-        "action": "add",
-        "content": content,
-        "tags": ["meta-pattern"],
-    }])
+    return json.dumps(
+        [
+            {
+                "action": "add",
+                "content": content,
+                "tags": ["meta-pattern"],
+            }
+        ]
+    )
 
 
 def _make_episode(task_id: str = "t1", reward: float = 0.5, bench: str = "test") -> Episode:
     return Episode(
-        id=Episode.new_id(), state_id="int-test", task_id=task_id, bench=bench,
+        id=Episode.new_id(),
+        state_id="int-test",
+        task_id=task_id,
+        bench=bench,
         messages=[
             Message(role="system", content="You are helpful."),
             Message(role="user", content=f"Task {task_id}"),
@@ -75,6 +88,7 @@ def _make_episode(task_id: str = "t1", reward: float = 0.5, bench: str = "test")
 
 class _ReplayAdapter:
     """Adapter that yields pre-built episodes."""
+
     def __init__(self, episodes: list[Episode]) -> None:
         self._episodes = episodes
         self._idx = 0
@@ -89,6 +103,7 @@ class _ReplayAdapter:
 # 1. Support-query separation: real Harness + Reflector + Weights
 # ---------------------------------------------------------------------------
 
+
 class TestSupportQueryRealLayers:
     """Verify support-query split using real layers — failures produce
     playbook entries via Reflector, successes accumulate Weights advantages."""
@@ -96,9 +111,11 @@ class TestSupportQueryRealLayers:
     def test_failures_trigger_reflector_successes_feed_weights(self) -> None:
         """Run loop with mixed episodes. Harness reflector fires on failures,
         Weights accumulates advantages from successes."""
-        reflector_client = MockLLMClient(responses=[
-            _insight_json("When the user asks X, always clarify first"),
-        ])
+        reflector_client = MockLLMClient(
+            responses=[
+                _insight_json("When the user asks X, always clarify first"),
+            ]
+        )
         reflector = Reflector(client=reflector_client, config=ReflectorConfig())
         harness = Harness(
             system_prompts={"test": "You are helpful."},
@@ -133,18 +150,21 @@ class TestSupportQueryRealLayers:
 
         # Weights accumulated advantages from the 2 success episodes
         # (Weights stub groups by task_id and computes GRPO advantages)
-        assert len(state.weights.training_history) >= 1 or len(state.weights._pending.advantages) == 0
+        assert (
+            len(state.weights.training_history) >= 1 or len(state.weights._pending.advantages) == 0
+        )
         # After optim_step, advantages are drained — check training_history
         assert any(
-            h.get("advantages_computed", 0) > 0
-            for h in state.weights.training_history
+            h.get("advantages_computed", 0) > 0 for h in state.weights.training_history
         ), "Weights should have recorded advantages from success episodes"
 
     def test_all_successes_still_reach_harness(self) -> None:
         """All episodes reach harness (support-query split disabled)."""
-        reflector_client = MockLLMClient(responses=[
-            _insight_json("Insight from successes"),
-        ])
+        reflector_client = MockLLMClient(
+            responses=[
+                _insight_json("Insight from successes"),
+            ]
+        )
         reflector = Reflector(client=reflector_client, config=ReflectorConfig())
         harness = Harness(
             system_prompts={"test": "You are helpful."},
@@ -156,8 +176,11 @@ class TestSupportQueryRealLayers:
         adapter = _ReplayAdapter(episodes)
 
         state, _ = learning_loop(
-            adapter=adapter, agent_state=state,
-            tasks=["t1", "t2"], n_episodes=2, n_iterations=1,
+            adapter=adapter,
+            agent_state=state,
+            tasks=["t1", "t2"],
+            n_episodes=2,
+            n_iterations=1,
         )
 
         # Harness receives all episodes (split disabled)
@@ -165,9 +188,11 @@ class TestSupportQueryRealLayers:
 
     def test_all_failures_still_reach_weights(self) -> None:
         """All episodes reach all layers (support-query split disabled)."""
-        reflector_client = MockLLMClient(responses=[
-            _insight_json("Handle edge cases"),
-        ])
+        reflector_client = MockLLMClient(
+            responses=[
+                _insight_json("Handle edge cases"),
+            ]
+        )
         reflector = Reflector(client=reflector_client, config=ReflectorConfig())
         harness = Harness(
             system_prompts={"test": "You are helpful."},
@@ -178,8 +203,11 @@ class TestSupportQueryRealLayers:
         adapter = _ReplayAdapter(episodes)
 
         state, _ = learning_loop(
-            adapter=adapter, agent_state=state,
-            tasks=["t1", "t2"], n_episodes=2, n_iterations=1,
+            adapter=adapter,
+            agent_state=state,
+            tasks=["t1", "t2"],
+            n_episodes=2,
+            n_iterations=1,
         )
 
         # Weights receives all episodes (support-query split disabled)
@@ -190,15 +218,18 @@ class TestSupportQueryRealLayers:
 # 2. Generation flush with real harness + reflector
 # ---------------------------------------------------------------------------
 
+
 class TestGenerationFlushReal:
     """When the reflector adds an insight (advancing playbook_generation),
     stale entries in the weights buffer should be flushed."""
 
     def test_generation_advance_flushes_weights_pending(self) -> None:
-        reflector_client = MockLLMClient(responses=[
-            _insight_json("Always validate input before processing"),
-            json.dumps([]),  # second call returns nothing
-        ])
+        reflector_client = MockLLMClient(
+            responses=[
+                _insight_json("Always validate input before processing"),
+                json.dumps([]),  # second call returns nothing
+            ]
+        )
         reflector = Reflector(client=reflector_client, config=ReflectorConfig())
         harness = Harness(
             system_prompts={"test": "You are helpful."},
@@ -218,22 +249,26 @@ class TestGenerationFlushReal:
         initial_gen = harness.playbook_generation
 
         state, _ = learning_loop(
-            adapter=adapter, agent_state=state,
-            tasks=["t1"], n_episodes=1, n_iterations=1,
+            adapter=adapter,
+            agent_state=state,
+            tasks=["t1"],
+            n_episodes=1,
+            n_iterations=1,
             active_layers=["harness"],  # only harness to isolate flush
         )
 
         # If reflector produced an insight, playbook_generation should have advanced
         if harness.playbook_generation > initial_gen:
             # Weights buffer should have been flushed
-            assert len(state.weights._pending.advantages) == 0, (
-                "Stale advantages should be flushed after generation advance"
-            )
+            assert (
+                len(state.weights._pending.advantages) == 0
+            ), "Stale advantages should be flushed after generation advance"
 
 
 # ---------------------------------------------------------------------------
 # 3. PromptEvolver through the real learning loop
 # ---------------------------------------------------------------------------
+
 
 class TestEvolutionInLoop:
     """Test that mutation actually runs through the loop and produces
@@ -241,10 +276,12 @@ class TestEvolutionInLoop:
 
     def test_evolver_produces_pareto_candidates(self) -> None:
         # Set up a Harness with a Pareto front that has one candidate
-        evolver_llm = MockLLMClient(responses=[
-            _mutation_json("You are helpful. Always ask clarifying questions."),
-            _mutation_json("You are helpful and thorough."),  # crossover
-        ])
+        evolver_llm = MockLLMClient(
+            responses=[
+                _mutation_json("You are helpful. Always ask clarifying questions."),
+                _mutation_json("You are helpful and thorough."),  # crossover
+            ]
+        )
         evolver = PromptEvolver(llm=evolver_llm, config=EvolverConfig())
 
         harness = Harness(
@@ -265,8 +302,11 @@ class TestEvolutionInLoop:
         adapter = _ReplayAdapter(episodes)
 
         state, _ = learning_loop(
-            adapter=adapter, agent_state=state,
-            tasks=["t1"], n_episodes=1, n_iterations=1,
+            adapter=adapter,
+            agent_state=state,
+            tasks=["t1"],
+            n_episodes=1,
+            n_iterations=1,
         )
 
         front = state.harness.pareto_fronts["test"]
@@ -283,6 +323,7 @@ class TestEvolutionInLoop:
 # 4. Activity-aware intensity — real wrapper + collector
 # ---------------------------------------------------------------------------
 
+
 class TestActivityIntensityReal:
     """Test that the real wrapper/collector wires user activity
     into the intensity cooldown."""
@@ -298,33 +339,36 @@ class TestActivityIntensityReal:
 
         assert intensity._last_user_request == 0.0
         wrapped.complete([{"role": "user", "content": "Hello"}])
-        assert intensity._last_user_request > 0.0, (
-            "Wrapper should record user activity on complete()"
-        )
+        assert (
+            intensity._last_user_request > 0.0
+        ), "Wrapper should record user activity on complete()"
 
     def test_collector_records_activity(self) -> None:
         """EpisodeCollector.ingest() should call intensity.record_user_activity()."""
         intensity = AdaptiveIntensity(cooldown_after_request=30.0)
         pipeline = RewardPipeline([])
         collector = EpisodeCollector(
-            pipeline=pipeline, batch_size=100, intensity=intensity,
+            pipeline=pipeline,
+            batch_size=100,
+            intensity=intensity,
         )
 
         assert intensity._last_user_request == 0.0
         collector.ingest(
-            [Message(role="user", content="Hello"),
-             Message(role="assistant", content="Hi!")],
+            [Message(role="user", content="Hello"), Message(role="assistant", content="Hi!")],
             task_id="t1",
         )
-        assert intensity._last_user_request > 0.0, (
-            "Collector should record user activity on ingest()"
-        )
+        assert (
+            intensity._last_user_request > 0.0
+        ), "Collector should record user activity on ingest()"
 
     def test_active_user_defers_loop_reflection(self) -> None:
         """When user is active (within cooldown), the reflector should be skipped."""
-        reflector_client = MockLLMClient(responses=[
-            _insight_json("Should be skipped"),
-        ])
+        reflector_client = MockLLMClient(
+            responses=[
+                _insight_json("Should be skipped"),
+            ]
+        )
         reflector = Reflector(client=reflector_client, config=ReflectorConfig())
         harness = Harness(
             system_prompts={"test": "You are helpful."},
@@ -340,20 +384,24 @@ class TestActivityIntensityReal:
         adapter = _ReplayAdapter(episodes)
 
         state, _ = learning_loop(
-            adapter=adapter, agent_state=state,
-            tasks=["t1"], n_episodes=1, n_iterations=1,
+            adapter=adapter,
+            agent_state=state,
+            tasks=["t1"],
+            n_episodes=1,
+            n_iterations=1,
             intensity=intensity,
         )
 
         # Reflector should NOT have been called due to user activity cooldown
-        assert len(reflector_client.call_log) == 0, (
-            "Reflector should be deferred when user is active"
-        )
+        assert (
+            len(reflector_client.call_log) == 0
+        ), "Reflector should be deferred when user is active"
 
 
 # ---------------------------------------------------------------------------
 # 5. Background scheduler with real curator
 # ---------------------------------------------------------------------------
+
 
 class TestBackgroundSchedulerReal:
     """Run BackgroundScheduler with a real PlaybookCurator doing consolidation."""
@@ -361,13 +409,17 @@ class TestBackgroundSchedulerReal:
     def test_consolidation_runs_real_curator(self) -> None:
         """PlaybookConsolidation task calls the real curator.consolidate()."""
         embedding = MockEmbedding(dim=8)
-        llm = MockLLMClient(responses=[
-            # merge response for consolidation
-            json.dumps({
-                "content": "Merged: handle errors and validate inputs",
-                "tags": ["strategy"],
-            }),
-        ])
+        llm = MockLLMClient(
+            responses=[
+                # merge response for consolidation
+                json.dumps(
+                    {
+                        "content": "Merged: handle errors and validate inputs",
+                        "tags": ["strategy"],
+                    }
+                ),
+            ]
+        )
 
         curator = PlaybookCurator(
             config=CuratorConfig(
@@ -378,16 +430,24 @@ class TestBackgroundSchedulerReal:
             llm=llm,
         )
 
-        playbook = Playbook(entries=[
-            PlaybookEntry(
-                id="e1", content="Handle errors gracefully",
-                helpful=5, harmful=0, tags=["strategy"],
-            ),
-            PlaybookEntry(
-                id="e2", content="Validate all inputs",
-                helpful=3, harmful=0, tags=["strategy"],
-            ),
-        ])
+        playbook = Playbook(
+            entries=[
+                PlaybookEntry(
+                    id="e1",
+                    content="Handle errors gracefully",
+                    helpful=5,
+                    harmful=0,
+                    tags=["strategy"],
+                ),
+                PlaybookEntry(
+                    id="e2",
+                    content="Validate all inputs",
+                    helpful=3,
+                    harmful=0,
+                    tags=["strategy"],
+                ),
+            ]
+        )
 
         task = PlaybookConsolidation(
             episode_threshold=1,
@@ -410,9 +470,11 @@ class TestBackgroundSchedulerReal:
 
     def test_dreamer_applies_entries_to_playbook(self) -> None:
         """EpisodeDreamer uses the LLM to analyze episodes and add entries to playbook."""
-        llm = MockLLMClient(responses=[
-            _dreamer_json("Failure pattern: agent struggles with multi-step reasoning"),
-        ])
+        llm = MockLLMClient(
+            responses=[
+                _dreamer_json("Failure pattern: agent struggles with multi-step reasoning"),
+            ]
+        )
         dreamer = EpisodeDreamer(
             episode_threshold=2,
             min_interval=0.0,
@@ -444,6 +506,7 @@ class TestBackgroundSchedulerReal:
 # 6. End-to-end: ClawLoopAgent math learning with support-query under the hood
 # ---------------------------------------------------------------------------
 
+
 class TestClawLoopAgentMathE2E:
     """Full ClawLoopAgent.learn() with MathEnvironment — verifies the learning
     pipeline works end-to-end including the support-query separation
@@ -451,10 +514,10 @@ class TestClawLoopAgentMathE2E:
 
     def test_math_agent_learns_strategy(self) -> None:
         task_responses = [
-            "The answer is 45",   # correct for "What is 17 + 28?"
-            "The answer is 99",   # wrong for most
-            "The answer is 12",   # correct for "What is 144 / 12?"
-            "The answer is 0",    # wrong
+            "The answer is 45",  # correct for "What is 17 + 28?"
+            "The answer is 99",  # wrong for most
+            "The answer is 12",  # correct for "What is 144 / 12?"
+            "The answer is 0",  # wrong
         ]
         task_client = MockLLMClient(responses=task_responses)
 

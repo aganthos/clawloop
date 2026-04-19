@@ -5,21 +5,24 @@ from unittest.mock import MagicMock, patch
 
 from clawloop.core.episode import Episode, EpisodeSummary, Message
 from clawloop.core.loop import AgentState
-from clawloop.core.types import FBResult, Future
-from clawloop.learning_layers.harness import Harness, Playbook, PlaybookEntry
 from clawloop.learner import AsyncLearner
+from clawloop.learning_layers.harness import Playbook, PlaybookEntry
 
 
 def _make_episodes(n: int, reward: float = 0.8) -> list[Episode]:
     eps = []
     for i in range(n):
         ep = Episode(
-            id=f"ep-{i}", state_id="s1", task_id=f"t-{i}", bench="n8n",
+            id=f"ep-{i}",
+            state_id="s1",
+            task_id=f"t-{i}",
+            bench="n8n",
             messages=[
                 Message(role="user", content=f"q-{i}"),
                 Message(role="assistant", content=f"a-{i}" * 20),
             ],
-            step_boundaries=[0], steps=[],
+            step_boundaries=[0],
+            steps=[],
             summary=EpisodeSummary(total_reward=reward),
         )
         eps.append(ep)
@@ -29,9 +32,11 @@ def _make_episodes(n: int, reward: float = 0.8) -> list[Episode]:
 class TestAsyncLearnerCallback:
     def test_on_learn_complete_called_on_success(self) -> None:
         state = AgentState()
-        state.harness.playbook = Playbook(entries=[
-            PlaybookEntry(id="e1", content="Be helpful"),
-        ])
+        state.harness.playbook = Playbook(
+            entries=[
+                PlaybookEntry(id="e1", content="Be helpful"),
+            ]
+        )
         callback = MagicMock()
         completion_event = threading.Event()
 
@@ -47,7 +52,9 @@ class TestAsyncLearnerCallback:
         learner.start()
         learner.on_batch(_make_episodes(2, reward=0.9))
 
-        assert completion_event.wait(timeout=5.0), "on_learn_complete was not called within timeout"
+        assert completion_event.wait(
+            timeout=5.0
+        ), "on_learn_complete was not called within timeout"
 
         learner.stop()
         assert callback.call_count == 1
@@ -65,7 +72,8 @@ class TestAsyncLearnerCallback:
         )
 
         with patch.object(
-            state.harness, "forward_backward",
+            state.harness,
+            "forward_backward",
             side_effect=RuntimeError("boom"),
         ):
             learner._learn(_make_episodes(2))
@@ -80,9 +88,11 @@ class TestAsyncLearnerCallback:
     def test_no_callback_does_not_error(self) -> None:
         """Without callback, _learn should still work normally."""
         state = AgentState()
-        state.harness.playbook = Playbook(entries=[
-            PlaybookEntry(id="e1", content="Be helpful"),
-        ])
+        state.harness.playbook = Playbook(
+            entries=[
+                PlaybookEntry(id="e1", content="Be helpful"),
+            ]
+        )
         learner = AsyncLearner(
             agent_state=state,
             active_layers=["harness"],

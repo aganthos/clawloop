@@ -1,4 +1,5 @@
 """Tests for clawloop.proxy_config — ProxyConfig validation."""
+
 from __future__ import annotations
 
 import pytest
@@ -6,10 +7,10 @@ from pydantic import SecretStr, ValidationError
 
 from clawloop.proxy_config import ProxyConfig
 
-
 # ---------------------------------------------------------------------------
 # Minimal valid config with defaults
 # ---------------------------------------------------------------------------
+
 
 class TestMinimalConfig:
     def test_minimal_valid_config(self):
@@ -31,14 +32,13 @@ class TestMinimalConfig:
         assert cfg.redaction_hook is None
 
     def test_forward_headers_constant(self):
-        assert ProxyConfig.FORWARD_HEADERS == frozenset(
-            {"content-type", "accept", "user-agent"}
-        )
+        assert ProxyConfig.FORWARD_HEADERS == frozenset({"content-type", "accept", "user-agent"})
 
 
 # ---------------------------------------------------------------------------
 # upstream_url validation: must be https for remote hosts
 # ---------------------------------------------------------------------------
+
 
 class TestUpstreamUrlValidation:
     def test_rejects_http_remote(self):
@@ -81,6 +81,7 @@ class TestUpstreamUrlValidation:
 # bench_mode flag
 # ---------------------------------------------------------------------------
 
+
 class TestBenchMode:
     def test_bench_mode_default_true(self):
         cfg = ProxyConfig(
@@ -102,6 +103,7 @@ class TestBenchMode:
 # ---------------------------------------------------------------------------
 # Live mode requires proxy_key
 # ---------------------------------------------------------------------------
+
 
 class TestLiveModeValidation:
     def test_live_mode_requires_proxy_key(self):
@@ -145,6 +147,7 @@ class TestLiveModeValidation:
 # ---------------------------------------------------------------------------
 # Redaction hook (callable field)
 # ---------------------------------------------------------------------------
+
 
 class TestRedactionHook:
     def test_accepts_callable(self):

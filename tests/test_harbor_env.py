@@ -1,4 +1,5 @@
 """Tests for HarborTaskEnvironment and HarborAdapter."""
+
 import asyncio
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
@@ -13,6 +14,7 @@ from clawloop.environments.harbor import HarborAdapter, HarborTaskEnvironment
 def _harbor_importable() -> bool:
     try:
         from harbor.trial.trial import Trial  # noqa: F401
+
         return True
     except ImportError:
         return False
@@ -21,7 +23,9 @@ def _harbor_importable() -> bool:
 def _make_env(task_dir="/data/tasks/test-task", **kwargs):
     env = HarborTaskEnvironment.__new__(HarborTaskEnvironment)
     env._task_dir = Path(task_dir)
-    env._trial_config = kwargs.get("trial_config", {"agent": {"name": "t2", "kwargs": {}}, "task": {}})
+    env._trial_config = kwargs.get(
+        "trial_config", {"agent": {"name": "t2", "kwargs": {}}, "task": {}}
+    )
     env._trial_config.setdefault("task", {})
     env._trial_config["agent"].setdefault("kwargs", {})
     env._reward_transform = kwargs.get("reward_transform", None)
@@ -130,6 +134,7 @@ class TestHarborTaskEnvironment:
     def test_reward_transform_error_falls_back(self):
         def bad_transform(r):
             raise ValueError("bad")
+
         env = _make_env(reward_transform=bad_transform)
         _setup_mock_trial(env, _make_trial_results(reward=0.8))
         ep = asyncio.run(env.run_episode(AgentState()))
@@ -139,7 +144,6 @@ class TestHarborTaskEnvironment:
     def test_config_validation_missing_agent(self):
         # __init__ raises ImportError first (harbor not installed),
         # so test the validation logic directly
-        env = _make_env()
         with pytest.raises(ValueError, match="agent"):
             # Simulate what __init__ does after imports
             trial_config: dict = {}
@@ -151,8 +155,7 @@ class TestHarborTaskEnvironment:
     )
     def test_init_raises_without_harbor(self):
         with pytest.raises(ImportError, match="Harbor is required"):
-            HarborTaskEnvironment(task_dir=Path("/x"),
-                                  trial_config={"agent": {"kwargs": {}}})
+            HarborTaskEnvironment(task_dir=Path("/x"), trial_config={"agent": {"kwargs": {}}})
 
     def test_empty_chat_history(self):
         env = _make_env()

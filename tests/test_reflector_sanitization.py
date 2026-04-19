@@ -3,7 +3,7 @@
 import json
 
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
-from clawloop.core.reflector import Reflector, ReflectorConfig, _sanitize_str, _sanitize_obj
+from clawloop.core.reflector import Reflector, _sanitize_obj, _sanitize_str
 from clawloop.learning_layers.harness import Playbook, PlaybookEntry
 
 
@@ -53,6 +53,7 @@ class TestReflectorJsonTraceFormat:
 
         # Extract JSON from fenced block
         import re
+
         match = re.search(r"```json\s*(.*?)\s*```", user_prompt, re.DOTALL)
         assert match is not None
         data = json.loads(match.group(1))
@@ -70,6 +71,7 @@ class TestReflectorJsonTraceFormat:
 
         user_prompt = llm.last_messages[1]["content"]
         import re
+
         match = re.search(r"```json\s*(.*?)\s*```", user_prompt, re.DOTALL)
         data = json.loads(match.group(1))
         for msg in data[0]["messages"]:
@@ -121,13 +123,15 @@ class TestSanitization:
 
 class TestParseResponseRobustness:
     def test_non_dict_items_skipped(self) -> None:
-        response = json.dumps([
-            {"action": "add", "content": "good insight", "tags": []},
-            "not a dict",
-            42,
-            None,
-            {"action": "add", "content": "another good one", "tags": []},
-        ])
+        response = json.dumps(
+            [
+                {"action": "add", "content": "good insight", "tags": []},
+                "not a dict",
+                42,
+                None,
+                {"action": "add", "content": "another good one", "tags": []},
+            ]
+        )
         llm = _FakeLLM(response)
         r = Reflector(client=llm)
         insights = r.reflect([_make_episode()], Playbook())

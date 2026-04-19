@@ -25,9 +25,11 @@ def _make_episode(task_id="t1", reward=0.5):
 
 
 def _make_playbook():
-    return Playbook(entries=[
-        PlaybookEntry(id="e1", content="Always greet the user"),
-    ])
+    return Playbook(
+        entries=[
+            PlaybookEntry(id="e1", content="Always greet the user"),
+        ]
+    )
 
 
 def _make_state(episodes=None, episodes_since=25, time_since=700.0, idle=True):
@@ -42,13 +44,15 @@ def _make_state(episodes=None, episodes_since=25, time_since=700.0, idle=True):
 
 class TestEpisodeDreamer:
     def test_dreamer_applies_entries_to_playbook(self) -> None:
-        mock_response = json.dumps([
-            {
-                "action": "add",
-                "content": "Pattern: failures cluster around X",
-                "tags": ["meta-pattern"],
-            },
-        ])
+        mock_response = json.dumps(
+            [
+                {
+                    "action": "add",
+                    "content": "Pattern: failures cluster around X",
+                    "tags": ["meta-pattern"],
+                },
+            ]
+        )
         llm = MockLLMClient(responses=[mock_response])
         dreamer = EpisodeDreamer(llm=llm, episode_threshold=5)
         state = _make_state()

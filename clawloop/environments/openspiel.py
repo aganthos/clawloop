@@ -16,13 +16,14 @@ Design invariants for ``run_episode``:
   so :meth:`EpisodeSummary.effective_reward` returns the canonical [-1, 1]
   value for the LLM player.
 """
+
 from __future__ import annotations
 
 import re
 import time
-from dataclasses import dataclass, replace as dc_replace
+from dataclasses import dataclass
+from dataclasses import replace as dc_replace
 from typing import Any, Literal, Protocol
-
 
 # The LLM always plays as seat 0 across every game in this env. Opponents
 # (including self-play in a future release) cover seats 1..N-1.
@@ -31,6 +32,7 @@ LLM_PID: int = 0
 
 class OpponentPolicy(Protocol):
     """Scripted policy for non-LLM players (2P+ games only)."""
+
     def act(self, state: Any) -> int: ...
 
 
@@ -44,6 +46,7 @@ class RandomPolicy:
 
     def __init__(self, seed: int | None = None) -> None:
         import numpy as _np
+
         self._rng = _np.random.default_rng(seed)
 
     def act(self, state: Any) -> int:
@@ -81,19 +84,21 @@ def _resolve_opponent(spec: Any) -> OpponentPolicy | None:
 
 @dataclass
 class OpenSpielTaskConfig:
-    game_name: str                                   # e.g. "blackjack"
-    seeds: list[int]                                 # scenario pool
+    game_name: str  # e.g. "blackjack"
+    seeds: list[int]  # scenario pool
     prompt_style: Literal["canonical", "ascii"] = "canonical"
     rethink_k: int = 3
     max_turns: int = 50
-    opponent: OpponentPolicy | None = None           # None for 1P games
+    opponent: OpponentPolicy | None = None  # None for 1P games
     temperature: float = 1.0
     top_p: float = 0.95
     max_tokens: int = 128
 
 
 def _build_generation_prompt_tokens(
-    renderer: Any, tokenizer: Any, messages: list,
+    renderer: Any,
+    tokenizer: Any,
+    messages: list,
 ) -> list[int]:
     """Render messages into prompt tokens the SamplingClient will consume.
 
@@ -121,7 +126,9 @@ def _build_generation_prompt_tokens(
     return [
         int(t)
         for t in tokenizer.apply_chat_template(
-            openai_msgs, tokenize=True, add_generation_prompt=True,
+            openai_msgs,
+            tokenize=True,
+            add_generation_prompt=True,
         )
     ]
 
@@ -148,11 +155,15 @@ async def _sample_one_llm_attempt(
     player arg; sequential games default to the current player).
     """
     import asyncio as _aio
+
     # Local import: the SDK adapter lives in weight_backends/; avoid paying
     # the import cost at module load for non-Tinker callers.
     from clawloop.weight_backends import _tinker_sdk
+
     prompt_tokens = _build_generation_prompt_tokens(
-        renderer, tokenizer, turn_messages,
+        renderer,
+        tokenizer,
+        turn_messages,
     )
     t0 = time.perf_counter()
     fut = _tinker_sdk.async_sample(
@@ -191,9 +202,7 @@ async def _sample_one_llm_attempt(
     # Validate legality against the correct player (simultaneous vs sequential).
     if action is not None:
         legal = (
-            state.legal_actions(player)
-            if state.is_simultaneous_node()
-            else state.legal_actions()
+            state.legal_actions(player) if state.is_simultaneous_node() else state.legal_actions()
         )
         if action not in legal:
             action = None
@@ -208,16 +217,13 @@ def _build_retry_hint(state: Any) -> str:
     # games (matrix_mp).
     raw = state.current_player()
     player = raw if raw >= 0 else LLM_PID
-    legal = (
-        state.legal_actions(player)
-        if state.is_simultaneous_node()
-        else state.legal_actions()
-    )
+    legal = state.legal_actions(player) if state.is_simultaneous_node() else state.legal_actions()
     legal_strs = [state.action_to_string(player, a) for a in legal]
     return (
         "Your previous response did not contain a legal move. "
         f"Legal moves are: {', '.join(legal_strs)}. "
-        "Respond with exactly `Final Answer: <move>` where <move> is one of the listed legal moves."
+        "Respond with exactly `Final Answer: <move>` where <move> is one of "
+        "the listed legal moves."
     )
 
 
@@ -241,7 +247,9 @@ class OpenSpielTaskEnvironment:
         return self._config
 
     async def run_episode(
-        self, agent_state: Any, rollout_idx: int | None = None,
+        self,
+        agent_state: Any,
+        rollout_idx: int | None = None,
     ):
         """Roll out one OpenSpiel game, producing a ClawLoop Episode.
 
@@ -254,13 +262,17 @@ class OpenSpielTaskEnvironment:
 
         See module docstring for other design invariants.
         """
-        import pyspiel
         import numpy as np
+        import pyspiel
+
         from clawloop.core.episode import (
-            Episode, EpisodeSummary, Message, StepMeta, TokenLogProb,
+            Episode,
+            EpisodeSummary,
+            Message,
+            StepMeta,
+            TokenLogProb,
         )
         from clawloop.core.reward import RewardSignal
-        from clawloop.weight_backends import _tinker_sdk
 
         cfg = self._config
         if rollout_idx is not None:
@@ -284,7 +296,8 @@ class OpenSpielTaskEnvironment:
         tokenizer = getattr(agent_state, "tokenizer", None)
         if renderer is None or tokenizer is None:
             raise RuntimeError(
-                "agent_state.renderer / tokenizer not set — learning_loop refresh missing (Task 15)"
+                "agent_state.renderer / tokenizer not set — "
+                "learning_loop refresh missing (Task 15)"
             )
 
         llm_pid = LLM_PID
@@ -319,9 +332,9 @@ class OpenSpielTaskEnvironment:
                 for p in range(n_players):
                     if p == llm_pid:
                         continue
-                    assert cfg.opponent is not None, (
-                        f"{cfg.game_name} simultaneous node has seat {p} but no opponent"
-                    )
+                    assert (
+                        cfg.opponent is not None
+                    ), f"{cfg.game_name} simultaneous node has seat {p} but no opponent"
                     # Some opponent implementations expose act_for_player;
                     # fall back to act() for single-seat pollicies.
                     if hasattr(cfg.opponent, "act_for_player"):
@@ -338,48 +351,70 @@ class OpenSpielTaskEnvironment:
                 resolved = False
                 llm_action: int | None = None
                 for attempt in range(cfg.rethink_k + 1):
-                    (action, prompt_tokens, sampled_tokens,
-                     sampling_logprobs, response_text, timing_ms) = (
-                        await _sample_one_llm_attempt(
-                            sampling_client=sampling_client,
-                            renderer=renderer, tokenizer=tokenizer,
-                            cfg=cfg, turn_messages=messages[turn_start:],
-                            state=state, player=llm_pid,
-                        )
+                    (
+                        action,
+                        prompt_tokens,
+                        sampled_tokens,
+                        sampling_logprobs,
+                        response_text,
+                        timing_ms,
+                    ) = await _sample_one_llm_attempt(
+                        sampling_client=sampling_client,
+                        renderer=renderer,
+                        tokenizer=tokenizer,
+                        cfg=cfg,
+                        turn_messages=messages[turn_start:],
+                        state=state,
+                        player=llm_pid,
                     )
                     assistant_msg = Message(
-                        role="assistant", content=response_text,
-                        logprobs=[TokenLogProb(token=str(t), logprob=float(lp))
-                                  for t, lp in zip(sampled_tokens, sampling_logprobs)],
+                        role="assistant",
+                        content=response_text,
+                        logprobs=[
+                            TokenLogProb(token=str(t), logprob=float(lp))
+                            for t, lp in zip(sampled_tokens, sampling_logprobs)
+                        ],
                     )
                     if action is not None:
                         messages.append(assistant_msg)
-                        steps.append(StepMeta(
-                            t=turn_idx, reward=0.0, done=False,
-                            timing_ms=timing_ms,
-                            info={
-                                "prompt_tokens": prompt_tokens,
-                                "sampled_tokens": sampled_tokens,
-                                "sampling_logprobs": sampling_logprobs,
-                                "legal_actions": list(state.legal_actions(llm_pid)),
-                                "chosen_action": int(action),
-                                "rethinks": attempt,
-                                "simultaneous": True,
-                            },
-                        ))
+                        steps.append(
+                            StepMeta(
+                                t=turn_idx,
+                                reward=0.0,
+                                done=False,
+                                timing_ms=timing_ms,
+                                info={
+                                    "prompt_tokens": prompt_tokens,
+                                    "sampled_tokens": sampled_tokens,
+                                    "sampling_logprobs": sampling_logprobs,
+                                    "legal_actions": list(state.legal_actions(llm_pid)),
+                                    "chosen_action": int(action),
+                                    "rethinks": attempt,
+                                    "simultaneous": True,
+                                },
+                            )
+                        )
                         llm_action = int(action)
                         resolved = True
                         break
                     messages.append(assistant_msg)
-                    messages.append(Message(
-                        role="user", content=_build_retry_hint(state),
-                    ))
+                    messages.append(
+                        Message(
+                            role="user",
+                            content=_build_retry_hint(state),
+                        )
+                    )
                 if not resolved:
                     illegal_parse = True
-                    steps.append(StepMeta(
-                        t=turn_idx, reward=0.0, done=True, timing_ms=0.0,
-                        info={"illegal_after_retries": True, "simultaneous": True},
-                    ))
+                    steps.append(
+                        StepMeta(
+                            t=turn_idx,
+                            reward=0.0,
+                            done=True,
+                            timing_ms=0.0,
+                            info={"illegal_after_retries": True, "simultaneous": True},
+                        )
+                    )
                     break
                 seat_actions[llm_pid] = llm_action
                 state.apply_actions([int(a) for a in seat_actions])
@@ -398,54 +433,76 @@ class OpenSpielTaskEnvironment:
                 messages.append(Message(role="user", content=prompt_str))
                 resolved = False
                 for attempt in range(cfg.rethink_k + 1):
-                    (action, prompt_tokens, sampled_tokens,
-                     sampling_logprobs, response_text, timing_ms) = (
-                        await _sample_one_llm_attempt(
-                            sampling_client=sampling_client,
-                            renderer=renderer, tokenizer=tokenizer,
-                            cfg=cfg, turn_messages=messages[turn_start:],
-                            state=state, player=llm_pid,
-                        )
+                    (
+                        action,
+                        prompt_tokens,
+                        sampled_tokens,
+                        sampling_logprobs,
+                        response_text,
+                        timing_ms,
+                    ) = await _sample_one_llm_attempt(
+                        sampling_client=sampling_client,
+                        renderer=renderer,
+                        tokenizer=tokenizer,
+                        cfg=cfg,
+                        turn_messages=messages[turn_start:],
+                        state=state,
+                        player=llm_pid,
                     )
                     assistant_msg = Message(
-                        role="assistant", content=response_text,
-                        logprobs=[TokenLogProb(token=str(t), logprob=float(lp))
-                                  for t, lp in zip(sampled_tokens, sampling_logprobs)],
+                        role="assistant",
+                        content=response_text,
+                        logprobs=[
+                            TokenLogProb(token=str(t), logprob=float(lp))
+                            for t, lp in zip(sampled_tokens, sampling_logprobs)
+                        ],
                     )
                     if action is not None:
                         messages.append(assistant_msg)
-                        steps.append(StepMeta(
-                            t=turn_idx, reward=0.0, done=False,
-                            timing_ms=timing_ms,
-                            info={
-                                "prompt_tokens": prompt_tokens,
-                                "sampled_tokens": sampled_tokens,
-                                "sampling_logprobs": sampling_logprobs,
-                                "legal_actions": list(state.legal_actions()),
-                                "chosen_action": int(action),
-                                "rethinks": attempt,
-                            },
-                        ))
+                        steps.append(
+                            StepMeta(
+                                t=turn_idx,
+                                reward=0.0,
+                                done=False,
+                                timing_ms=timing_ms,
+                                info={
+                                    "prompt_tokens": prompt_tokens,
+                                    "sampled_tokens": sampled_tokens,
+                                    "sampling_logprobs": sampling_logprobs,
+                                    "legal_actions": list(state.legal_actions()),
+                                    "chosen_action": int(action),
+                                    "rethinks": attempt,
+                                },
+                            )
+                        )
                         state.apply_action(int(action))
                         resolved = True
                         break
                     # Illegal: append rejected response + retry hint and try again.
                     messages.append(assistant_msg)
-                    messages.append(Message(
-                        role="user", content=_build_retry_hint(state),
-                    ))
+                    messages.append(
+                        Message(
+                            role="user",
+                            content=_build_retry_hint(state),
+                        )
+                    )
 
                 if not resolved:
                     illegal_parse = True
-                    steps.append(StepMeta(
-                        t=turn_idx, reward=0.0, done=True, timing_ms=0.0,
-                        info={"illegal_after_retries": True},
-                    ))
+                    steps.append(
+                        StepMeta(
+                            t=turn_idx,
+                            reward=0.0,
+                            done=True,
+                            timing_ms=0.0,
+                            info={"illegal_after_retries": True},
+                        )
+                    )
                     break
             else:
-                assert cfg.opponent is not None, (
-                    f"{cfg.game_name} has non-LLM player {current} but no opponent configured"
-                )
+                assert (
+                    cfg.opponent is not None
+                ), f"{cfg.game_name} has non-LLM player {current} but no opponent configured"
                 action = int(cfg.opponent.act(state))
                 state.apply_action(action)
             turn_idx += 1
@@ -461,19 +518,25 @@ class OpenSpielTaskEnvironment:
 
         signals = {
             "outcome": RewardSignal(
-                name="outcome", value=final_reward, confidence=1.0,
+                name="outcome",
+                value=final_reward,
+                confidence=1.0,
             ),
         }
         if illegal_parse:
             signals["illegal_parse"] = RewardSignal(
-                name="illegal_parse", value=1.0, confidence=1.0,
+                name="illegal_parse",
+                value=1.0,
+                confidence=1.0,
             )
 
         summary = EpisodeSummary(signals=signals)
 
         return Episode(
             id=Episode.new_id(),
-            state_id=agent_state.state_id().combined_hash if hasattr(agent_state, "state_id") else "",
+            state_id=agent_state.state_id().combined_hash
+            if hasattr(agent_state, "state_id")
+            else "",
             task_id=self.task_id,
             bench="openspiel",
             messages=messages,
@@ -497,6 +560,7 @@ class OpenSpielGameAdapter:
 
     def run_episode(self, task_id: str, agent_state: Any):
         from clawloop.utils.async_bridge import run_async
+
         env = self._envs_by_task_id[task_id]
         return run_async(env.run_episode(agent_state))
 
@@ -508,10 +572,13 @@ class OpenSpielGameAdapter:
         """
         from clawloop.core.episode import Episode, EpisodeSummary
         from clawloop.core.reward import RewardSignal
-        summary = EpisodeSummary(signals={
-            "outcome": RewardSignal(name="outcome", value=0.0, confidence=1.0),
-            "rollout_error": RewardSignal(name="rollout_error", value=1.0, confidence=1.0),
-        })
+
+        summary = EpisodeSummary(
+            signals={
+                "outcome": RewardSignal(name="outcome", value=0.0, confidence=1.0),
+                "rollout_error": RewardSignal(name="rollout_error", value=1.0, confidence=1.0),
+            }
+        )
         return Episode(
             id=Episode.new_id(),
             state_id="",
@@ -525,7 +592,9 @@ class OpenSpielGameAdapter:
         )
 
     async def run_episodes_batch_async(
-        self, task_ids: list[str], agent_state: Any,
+        self,
+        task_ids: list[str],
+        agent_state: Any,
     ) -> list:
         """Async rollout of many episodes concurrently.
 
@@ -549,7 +618,8 @@ class OpenSpielGameAdapter:
 
         coros = [
             self._envs_by_task_id[tid].run_episode(
-                agent_state, rollout_idx=i,
+                agent_state,
+                rollout_idx=i,
             )
             for i, tid in enumerate(task_ids)
         ]
@@ -568,7 +638,9 @@ class OpenSpielGameAdapter:
         return out
 
     def run_episodes_batch(
-        self, task_ids: list[str], agent_state: Any,
+        self,
+        task_ids: list[str],
+        agent_state: Any,
     ) -> list:
         """Synchronous wrapper around :meth:`run_episodes_batch_async`.
 
@@ -581,9 +653,7 @@ class OpenSpielGameAdapter:
         try:
             asyncio.get_running_loop()
         except RuntimeError:
-            return asyncio.run(
-                self.run_episodes_batch_async(task_ids, agent_state)
-            )
+            return asyncio.run(self.run_episodes_batch_async(task_ids, agent_state))
         raise RuntimeError(
             "run_episodes_batch cannot be called from inside a running event "
             "loop — use run_episodes_batch_async instead."
@@ -619,18 +689,13 @@ def _state_observation(state: Any, player: int) -> str:
 
 def _prompt_fallback(state: Any, history: list, style: str) -> str:
     """OpenSpiel-native prompt. Works for 1P / chance / 2P / multi-player alike."""
-    import pyspiel as _py
     # For simultaneous nodes, current_player() returns a sentinel — the LLM
     # always takes seat 0 in that case (we drive all non-LLM seats via
     # opponent policy, so seat 0's observation is what we render).
     raw = state.current_player()
     player = raw if raw >= 0 else 0
     observation = _state_observation(state, player)
-    legal = (
-        state.legal_actions(player)
-        if state.is_simultaneous_node()
-        else state.legal_actions()
-    )
+    legal = state.legal_actions(player) if state.is_simultaneous_node() else state.legal_actions()
     legal_strs = [state.action_to_string(player, a) for a in legal]
     lines = [
         f"You are player {player}.",
@@ -654,11 +719,7 @@ def _parse_move_fallback(response: str, state: Any) -> int | None:
     """
     raw = state.current_player()
     player = raw if raw >= 0 else 0
-    legal = (
-        state.legal_actions(player)
-        if state.is_simultaneous_node()
-        else state.legal_actions()
-    )
+    legal = state.legal_actions(player) if state.is_simultaneous_node() else state.legal_actions()
     legal_strs = [(a, state.action_to_string(player, a)) for a in legal]
 
     m = re.search(
@@ -670,7 +731,7 @@ def _parse_move_fallback(response: str, state: Any) -> int | None:
     candidate_lower = candidate.lower()
 
     # Longest-match among legal action strings within the candidate segment.
-    best: tuple[int, int] | None = None   # (length, action)
+    best: tuple[int, int] | None = None  # (length, action)
     for a, s in legal_strs:
         s_lower = s.lower()
         if s_lower and s_lower in candidate_lower:

@@ -20,16 +20,20 @@ class TestParadigmConfigDefaults:
 class TestGenerateReturnsInsights:
     def test_generate_returns_insights(self) -> None:
         """Valid JSON response produces tagged insights with action='add'."""
-        response_payload = json.dumps([
-            {"content": "Try a tree-of-thought approach instead of chain-of-thought"},
-            {"content": "Use adversarial self-play to discover edge cases"},
-        ])
+        response_payload = json.dumps(
+            [
+                {"content": "Try a tree-of-thought approach instead of chain-of-thought"},
+                {"content": "Use adversarial self-play to discover edge cases"},
+            ]
+        )
         client = MockLLMClient(responses=[response_payload])
         pb = ParadigmBreakthrough(client=client, config=ParadigmConfig())
 
-        playbook = Playbook(entries=[
-            PlaybookEntry(id="e1", content="Always double-check arithmetic"),
-        ])
+        playbook = Playbook(
+            entries=[
+                PlaybookEntry(id="e1", content="Always double-check arithmetic"),
+            ]
+        )
         reward_history = [0.4, 0.42, 0.41]
         tried_paradigms: list[str] = []
 
@@ -48,9 +52,11 @@ class TestGenerateReturnsInsights:
 class TestGenerateIncludesTriedParadigms:
     def test_generate_includes_tried_paradigms(self) -> None:
         """Previously tried paradigms appear in the prompt sent to the LLM."""
-        response_payload = json.dumps([
-            {"content": "A brand-new direction"},
-        ])
+        response_payload = json.dumps(
+            [
+                {"content": "A brand-new direction"},
+            ]
+        )
         client = MockLLMClient(responses=[response_payload])
         pb = ParadigmBreakthrough(client=client, config=ParadigmConfig())
 

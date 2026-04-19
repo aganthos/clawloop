@@ -17,6 +17,7 @@ and harness learning (prompt optimization via reflector LLM).
     python examples/recipes/guess_number.py --mode weight
 
 """
+
 from __future__ import annotations
 
 import argparse
@@ -47,6 +48,7 @@ MAX_VAL = 1024
 # ---------------------------------------------------------------------------
 # Guess-the-number environment — mirrors Tinker's GuessNumberEnv
 # ---------------------------------------------------------------------------
+
 
 class GuessNumberGame:
     """One game instance. Tracks conversation and scoring."""
@@ -99,9 +101,10 @@ class GuessNumberAdapter:
 
         # Get prompt from harness
         try:
-            prompt = agent_state.harness.sample(
-                SampleContext(bench="guess_number")
-            ).result().output or self._default_prompt()
+            prompt = (
+                agent_state.harness.sample(SampleContext(bench="guess_number")).result().output
+                or self._default_prompt()
+            )
         except Exception:
             prompt = self._default_prompt()
 
@@ -128,10 +131,14 @@ class GuessNumberAdapter:
 
             # Environment step
             feedback = game.step(response)
-            steps.append(StepMeta(
-                t=turn, reward=game.reward if game.done else 0.0,
-                done=game.done, timing_ms=0.0,
-            ))
+            steps.append(
+                StepMeta(
+                    t=turn,
+                    reward=game.reward if game.done else 0.0,
+                    done=game.done,
+                    timing_ms=0.0,
+                )
+            )
 
             if game.done:
                 break
@@ -142,7 +149,9 @@ class GuessNumberAdapter:
 
         summary = EpisodeSummary(total_reward=game.reward)
         summary.signals["outcome"] = RewardSignal(
-            name="outcome", value=game.reward * 2 - 1, confidence=1.0,
+            name="outcome",
+            value=game.reward * 2 - 1,
+            confidence=1.0,
         )
 
         state_id = ""
@@ -152,10 +161,14 @@ class GuessNumberAdapter:
             pass
 
         return Episode(
-            id=Episode.new_id(), state_id=state_id,
-            task_id=f"guess_{target}", bench="guess_number",
-            messages=messages, step_boundaries=step_boundaries,
-            steps=steps, summary=summary,
+            id=Episode.new_id(),
+            state_id=state_id,
+            task_id=f"guess_{target}",
+            bench="guess_number",
+            messages=messages,
+            step_boundaries=step_boundaries,
+            steps=steps,
+            summary=summary,
             metadata={"target": target, "turns": game.turns, "found": game.reward > 0},
         )
 
@@ -168,8 +181,13 @@ class GuessNumberAdapter:
 
     def _error_episode(self, target, error):
         return Episode(
-            id=Episode.new_id(), state_id="", task_id=f"guess_{target}",
-            bench="guess_number", messages=[], step_boundaries=[], steps=[],
+            id=Episode.new_id(),
+            state_id="",
+            task_id=f"guess_{target}",
+            bench="guess_number",
+            messages=[],
+            step_boundaries=[],
+            steps=[],
             summary=EpisodeSummary(filtered=True),
             metadata={"error": error},
         )
@@ -179,6 +197,7 @@ class GuessNumberAdapter:
 # Main
 # ---------------------------------------------------------------------------
 
+
 def parse_args():
     p = argparse.ArgumentParser(description="ClawLoop Guess the Number (Tinker-compatible)")
     p.add_argument("--mode", choices=["weight", "harness_learning"], default="harness_learning")
@@ -186,7 +205,9 @@ def parse_args():
     p.add_argument("--iterations", type=int, default=5)
     p.add_argument("--episodes", type=int, default=8)
     p.add_argument("--lora-rank", type=int, default=8)
-    p.add_argument("--api-base", default=os.environ.get("CLAWLOOP_API_BASE", "http://localhost:11434/v1"))
+    p.add_argument(
+        "--api-base", default=os.environ.get("CLAWLOOP_API_BASE", "http://localhost:11434/v1")
+    )
     p.add_argument("--api-key", default=os.environ.get("CLAWLOOP_API_KEY", ""))
     p.add_argument("--task-model", default="openai/claude-haiku-4-5-20251001")
     p.add_argument("--reflector-model", default="openai/claude-sonnet-4-5-20250929")
@@ -195,13 +216,16 @@ def parse_args():
 
 def main():
     args = parse_args()
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+    )
 
     layers = MODE_LAYERS[args.mode]
     log.info("mode=%s layers=%s", args.mode, layers)
 
     # 1. Harness
     from examples.recipes.common import build_local_evolver
+
     harness = Harness(
         system_prompts={
             "guess_number": (
@@ -210,42 +234,52 @@ def main():
             ),
         },
         evolver=build_local_evolver(args.reflector_model, args.api_key, args.api_base)
-        if "harness" in layers else None,
+        if "harness" in layers
+        else None,
     )
 
     # 2. Weights — SkyRL backend (Tinker-compatible)
     backend = None
     if "weights" in layers:
         from clawloop.weight_backends.skyrl import SkyRLWeightsBackend, SkyRLWeightsConfig
-        backend = SkyRLWeightsBackend(SkyRLWeightsConfig(
-            base_model=args.model,
-            backend_type="skyrl_train",
-            backend_config={
-                "strategy": "fsdp2",
-                "trainer.placement.colocate_all": True,
-                "trainer.placement.policy_num_gpus_per_node": 1,
-                "trainer.placement.ref_num_gpus_per_node": 1,
-                "generator.inference_engine.num_engines": 1,
-                "generator.inference_engine.tensor_parallel_size": 1,
-                "trainer.train_batch_size": 8,
-                "trainer.policy_mini_batch_size": 4,
-                "trainer.micro_forward_batch_size_per_gpu": 2,
-                "trainer.micro_train_batch_size_per_gpu": 2,
-                "trainer.max_prompt_length": 512,
-                "generator.sampling_params.max_generate_length": 64,
-                "generator.inference_engine.gpu_memory_utilization": 0.4,
-                "trainer.use_sample_packing": False,
-            },
-            lora_config={"rank": args.lora_rank, "alpha": args.lora_rank * 2.0},
-            training_config={"loss_fn": "cross_entropy", "adam_params": {"learning_rate": 3e-5}},
-        ))
+
+        backend = SkyRLWeightsBackend(
+            SkyRLWeightsConfig(
+                base_model=args.model,
+                backend_type="skyrl_train",
+                backend_config={
+                    "strategy": "fsdp2",
+                    "trainer.placement.colocate_all": True,
+                    "trainer.placement.policy_num_gpus_per_node": 1,
+                    "trainer.placement.ref_num_gpus_per_node": 1,
+                    "generator.inference_engine.num_engines": 1,
+                    "generator.inference_engine.tensor_parallel_size": 1,
+                    "trainer.train_batch_size": 8,
+                    "trainer.policy_mini_batch_size": 4,
+                    "trainer.micro_forward_batch_size_per_gpu": 2,
+                    "trainer.micro_train_batch_size_per_gpu": 2,
+                    "trainer.max_prompt_length": 512,
+                    "generator.sampling_params.max_generate_length": 64,
+                    "generator.inference_engine.gpu_memory_utilization": 0.4,
+                    "trainer.use_sample_packing": False,
+                },
+                lora_config={"rank": args.lora_rank, "alpha": args.lora_rank * 2.0},
+                training_config={
+                    "loss_fn": "cross_entropy",
+                    "adam_params": {"learning_rate": 3e-5},
+                },
+            )
+        )
         weights = Weights(model_ref=args.model, _backend=backend)
     else:
         weights = Weights()
 
     # 3. Task LLM + environment
     from clawloop.llm import LiteLLMClient
-    task_client = LiteLLMClient(model=args.task_model, api_key=args.api_key, api_base=args.api_base)
+
+    task_client = LiteLLMClient(
+        model=args.task_model, api_key=args.api_key, api_base=args.api_base
+    )
     adapter = GuessNumberAdapter(client=task_client)
 
     # Tasks = random target numbers
@@ -253,7 +287,9 @@ def main():
 
     # 4. Run
     agent_state = AgentState(
-        harness=harness, router=Router(), weights=weights,
+        harness=harness,
+        router=Router(),
+        weights=weights,
         inference_url=getattr(backend, "inference_url", None) if backend else None,
     )
 
@@ -268,7 +304,7 @@ def main():
     )
 
     print(f"\nDone. Final state: {state_id.combined_hash[:12]}")
-    if hasattr(harness, 'playbook') and harness.playbook.entries:
+    if hasattr(harness, "playbook") and harness.playbook.entries:
         print(f"Playbook entries learned: {len(harness.playbook.entries)}")
         for e in harness.playbook.entries[:3]:
             print(f"  - {e.content[:80]}")

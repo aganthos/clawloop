@@ -33,6 +33,8 @@ dev = [
     "starlette>=0.27",
     "uvicorn>=0.20",
     "httpx>=0.24",
+    "ruff>=0.4,<0.5",
+    "pre-commit>=3.6",
 ]
 car = [
     "starlette>=0.27",
@@ -113,6 +115,25 @@ constraint-dependencies = [
 
 [tool.uv.sources]
 tau2 = { git = "https://github.com/sierra-research/tau2-bench.git", tag = "v1.0.0" }
+
+[tool.ruff]
+line-length = 99
+target-version = "py312"
+extend-exclude = ["benchmarks", "skyrl", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests often contain long mock prompts/messages and `pytest.importorskip`
+# patterns that legitimately place imports after module-level statements.
+"tests/**" = ["E501", "E402"]
+# Example scripts frequently embed long example prompts and sample output.
+"examples/**" = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

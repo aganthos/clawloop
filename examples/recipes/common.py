@@ -1,5 +1,11 @@
 """Shared helpers for ClawLoop benchmark recipes."""
+
 from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from clawloop.harness_backends.local import LocalEvolver
 
 
 def build_local_evolver(
@@ -7,7 +13,7 @@ def build_local_evolver(
     api_key: str = "",
     api_base: str | None = None,
     reflection_batch_size: int = 1,
-) -> "LocalEvolver":
+) -> LocalEvolver:
     """Build a LocalEvolver with an optional Reflector.
 
     Use this in every recipe instead of constructing Reflector and LocalEvolver

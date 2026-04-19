@@ -70,6 +70,7 @@ class Future(Generic[T]):
 # Datum — standard input bundle for forward_backward
 # ---------------------------------------------------------------------------
 
+
 @dataclass(frozen=True)
 class Datum:
     """A batch of episodes plus loss-function configuration.
@@ -87,6 +88,7 @@ class Datum:
 # ---------------------------------------------------------------------------
 # Result dataclasses — one per Layer verb
 # ---------------------------------------------------------------------------
+
 
 @dataclass(frozen=True)
 class FBResult:

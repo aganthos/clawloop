@@ -6,6 +6,7 @@ response as {-1, 0, +1} based on instruction alignment and task completion.
 Same approach as MetaClaw's PRM (arXiv 2603.17187) — not a trained reward
 model, just a carefully prompted LLM call with majority voting.
 """
+
 from __future__ import annotations
 
 import logging
@@ -82,6 +83,7 @@ class JudgeExtractor:
 
         # Majority vote
         from collections import Counter
+
         counts = Counter(votes)
         majority_score, majority_count = counts.most_common(1)[0]
 

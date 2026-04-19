@@ -108,9 +108,15 @@ class TestLayerProtocol:
     def test_protocol_has_required_methods(self) -> None:
         """Verify the Protocol defines all five verbs + to_dict."""
         import inspect
-        members = {name for name, _ in inspect.getmembers(Layer)
-                   if not name.startswith("_")}
-        required = {"forward_backward", "optim_step", "sample",
-                     "save_state", "load_state", "to_dict",
-                     "clear_pending_state"}
+
+        members = {name for name, _ in inspect.getmembers(Layer) if not name.startswith("_")}
+        required = {
+            "forward_backward",
+            "optim_step",
+            "sample",
+            "save_state",
+            "load_state",
+            "to_dict",
+            "clear_pending_state",
+        }
         assert required.issubset(members)

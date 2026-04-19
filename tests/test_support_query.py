@@ -4,20 +4,21 @@ The support-query split is disabled (see loop.py).
 All layers now receive all episodes. These tests verify the current behavior.
 """
 
-import pytest
-
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
 from clawloop.core.loop import AgentState, learning_loop
 from clawloop.core.types import Datum, FBResult, Future
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_episode(task_id="t1", reward=0.8):
     return Episode(
-        id=Episode.new_id(), state_id="deadbeef", task_id=task_id, bench="test",
+        id=Episode.new_id(),
+        state_id="deadbeef",
+        task_id=task_id,
+        bench="test",
         messages=[
             Message(role="user", content="Hello"),
             Message(role="assistant", content="Hi!"),
@@ -58,8 +59,8 @@ def _patch_layer_fb(layer):
 # Tests — all layers get all episodes (split disabled)
 # ---------------------------------------------------------------------------
 
-class TestAllLayersGetAllEpisodes:
 
+class TestAllLayersGetAllEpisodes:
     def test_harness_gets_all_episodes(self):
         failure_ep = _make_episode(task_id="f1", reward=0.2)
         success_ep = _make_episode(task_id="s1", reward=0.8)
@@ -69,8 +70,11 @@ class TestAllLayersGetAllEpisodes:
         harness_data = _patch_layer_fb(state.harness)
 
         learning_loop(
-            adapter=adapter, agent_state=state,
-            tasks=["t1", "t2"], n_episodes=2, n_iterations=1,
+            adapter=adapter,
+            agent_state=state,
+            tasks=["t1", "t2"],
+            n_episodes=2,
+            n_iterations=1,
         )
 
         assert len(harness_data) == 1
@@ -85,8 +89,11 @@ class TestAllLayersGetAllEpisodes:
         weights_data = _patch_layer_fb(state.weights)
 
         learning_loop(
-            adapter=adapter, agent_state=state,
-            tasks=["t1", "t2"], n_episodes=2, n_iterations=1,
+            adapter=adapter,
+            agent_state=state,
+            tasks=["t1", "t2"],
+            n_episodes=2,
+            n_iterations=1,
         )
 
         assert len(weights_data) == 1
@@ -101,8 +108,11 @@ class TestAllLayersGetAllEpisodes:
         router_data = _patch_layer_fb(state.router)
 
         learning_loop(
-            adapter=adapter, agent_state=state,
-            tasks=["t1", "t2"], n_episodes=2, n_iterations=1,
+            adapter=adapter,
+            agent_state=state,
+            tasks=["t1", "t2"],
+            n_episodes=2,
+            n_iterations=1,
         )
 
         assert len(router_data) == 1

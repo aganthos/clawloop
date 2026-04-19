@@ -30,10 +30,10 @@ from tinker import types as _tinker_types
 
 from clawloop.weight_backends.base import BackendError
 
-
 # ---------------------------------------------------------------------------
 # Exception wrapper
 # ---------------------------------------------------------------------------
+
 
 class TinkerBackendError(Exception):
     """Raisable wrapper around a :class:`BackendError` descriptor.
@@ -74,17 +74,17 @@ class TinkerBackendError(Exception):
 # Edit this table when the SDK adds new exception types.
 _ERROR_TAXONOMY: dict[str, tuple[str, bool]] = {
     # Recoverable
-    "RateLimitError":             ("backend_unreachable", True),
-    "APIConnectionError":         ("backend_unreachable", True),
-    "APITimeoutError":            ("backend_unreachable", True),
-    "InternalServerError":        ("backend_unreachable", True),
-    "RequestFailedError":         ("backend_unreachable", True),
+    "RateLimitError": ("backend_unreachable", True),
+    "APIConnectionError": ("backend_unreachable", True),
+    "APITimeoutError": ("backend_unreachable", True),
+    "InternalServerError": ("backend_unreachable", True),
+    "RequestFailedError": ("backend_unreachable", True),
     # Non-recoverable
-    "BadRequestError":            ("invalid_config", False),
-    "AuthenticationError":        ("invalid_config", False),
-    "PermissionDeniedError":      ("invalid_config", False),
-    "UnprocessableEntityError":   ("invalid_config", False),
-    "ConflictError":              ("invalid_config", False),
+    "BadRequestError": ("invalid_config", False),
+    "AuthenticationError": ("invalid_config", False),
+    "PermissionDeniedError": ("invalid_config", False),
+    "UnprocessableEntityError": ("invalid_config", False),
+    "ConflictError": ("invalid_config", False),
     "APIResponseValidationError": ("schema_incompatible", False),
 }
 
@@ -93,14 +93,13 @@ def _wrap(exc: Exception) -> TinkerBackendError:
     """Translate a raw Tinker exception into a :class:`TinkerBackendError`."""
     name = type(exc).__name__
     code, recoverable = _ERROR_TAXONOMY.get(name, ("unknown", False))
-    return TinkerBackendError(
-        BackendError(code=code, message=str(exc), recoverable=recoverable)
-    )
+    return TinkerBackendError(BackendError(code=code, message=str(exc), recoverable=recoverable))
 
 
 # ---------------------------------------------------------------------------
 # Thin adapter functions
 # ---------------------------------------------------------------------------
+
 
 def make_service_client() -> "tinker.ServiceClient":
     """Return a new Tinker :class:`ServiceClient`.
@@ -154,9 +153,7 @@ def create_sampling(
     Passing both or neither raises :class:`ValueError`.
     """
     if (base_model is None) == (model_path is None):
-        raise ValueError(
-            "exactly one of base_model or model_path is required"
-        )
+        raise ValueError("exactly one of base_model or model_path is required")
     kwargs: dict[str, Any] = {"retry_config": retry_config}
     if base_model is not None:
         kwargs["base_model"] = base_model
@@ -242,15 +239,16 @@ def save_weights_and_get_sampling_client(
     The SDK returns the client directly — no tuple, no ttl.
     """
     try:
-        return training.save_weights_and_get_sampling_client(
-            name, retry_config=retry_config
-        )
+        return training.save_weights_and_get_sampling_client(name, retry_config=retry_config)
     except Exception as e:
         raise _wrap(e) from e
 
 
 def save_state_durable(
-    training: Any, name: str, *, ttl_seconds: int | None = None,
+    training: Any,
+    name: str,
+    *,
+    ttl_seconds: int | None = None,
 ) -> str | None:
     """Write a durable training checkpoint; return its ``tinker://`` path.
 
@@ -304,15 +302,17 @@ def list_checkpoints(rest: Any, training_run_id: str) -> list[dict[str, Any]]:
 
     out: list[dict[str, Any]] = []
     for ck in getattr(resp, "checkpoints", []) or []:
-        out.append({
-            "checkpoint_id":   _coerce(getattr(ck, "checkpoint_id", None)),
-            "checkpoint_type": _coerce(getattr(ck, "checkpoint_type", None)),
-            "time":            _coerce(getattr(ck, "time", None)),
-            "tinker_path":     _coerce(getattr(ck, "tinker_path", None)),
-            "size_bytes":      getattr(ck, "size_bytes", None),
-            "expires_at":      _coerce(getattr(ck, "expires_at", None)),
-            "public":          getattr(ck, "public", None),
-        })
+        out.append(
+            {
+                "checkpoint_id": _coerce(getattr(ck, "checkpoint_id", None)),
+                "checkpoint_type": _coerce(getattr(ck, "checkpoint_type", None)),
+                "time": _coerce(getattr(ck, "time", None)),
+                "tinker_path": _coerce(getattr(ck, "tinker_path", None)),
+                "size_bytes": getattr(ck, "size_bytes", None),
+                "expires_at": _coerce(getattr(ck, "expires_at", None)),
+                "public": getattr(ck, "public", None),
+            }
+        )
     return out
 
 

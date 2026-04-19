@@ -10,12 +10,16 @@ def _ep_with_signal(name: str, value: float, confidence: float = 1.0) -> Episode
     summary = EpisodeSummary()
     summary.signals[name] = RewardSignal(name, value, confidence)
     return Episode(
-        id="ep-1", state_id="s1", task_id="t1", bench="test",
+        id="ep-1",
+        state_id="s1",
+        task_id="t1",
+        bench="test",
         messages=[
             Message(role="user", content="q"),
             Message(role="assistant", content="a" * 20),
         ],
-        step_boundaries=[0], steps=[],
+        step_boundaries=[0],
+        steps=[],
         summary=summary,
     )
 
@@ -55,12 +59,16 @@ class TestHarnessSignals:
         summary.signals["outcome"] = RewardSignal("outcome", 1.0, 1.0)
         summary.signals["user"] = RewardSignal("user", -1.0, 1.0)
         ep = Episode(
-            id="ep-1", state_id="s1", task_id="t1", bench="test",
+            id="ep-1",
+            state_id="s1",
+            task_id="t1",
+            bench="test",
             messages=[
                 Message(role="user", content="q"),
                 Message(role="assistant", content="a" * 20),
             ],
-            step_boundaries=[0], steps=[],
+            step_boundaries=[0],
+            steps=[],
             summary=summary,
         )
         datum = Datum(episodes=[ep])
@@ -93,7 +101,9 @@ class TestInsightValidation:
 
     def test_update_with_target_passes(self) -> None:
         insight = Insight(
-            action="update", content="better tip", target_entry_id="e1",
+            action="update",
+            content="better tip",
+            target_entry_id="e1",
         )
         result = Harness._validate_insights([insight])
         assert len(result) == 1
@@ -106,7 +116,9 @@ class TestInsightValidation:
 
     def test_accepts_valid_tags(self) -> None:
         insight = Insight(
-            action="add", content="tip", tags=["strategy", "perf-opt", "v2_update"],
+            action="add",
+            content="tip",
+            tags=["strategy", "perf-opt", "v2_update"],
         )
         result = Harness._validate_insights([insight])
         assert len(result) == 1

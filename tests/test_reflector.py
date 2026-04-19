@@ -24,9 +24,7 @@ def _make_episode(
     for t in range(n_steps):
         step_boundaries.append(len(messages))
         messages.append(Message(role="user", content=f"Task step {t}"))
-        messages.append(
-            Message(role="assistant", content=f"Response {t}", model="test-model")
-        )
+        messages.append(Message(role="assistant", content=f"Response {t}", model="test-model"))
         is_terminal = t == n_steps - 1
         steps.append(
             StepMeta(
@@ -51,28 +49,32 @@ def _make_episode(
 
 def _valid_insights_json() -> str:
     """JSON response with valid insight objects."""
-    return json.dumps([
-        {
-            "action": "add",
-            "content": "Always verify input format before processing.",
-            "target_entry_id": None,
-            "tags": ["validation", "robustness"],
-            "source_episode_ids": ["ep-1"],
-        }
-    ])
+    return json.dumps(
+        [
+            {
+                "action": "add",
+                "content": "Always verify input format before processing.",
+                "target_entry_id": None,
+                "tags": ["validation", "robustness"],
+                "source_episode_ids": ["ep-1"],
+            }
+        ]
+    )
 
 
 def _update_insight_json(target_id: str) -> str:
     """JSON response with an update-action insight."""
-    return json.dumps([
-        {
-            "action": "update",
-            "content": "Updated strategy: check both input and output formats.",
-            "target_entry_id": target_id,
-            "tags": ["validation"],
-            "source_episode_ids": ["ep-1"],
-        }
-    ])
+    return json.dumps(
+        [
+            {
+                "action": "update",
+                "content": "Updated strategy: check both input and output formats.",
+                "target_entry_id": target_id,
+                "tags": ["validation"],
+                "source_episode_ids": ["ep-1"],
+            }
+        ]
+    )
 
 
 class TestReflector:
@@ -99,9 +101,7 @@ class TestReflector:
             tags=["validation"],
         )
         playbook = Playbook(entries=[entry])
-        client = MockLLMClient(
-            responses=[_update_insight_json("str-abc12345")]
-        )
+        client = MockLLMClient(responses=[_update_insight_json("str-abc12345")])
         reflector = Reflector(client=client, config=ReflectorConfig())
         episodes = [_make_episode()]
 

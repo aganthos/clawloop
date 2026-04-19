@@ -1,4 +1,5 @@
 """Tests for JudgeExtractor (LLM-as-judge reward)."""
+
 from dataclasses import dataclass
 
 import pytest
@@ -15,6 +16,7 @@ class FakeCompletion:
 
 class FakeLLM:
     """Deterministic mock LLM for testing."""
+
     def __init__(self, responses: list[str]):
         self._responses = iter(responses)
 
@@ -69,9 +71,14 @@ class TestJudgeExtractor:
         llm = FakeLLM(["1"])
         judge = JudgeExtractor(client=llm, n_votes=1)
         ep = Episode(
-            id=Episode.new_id(), state_id="", task_id="", bench="",
+            id=Episode.new_id(),
+            state_id="",
+            task_id="",
+            bench="",
             messages=[Message(role="user", content="hi")],
-            step_boundaries=[0], steps=[], summary=EpisodeSummary(),
+            step_boundaries=[0],
+            steps=[],
+            summary=EpisodeSummary(),
         )
         assert judge.extract(ep) is None
 
@@ -112,13 +119,18 @@ class TestJudgeExtractor:
 
         # Episode with tool message containing error → execution extractor fires
         ep = Episode(
-            id=Episode.new_id(), state_id="", task_id="", bench="",
+            id=Episode.new_id(),
+            state_id="",
+            task_id="",
+            bench="",
             messages=[
                 Message(role="user", content="run code"),
                 Message(role="tool", content="Error: file not found"),
                 Message(role="assistant", content="There was an error."),
             ],
-            step_boundaries=[0], steps=[], summary=EpisodeSummary(),
+            step_boundaries=[0],
+            steps=[],
+            summary=EpisodeSummary(),
         )
         pipeline.enrich(ep)
         # Execution extractor should fire, judge should be skipped

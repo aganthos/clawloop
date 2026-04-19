@@ -13,6 +13,7 @@ Requires:
 Run with:
     pytest tests/test_e2e_harbor.py -m e2e -s --timeout=600
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -60,6 +61,7 @@ N_EPISODES = 2
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _docker_available() -> bool:
     try:
         subprocess.run(["docker", "info"], capture_output=True, check=True, timeout=10)
@@ -71,6 +73,7 @@ def _docker_available() -> bool:
 def _harbor_available() -> bool:
     try:
         from harbor.trial.trial import Trial  # noqa: F401
+
         return True
     except ImportError:
         return False
@@ -86,8 +89,7 @@ def _proxy_available() -> bool:
     except ImportError:
         return False
     try:
-        r = httpx.get(f"{url}/models",
-                      headers={"Authorization": f"Bearer {key}"}, timeout=5)
+        r = httpx.get(f"{url}/models", headers={"Authorization": f"Bearer {key}"}, timeout=5)
         return r.status_code == 200
     except Exception:
         return False
@@ -114,12 +116,15 @@ def _get_cheapest_model_config() -> tuple[str, dict]:
     if anthropic_key:
         return "anthropic/claude-haiku-4-5-20251001", {}
 
-    pytest.skip("No LLM configured: set LLM_PROXY_URL+LLM_PROXY_KEY, GOOGLE_API_KEY, or ANTHROPIC_API_KEY")
+    pytest.skip(
+        "No LLM configured: set LLM_PROXY_URL+LLM_PROXY_KEY, GOOGLE_API_KEY, or ANTHROPIC_API_KEY"
+    )
 
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture(scope="module")
 def _check_harbor_prereqs():
@@ -169,6 +174,7 @@ def bfcl_task_dirs(tmp_path_factory, _check_harbor_prereqs):
 # Test A: Adapter execution (oracle, no LLM)
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.e2e
 class TestHarborAdapterExecution:
     """Prove the adapter correctly calls Harbor's Trial.create API."""
@@ -188,6 +194,7 @@ class TestHarborAdapterExecution:
         )
 
         import asyncio
+
         ep = asyncio.run(env.run_episode(AgentState()))
 
         assert isinstance(ep, Episode)
@@ -196,19 +203,23 @@ class TestHarborAdapterExecution:
         assert ep.summary.filtered is False
         assert ep.id, "Episode must have an id"
         # Oracle follows solution, verifier should give reward=1.0
-        assert ep.summary.total_reward > 0, (
-            f"Oracle on hello-world should succeed, got reward={ep.summary.total_reward}"
-        )
+        assert (
+            ep.summary.total_reward > 0
+        ), f"Oracle on hello-world should succeed, got reward={ep.summary.total_reward}"
 
         log.info(
             "Test A passed: bench=%s task_id=%s reward=%.2f messages=%d",
-            ep.bench, ep.task_id, ep.summary.total_reward, len(ep.messages),
+            ep.bench,
+            ep.task_id,
+            ep.summary.total_reward,
+            len(ep.messages),
         )
 
 
 # ---------------------------------------------------------------------------
 # Test B: Harness learning (terminus-2, real LLM)
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.e2e
 class TestHarborBFCLHarnessLearning:
@@ -229,16 +240,22 @@ class TestHarborBFCLHarnessLearning:
                     "model_name": model,
                     "kwargs": {
                         "store_all_messages": True,
-                        **({"api_base": model_kwargs["api_base"]} if "api_base" in model_kwargs else {}),
+                        **(
+                            {"api_base": model_kwargs["api_base"]}
+                            if "api_base" in model_kwargs
+                            else {}
+                        ),
                     },
                 },
                 "task": {},
                 "trials_dir": str(tmp_path / "trials"),
             }
-            envs.append(HarborTaskEnvironment(
-                task_dir=task_dir,
-                trial_config=trial_config,
-            ))
+            envs.append(
+                HarborTaskEnvironment(
+                    task_dir=task_dir,
+                    trial_config=trial_config,
+                )
+            )
 
         adapter = HarborAdapter(envs=envs)
         task_ids = [env.task_id for env in envs]
@@ -257,11 +274,13 @@ class TestHarborBFCLHarnessLearning:
         evolver = LocalEvolver(reflector=reflector)
 
         harness = Harness(
-            system_prompts={"harbor": (
-                "You are a function-calling assistant. Analyze the user request, "
-                "determine the correct function and parameters, and write the "
-                "result as a JSON array to /app/result.json."
-            )},
+            system_prompts={
+                "harbor": (
+                    "You are a function-calling assistant. Analyze the user request, "
+                    "determine the correct function and parameters, and write the "
+                    "result as a JSON array to /app/result.json."
+                )
+            },
             evolver=evolver,
         )
 
@@ -271,7 +290,9 @@ class TestHarborBFCLHarnessLearning:
         # -- Run learning loop --
         log.info(
             "Starting learning loop: %d iterations, %d episodes, %d tasks",
-            N_ITERATIONS, N_EPISODES, len(task_ids),
+            N_ITERATIONS,
+            N_EPISODES,
+            len(task_ids),
         )
         agent_state, state_id = learning_loop(
             adapter=adapter,
@@ -286,29 +307,23 @@ class TestHarborBFCLHarnessLearning:
         # -- Assertions --
 
         # State ID changed (learning happened)
-        assert state_id.combined_hash != initial_state_hash, (
-            "State ID should change after learning"
-        )
+        assert (
+            state_id.combined_hash != initial_state_hash
+        ), "State ID should change after learning"
 
         # Playbook version incremented
-        assert agent_state.harness.playbook_version > 0, (
-            "Playbook version should have incremented"
-        )
+        assert agent_state.harness.playbook_version > 0, "Playbook version should have incremented"
 
         # Playbook entries are grounded in Harbor episodes
         playbook = agent_state.harness.playbook
         n_entries = len(playbook.entries)
         if n_entries > 0:
-            has_sources = any(
-                bool(entry.source_episode_ids)
-                for entry in playbook.entries
-            )
-            assert has_sources, (
-                "At least one playbook entry should reference source episode IDs"
-            )
+            has_sources = any(bool(entry.source_episode_ids) for entry in playbook.entries)
+            assert has_sources, "At least one playbook entry should reference source episode IDs"
 
         log.info(
             "Test B passed: %d playbook entries, version=%d, state=%s",
-            n_entries, agent_state.harness.playbook_version,
+            n_entries,
+            agent_state.harness.playbook_version,
             state_id.combined_hash[:12],
         )

@@ -17,7 +17,7 @@ import random
 from dataclasses import dataclass, field
 from typing import Any
 
-from clawloop.core.env import EvalResult, Sample, TaskEnvironment
+from clawloop.core.env import Sample, TaskEnvironment
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
 from clawloop.core.intensity import AdaptiveIntensity
 from clawloop.core.paradigm import ParadigmBreakthrough
@@ -37,7 +37,9 @@ def _sanitize_input(text: str) -> str:
     text = text.replace("\x00", "")
     if len(text) > _MAX_INPUT_LENGTH:
         log.warning(
-            "Truncating agent input from %d to %d chars", len(text), _MAX_INPUT_LENGTH,
+            "Truncating agent input from %d to %d chars",
+            len(text),
+            _MAX_INPUT_LENGTH,
         )
         text = text[:_MAX_INPUT_LENGTH]
     return text
@@ -227,9 +229,12 @@ class ClawLoopAgent:
         meta_id = ""
         if hasattr(sample, "metadata") and isinstance(sample.metadata, dict):
             meta_id = sample.metadata.get("id", "")
-        task_id = meta_id or hashlib.sha256(
-            f"{self.bench}:{sample.question}:{context}".encode(),
-        ).hexdigest()[:16]
+        task_id = (
+            meta_id
+            or hashlib.sha256(
+                f"{self.bench}:{sample.question}:{context}".encode(),
+            ).hexdigest()[:16]
+        )
 
         # Build episode
         ep_messages = [

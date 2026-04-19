@@ -23,8 +23,8 @@ from clawloop.core.loop import AgentState
 from clawloop.core.reflector import Reflector, ReflectorConfig
 from clawloop.core.reward import RewardPipeline
 from clawloop.harness_backends.local import LocalEvolver
-from clawloop.learning_layers.harness import Harness
 from clawloop.learner import AsyncLearner
+from clawloop.learning_layers.harness import Harness
 
 if TYPE_CHECKING:
     from clawloop.proxy import ProxyApp
@@ -52,7 +52,9 @@ class ServerAuthMiddleware(BaseHTTPMiddleware):
         scheme, _, token = auth.partition(" ")
         # SSE (EventSource) cannot send headers; accept ?api_key= for /events
         qs_key = request.query_params.get("api_key", "")
-        has_valid_header = scheme.lower() == "bearer" and secrets.compare_digest(token, self._api_key)
+        has_valid_header = scheme.lower() == "bearer" and secrets.compare_digest(
+            token, self._api_key
+        )
         has_valid_qs = qs_key and secrets.compare_digest(qs_key, self._api_key)
         if not (has_valid_header or has_valid_qs):
             return JSONResponse(
@@ -110,13 +112,20 @@ class ClawLoopServer:
         enqueued = self.learner.on_batch(episodes)
         if enqueued:
             self.set_learning_status("learning")
-            self.broadcast_event("learning_started", {
-                "playbook_version": self.harness.playbook_version,
-                "batch_size": len(episodes),
-            })
+            self.broadcast_event(
+                "learning_started",
+                {
+                    "playbook_version": self.harness.playbook_version,
+                    "batch_size": len(episodes),
+                },
+            )
 
     def _on_learn_complete(
-        self, episodes: list, *, success: bool, error: str | None,
+        self,
+        episodes: list,
+        *,
+        success: bool,
+        error: str | None,
     ) -> None:
         # Only transition to "idle" if no more batches are queued
         queue_empty = self.learner.metrics["queue_size"] == 0
@@ -130,20 +139,25 @@ class ClawLoopServer:
                 self._recent_insights.clear()
                 for entry in self.harness.playbook.entries:
                     if entry.source_episode_ids:
-                        self._recent_insights.append({
-                            "content": entry.content,
-                            "source_episodes": entry.source_episode_ids,
-                        })
+                        self._recent_insights.append(
+                            {
+                                "content": entry.content,
+                                "source_episodes": entry.source_episode_ids,
+                            }
+                        )
             else:
                 if queue_empty:
                     self._learning_status = "idle"
                 self._last_error = error
 
         if success:
-            self.broadcast_event("learning_completed", {
-                "playbook_version": self.harness.playbook_version,
-                "new_entries": len(self.harness.playbook.entries),
-            })
+            self.broadcast_event(
+                "learning_completed",
+                {
+                    "playbook_version": self.harness.playbook_version,
+                    "new_entries": len(self.harness.playbook.entries),
+                },
+            )
 
     def set_learning_status(self, status: str) -> None:
         with self._state_lock:
@@ -298,22 +312,27 @@ async def ingest(request: Request) -> JSONResponse:
         elif msg.get("role") == "assistant":
             assistant_response = msg.get("content", "")
 
-    server.broadcast_event("episode_ingested", {
-        "episode_id": ep.id,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "user_query": user_query[:200],
-        "assistant_response": assistant_response[:300],
-        "reward_signals": {
-            k: {"value": s.value, "confidence": s.confidence}
-            for k, s in ep.summary.signals.items()
+    server.broadcast_event(
+        "episode_ingested",
+        {
+            "episode_id": ep.id,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "user_query": user_query[:200],
+            "assistant_response": assistant_response[:300],
+            "reward_signals": {
+                k: {"value": s.value, "confidence": s.confidence}
+                for k, s in ep.summary.signals.items()
+            },
         },
-    })
+    )
 
-    return JSONResponse({
-        "episode_id": ep.id,
-        "playbook_version": server.harness.playbook_version,
-        "learning_status": server.learning_status,
-    })
+    return JSONResponse(
+        {
+            "episode_id": ep.id,
+            "playbook_version": server.harness.playbook_version,
+            "learning_status": server.learning_status,
+        }
+    )
 
 
 async def feedback(request: Request) -> JSONResponse:
@@ -322,11 +341,15 @@ async def feedback(request: Request) -> JSONResponse:
     episode_id = body.get("episode_id", "")
     score = body.get("score", 0.0)
     if not isinstance(score, (int, float)):
-        return JSONResponse({"error": "validation_error", "detail": "score must be a number"}, status_code=422)
+        return JSONResponse(
+            {"error": "validation_error", "detail": "score must be a number"}, status_code=422
+        )
 
     found = server.collector.submit_feedback(episode_id, float(score))
     if not found:
-        return JSONResponse({"error": "not_found", "detail": f"episode {episode_id} not found"}, status_code=404)
+        return JSONResponse(
+            {"error": "not_found", "detail": f"episode {episode_id} not found"}, status_code=404
+        )
 
     # Update reward trend to reflect feedback
     with server._state_lock:
@@ -357,17 +380,19 @@ async def episodes_list(request: Request) -> JSONResponse:
             k: {"value": s.value, "confidence": s.confidence}
             for k, s in ep.summary.signals.items()
         }
-        result.append({
-            "id": ep.id,
-            "created_at": ep.created_at,
-            "model": ep.model,
-            "bench": ep.bench,
-            "messages": messages,
-            "signals": signals,
-            "effective_reward": ep.summary.effective_reward(),
-            "normalized_reward": ep.summary.normalized_reward(),
-            "has_feedback": "user" in ep.summary.signals,
-        })
+        result.append(
+            {
+                "id": ep.id,
+                "created_at": ep.created_at,
+                "model": ep.model,
+                "bench": ep.bench,
+                "messages": messages,
+                "signals": signals,
+                "effective_reward": ep.summary.effective_reward(),
+                "normalized_reward": ep.summary.normalized_reward(),
+                "has_feedback": "user" in ep.summary.signals,
+            }
+        )
 
     return JSONResponse(result)
 
@@ -387,16 +412,18 @@ async def metrics(request: Request) -> JSONResponse:
     server: ClawLoopServer = request.app.state.server
     cm = server.collector.metrics
     with server._state_lock:
-        return JSONResponse({
-            "episodes_collected": cm["episodes_collected"],
-            "episodes_filtered": cm["episodes_filtered"],
-            "feedback_received": cm["feedback_received"],
-            "playbook_version": server.harness.playbook_version,
-            "learning_status": server._learning_status,
-            "last_error": server._last_error,
-            "reward_trend": list(server._reward_trend),
-            "recent_insights": list(server._recent_insights),
-        })
+        return JSONResponse(
+            {
+                "episodes_collected": cm["episodes_collected"],
+                "episodes_filtered": cm["episodes_filtered"],
+                "feedback_received": cm["feedback_received"],
+                "playbook_version": server.harness.playbook_version,
+                "learning_status": server._learning_status,
+                "last_error": server._last_error,
+                "reward_trend": list(server._reward_trend),
+                "recent_insights": list(server._recent_insights),
+            }
+        )
 
 
 async def events(request: Request) -> StreamingResponse:
@@ -447,28 +474,40 @@ def create_app(
 
     # Auto-create Reflector: explicit api_base/api_key, or env vars
     if reflector is None:
-        has_creds = api_base or api_key or (
-            os.environ.get("OPENAI_API_KEY")
-            or os.environ.get("ANTHROPIC_API_KEY")
-            or os.environ.get("GEMINI_API_KEY")
-            or os.environ.get("GOOGLE_API_KEY")
+        has_creds = (
+            api_base
+            or api_key
+            or (
+                os.environ.get("OPENAI_API_KEY")
+                or os.environ.get("ANTHROPIC_API_KEY")
+                or os.environ.get("GEMINI_API_KEY")
+                or os.environ.get("GOOGLE_API_KEY")
+            )
         )
         if has_creds:
             try:
                 from clawloop.llm import LiteLLMClient
+
                 client = LiteLLMClient(
                     model=model,
                     api_base=api_base,
                     api_key=api_key,
                 )
                 reflector = Reflector(client=client, config=ReflectorConfig())
-                log.info("Auto-created Reflector with %s (api_base=%s)", model, api_base or "default")
+                log.info(
+                    "Auto-created Reflector with %s (api_base=%s)", model, api_base or "default"
+                )
             except Exception:
-                log.warning("Could not create Reflector — learning will not generate insights", exc_info=True)
+                log.warning(
+                    "Could not create Reflector — learning will not generate insights",
+                    exc_info=True,
+                )
 
     server = ClawLoopServer(
-        seed_prompt=seed_prompt, bench=bench,
-        batch_size=batch_size, reflector=reflector,
+        seed_prompt=seed_prompt,
+        bench=bench,
+        batch_size=batch_size,
+        reflector=reflector,
     )
 
     routes = [
@@ -483,8 +522,9 @@ def create_app(
 
     proxy_app: "ProxyApp | None" = None
     if proxy_config is not None:
-        from clawloop.proxy import ProxyApp
         from starlette.routing import Mount
+
+        from clawloop.proxy import ProxyApp
 
         proxy_app = ProxyApp(
             proxy_config,
@@ -510,6 +550,7 @@ def create_app(
     static_dir = Path(__file__).parent / "static"
     if static_dir.exists():
         from starlette.staticfiles import StaticFiles
+
         app.mount("/dashboard", StaticFiles(directory=str(static_dir), html=True))
 
     app.state.server = server
@@ -520,6 +561,7 @@ def create_app(
 def main() -> None:
     import argparse
     import os
+
     parser = argparse.ArgumentParser(description="clawloop-server for n8n integration")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8400)
@@ -529,7 +571,11 @@ def main() -> None:
     parser.add_argument("--model", default=None, help="LLM model for Reflector (litellm format)")
     parser.add_argument("--api-base", default=None, help="LLM API base URL")
     parser.add_argument("--api-key", default=None, help="LLM API key")
-    parser.add_argument("--server-api-key", default=None, help="Protect API endpoints with Authorization: Bearer ...")
+    parser.add_argument(
+        "--server-api-key",
+        default=None,
+        help="Protect API endpoints with Authorization: Bearer ...",
+    )
     parser.add_argument("--log-level", default="INFO")
     args = parser.parse_args()
     logging.basicConfig(level=getattr(logging, args.log_level.upper()))
@@ -547,12 +593,16 @@ def main() -> None:
         )
 
     app = create_app(
-        seed_prompt_path=args.seed_prompt, bench=args.bench,
-        batch_size=args.batch_size, model=model,
-        api_base=api_base, api_key=api_key,
+        seed_prompt_path=args.seed_prompt,
+        bench=args.bench,
+        batch_size=args.batch_size,
+        model=model,
+        api_base=api_base,
+        api_key=api_key,
         server_api_key=server_api_key,
     )
     import uvicorn
+
     uvicorn.run(app, host=args.host, port=args.port)
 
 

@@ -82,7 +82,8 @@ class TestFallback:
         playbook = Playbook(entries=[existing])
 
         result = curator.curate_insight(
-            _insight("a somewhat related insight"), playbook,
+            _insight("a somewhat related insight"),
+            playbook,
         )
 
         assert isinstance(result, CurationResult)
@@ -95,9 +96,11 @@ class TestFallback:
         failing_llm = _FailingLLM()
         curator = PlaybookCurator(failing_embeddings, failing_llm)  # type: ignore[arg-type]
 
-        playbook = Playbook(entries=[
-            PlaybookEntry(id="e1", content="existing entry"),
-        ])
+        playbook = Playbook(
+            entries=[
+                PlaybookEntry(id="e1", content="existing entry"),
+            ]
+        )
 
         # Must not raise
         result = curator.curate_insight(_insight(), playbook)

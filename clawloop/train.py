@@ -11,12 +11,10 @@ AdapterLike and a task list for the learning loop.
 
 from __future__ import annotations
 
-import importlib
 from pathlib import Path
 from typing import Any, Literal
 
 from pydantic import BaseModel, SecretStr
-
 
 # ---------------------------------------------------------------------------
 # Config
@@ -70,8 +68,8 @@ class TrainConfig(BaseModel):
     episodes_per_iter: int = 10
     n_iterations: int = 100
     output_dir: str | Path | None = None
-    wandb_project: str | None = None    # if set, mirrors metrics to wandb (requires WANDB_API_KEY)
-    wandb_name: str | None = None       # optional wandb run name; defaults to output_dir basename
+    wandb_project: str | None = None  # if set, mirrors metrics to wandb (requires WANDB_API_KEY)
+    wandb_name: str | None = None  # optional wandb run name; defaults to output_dir basename
 
     model_config = {"arbitrary_types_allowed": True}
 
@@ -79,6 +77,7 @@ class TrainConfig(BaseModel):
 # ---------------------------------------------------------------------------
 # LLM client helper
 # ---------------------------------------------------------------------------
+
 
 def _make_llm_client(cfg: LLMClientConfig):
     """Build a LiteLLMClient from config."""
@@ -97,6 +96,7 @@ def _make_llm_client(cfg: LLMClientConfig):
 # ---------------------------------------------------------------------------
 # Environment builders — each returns (adapter, tasks)
 # ---------------------------------------------------------------------------
+
 
 def _build_harbor(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]):
     from clawloop.environments.harbor import HarborAdapter, HarborTaskEnvironment
@@ -141,9 +141,7 @@ def _build_entropic(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]
     return adapter, [f"base_{i}" for i in range(n_tasks)]
 
 
-def _build_openclaw(
-    config: TrainConfig, llm_clients: dict[str, LLMClientConfig]
-) -> tuple:
+def _build_openclaw(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]) -> tuple:
     from clawloop.environments.openclaw import OpenClawAdapter
 
     openclaw_cfg = dict(config.env_config or {})
@@ -151,9 +149,7 @@ def _build_openclaw(
 
     adapter_config = {
         "task_dir": openclaw_cfg.get("task_dir", "tasks"),
-        "runner_script": openclaw_cfg.get(
-            "runner_script", "examples/openclaw_runner/runner.js"
-        ),
+        "runner_script": openclaw_cfg.get("runner_script", "examples/openclaw_runner/runner.js"),
         "timeout_s": openclaw_cfg.get("timeout_s", 120),
         "node_bin": openclaw_cfg.get("node_bin", "node"),
         "upstream_url": openclaw_cfg.get(
@@ -176,6 +172,7 @@ def _build_openclaw(
 # ---------------------------------------------------------------------------
 # Environment registry — add new envs here
 # ---------------------------------------------------------------------------
+
 
 def _build_openspiel(config: "TrainConfig", llm_clients: dict[str, "LLMClientConfig"]):
     """Build a ClawLoop adapter over one or more OpenSpiel games.
@@ -224,8 +221,7 @@ def _build_openspiel(config: "TrainConfig", llm_clients: dict[str, "LLMClientCon
     episodes_per_seed = int(raw.pop("episodes_per_seed", 4))
     cfg = OpenSpielTaskConfig(**raw)
     envs_by_task_id = {
-        f"{cfg.game_name}_seed_{s}": OpenSpielTaskEnvironment(cfg, seed=s)
-        for s in cfg.seeds
+        f"{cfg.game_name}_seed_{s}": OpenSpielTaskEnvironment(cfg, seed=s) for s in cfg.seeds
     }
     tasks = [tid for tid in envs_by_task_id for _ in range(episodes_per_seed)]
     return OpenSpielGameAdapter(envs_by_task_id), tasks
@@ -243,6 +239,7 @@ ENV_BUILDERS: dict[str, Any] = {
 # ---------------------------------------------------------------------------
 # Validation
 # ---------------------------------------------------------------------------
+
 
 def effective_episodes_per_iter(config: TrainConfig) -> int:
     """Derive the actual episodes-per-iter without mutating the config.
@@ -265,9 +262,7 @@ def effective_episodes_per_iter(config: TrainConfig) -> int:
 
     def _check_seeds(seeds: Any, label: str) -> list:
         if not isinstance(seeds, (list, tuple)):
-            raise ValueError(
-                f"{label} must be a list/tuple (got {type(seeds).__name__})"
-            )
+            raise ValueError(f"{label} must be a list/tuple (got {type(seeds).__name__})")
         if len(seeds) == 0:
             raise ValueError(f"{label} must be non-empty")
         return list(seeds)
@@ -321,8 +316,7 @@ def validate_config(config: TrainConfig) -> list[str]:
 
     if config.env_type not in ENV_BUILDERS:
         raise ValueError(
-            f"Unknown env_type: {config.env_type!r}. "
-            f"Available: {sorted(ENV_BUILDERS.keys())}"
+            f"Unknown env_type: {config.env_type!r}. " f"Available: {sorted(ENV_BUILDERS.keys())}"
         )
 
     # Env-specific validation (fail fast before expensive backend init)
@@ -373,6 +367,7 @@ def validate_config(config: TrainConfig) -> list[str]:
 # ---------------------------------------------------------------------------
 # Train
 # ---------------------------------------------------------------------------
+
 
 def train(config: TrainConfig):
     """Unified training entry point.

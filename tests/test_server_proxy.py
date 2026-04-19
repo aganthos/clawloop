@@ -1,7 +1,7 @@
 """Tests for proxy mount integration in clawloop-server."""
+
 from __future__ import annotations
 
-import json
 import socket
 import threading
 import time
@@ -18,7 +18,6 @@ from starlette.testclient import TestClient
 from clawloop.proxy import ProxyApp
 from clawloop.proxy_config import ProxyConfig
 from clawloop.server import create_app
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -53,10 +52,12 @@ SSE_CHUNKS = (
 async def _mock_chat(request: Request):
     body = await request.json()
     if body.get("stream"):
+
         async def _gen():
             for line in SSE_CHUNKS.split(b"\n\n"):
                 if line:
                     yield line + b"\n\n"
+
         return StreamingResponse(_gen(), media_type="text/event-stream")
     return JSONResponse(MOCK_COMPLETION)
 
@@ -190,6 +191,7 @@ class TestRedactionHook:
 
     def test_redaction_hook_error_drops_item(self, mock_upstream):
         """If redaction_hook raises, the item should be dropped (not crash)."""
+
         def bad_hook(body: dict) -> dict:
             raise ValueError("redaction failed")
 

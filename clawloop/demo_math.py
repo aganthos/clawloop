@@ -27,7 +27,7 @@ import sys
 from typing import Any
 
 from clawloop.agent import ClawLoopAgent
-from clawloop.environments.math import MathEnvironment, _BUILTIN_PROBLEMS
+from clawloop.environments.math import _BUILTIN_PROBLEMS, MathEnvironment
 from clawloop.llm import LiteLLMClient, MockLLMClient
 
 log = logging.getLogger("clawloop.demo")
@@ -46,9 +46,7 @@ BASE_SYSTEM_PROMPT = (
 # ---------------------------------------------------------------------------
 
 # Map question text -> ground-truth answer for lookup by the mock task client
-_QUESTION_TO_ANSWER: dict[str, str] = {
-    p["question"]: p["answer"] for p in _BUILTIN_PROBLEMS
-}
+_QUESTION_TO_ANSWER: dict[str, str] = {p["question"]: p["answer"] for p in _BUILTIN_PROBLEMS}
 
 # Questions that the mock "gets wrong" — roughly 40% wrong to start, improving
 # over iterations as call_count grows.
@@ -98,7 +96,7 @@ class MockTaskClient:
             if self._call_count <= 10:
                 give_correct = False
             elif self._call_count <= 15:
-                give_correct = (self._call_count % 2 == 0)
+                give_correct = self._call_count % 2 == 0
             else:
                 give_correct = True
         else:
@@ -118,13 +116,17 @@ def _build_mock_reflector_responses() -> list[str]:
     """Build reflector LLM responses that produce progressive insights."""
 
     def _insight_json(content: str) -> str:
-        return json.dumps([{
-            "action": "add",
-            "content": content,
-            "target_entry_id": None,
-            "tags": ["strategy"],
-            "source_episode_ids": [],
-        }])
+        return json.dumps(
+            [
+                {
+                    "action": "add",
+                    "content": content,
+                    "target_entry_id": None,
+                    "tags": ["strategy"],
+                    "source_episode_ids": [],
+                }
+            ]
+        )
 
     return [
         _insight_json("Always show intermediate calculation steps"),
@@ -146,6 +148,7 @@ def _build_mock_reflector_responses() -> list[str]:
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
+
 
 def _positive_int(value: str) -> int:
     n = int(value)
@@ -189,6 +192,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
 
@@ -198,8 +202,16 @@ def main(argv: list[str] | None = None) -> None:
     )
 
     # Resolve configuration
-    iterations = args.iterations if args.iterations is not None else int(os.environ.get("CLAWLOOP_ITERATIONS", "5"))
-    episodes = args.episodes if args.episodes is not None else int(os.environ.get("CLAWLOOP_EPISODES", "5"))
+    iterations = (
+        args.iterations
+        if args.iterations is not None
+        else int(os.environ.get("CLAWLOOP_ITERATIONS", "5"))
+    )
+    episodes = (
+        args.episodes
+        if args.episodes is not None
+        else int(os.environ.get("CLAWLOOP_EPISODES", "5"))
+    )
 
     if iterations <= 0:
         log.error("--iterations must be a positive integer, got %d", iterations)
@@ -214,7 +226,9 @@ def main(argv: list[str] | None = None) -> None:
         reflector_client = MockLLMClient(responses=_build_mock_reflector_responses())
     else:
         task_model = os.environ.get("CLAWLOOP_TASK_MODEL", "anthropic/claude-haiku-4-5-20251001")
-        reflector_model = os.environ.get("CLAWLOOP_REFLECTOR_MODEL", "anthropic/claude-sonnet-4-5-20250929")
+        reflector_model = os.environ.get(
+            "CLAWLOOP_REFLECTOR_MODEL", "anthropic/claude-sonnet-4-5-20250929"
+        )
         api_base = os.environ.get("CLAWLOOP_API_BASE", "")
         api_key = os.environ.get("CLAWLOOP_API_KEY", "")
 
@@ -225,12 +239,20 @@ def main(argv: list[str] | None = None) -> None:
             log.info("  API base:        %s", api_base)
 
         task_client = LiteLLMClient(
-            model=task_model, api_key=api_key or None, api_base=api_base or None,
-            temperature=0.7, max_tokens=1024, drop_params=True,
+            model=task_model,
+            api_key=api_key or None,
+            api_base=api_base or None,
+            temperature=0.7,
+            max_tokens=1024,
+            drop_params=True,
         )
         reflector_client = LiteLLMClient(
-            model=reflector_model, api_key=api_key or None, api_base=api_base or None,
-            temperature=0.7, max_tokens=2000, drop_params=True,
+            model=reflector_model,
+            api_key=api_key or None,
+            api_base=api_base or None,
+            temperature=0.7,
+            max_tokens=2000,
+            drop_params=True,
         )
 
     log.info("  Iterations:      %d", iterations)

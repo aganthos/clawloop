@@ -17,9 +17,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
+from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
 from clawloop.environments._car_rewards import DEFAULT_CAR_WEIGHTS, map_car_scores
 from clawloop.environments.base import EnvAdapter
-from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
 
 if TYPE_CHECKING:
     from clawloop.core.loop import AgentState
@@ -37,12 +37,8 @@ class CARAdapter(EnvAdapter):
 
     def setup(self, config: dict[str, Any]) -> None:
         self._model = config.get("model", "anthropic/claude-haiku-4-5-20251001")
-        self._car_bench_path = Path(
-            config.get("car_bench_path", "benchmarks/a2a/car-bench")
-        )
-        self._output_dir = Path(
-            config.get("output", f"./runs/car/{int(time.time())}")
-        )
+        self._car_bench_path = Path(config.get("car_bench_path", "benchmarks/a2a/car-bench"))
+        self._output_dir = Path(config.get("output", f"./runs/car/{int(time.time())}"))
         self._output_dir.mkdir(parents=True, exist_ok=True)
         self._task_type = config.get("task_type", "base")
         self._task_split = config.get("task_split", "test")
@@ -60,9 +56,7 @@ class CARAdapter(EnvAdapter):
         episodes = self.run_batch(agent_state, [task])
         return episodes[0] if episodes else self._make_failed_episode(str(task), "empty")
 
-    def run_batch(
-        self, agent_state: "AgentState", task_ids: list[Any]
-    ) -> list[Episode]:
+    def run_batch(self, agent_state: "AgentState", task_ids: list[Any]) -> list[Episode]:
         """Run a batch of tasks via agentbeats-run with clawloop harness injection."""
         str_ids = [str(tid) for tid in task_ids]
         self._current_state_id = agent_state.state_id().combined_hash
@@ -102,10 +96,17 @@ class CARAdapter(EnvAdapter):
         # Run agentbeats-run
         try:
             result = subprocess.run(
-                [self._agentbeats_cmd, str(scenario_path), "--show-logs",
-                 "--output", str(results_path)],
+                [
+                    self._agentbeats_cmd,
+                    str(scenario_path),
+                    "--show-logs",
+                    "--output",
+                    str(results_path),
+                ],
                 cwd=str(self._car_bench_path.resolve()),
-                capture_output=True, text=True, timeout=600,
+                capture_output=True,
+                text=True,
+                timeout=600,
                 env=env,
             )
             (iter_dir / "green_agent.log").write_text(
@@ -133,18 +134,13 @@ class CARAdapter(EnvAdapter):
         self._iteration_count += 1
         return episodes
 
-    def _parse_results(
-        self, results_path: Path, expected_task_ids: list[str]
-    ) -> list[Episode]:
+    def _parse_results(self, results_path: Path, expected_task_ids: list[str]) -> list[Episode]:
         """Parse results.json into Episodes."""
         try:
             raw = json.loads(results_path.read_text())
         except (FileNotFoundError, json.JSONDecodeError) as e:
             log.error("Failed to parse results: %s", e)
-            return [
-                self._make_failed_episode(tid, "parse_error")
-                for tid in expected_task_ids
-            ]
+            return [self._make_failed_episode(tid, "parse_error") for tid in expected_task_ids]
 
         # agentbeats-run output: {"results": [{"detailed_results_by_split": {...}}]}
         # Unwrap the results array to get detailed results
@@ -171,6 +167,7 @@ class CARAdapter(EnvAdapter):
     def _find_free_ports() -> tuple[int, int]:
         """Find two free TCP ports for green and purple agents."""
         import socket
+
         socks = []
         ports = []
         for _ in range(2):
@@ -183,8 +180,11 @@ class CARAdapter(EnvAdapter):
         return ports[0], ports[1]
 
     def _generate_scenario(
-        self, task_ids: list[str], harness_file: str,
-        green_port: int, purple_port: int,
+        self,
+        task_ids: list[str],
+        harness_file: str,
+        green_port: int,
+        purple_port: int,
     ) -> str:
         """Generate scenario.toml for this batch."""
         by_type: dict[str, list[str]] = {}
@@ -196,9 +196,7 @@ class CARAdapter(EnvAdapter):
         lines = []
         for tt in _ALL_TASK_TYPES:
             if tt in by_type:
-                lines.append(
-                    f'tasks_{tt}_task_id_filter = {json.dumps(by_type[tt])}'
-                )
+                lines.append(f"tasks_{tt}_task_id_filter = {json.dumps(by_type[tt])}")
             else:
                 lines.append(f"tasks_{tt}_num_tasks = 0")
 
@@ -214,6 +212,11 @@ class CARAdapter(EnvAdapter):
         agentbeats_bin = Path(self._agentbeats_cmd).parent
         green_python = agentbeats_bin / "python" if agentbeats_bin.name == "bin" else "python"
 
+        purple_cmd = (
+            f"{green_python} {lfx_server} --host 127.0.0.1 --port {pp} "
+            f"--agent-llm {self._model} --temperature 0.0 "
+            f"--harness-file {harness_file}"
+        )
         return f"""\
 [green_agent]
 endpoint = "http://127.0.0.1:{gp}"
@@ -222,7 +225,7 @@ cmd = "{green_python} {green_server} --host 127.0.0.1 --port {gp}"
 [[participants]]
 role = "agent"
 endpoint = "http://127.0.0.1:{pp}"
-cmd = "{green_python} {lfx_server} --host 127.0.0.1 --port {pp} --agent-llm {self._model} --temperature 0.0 --harness-file {harness_file}"
+cmd = "{purple_cmd}"
 
 [config]
 task_split = "{self._task_split}"
@@ -264,8 +267,14 @@ max_steps = 50
             model=self._model,
             messages=messages,
             step_boundaries=[0] if messages else [],
-            steps=[StepMeta(t=0, reward=task_result.get("reward", 0.0),
-                            done=True, timing_ms=task_result.get("total_llm_latency_ms", 0.0))],
+            steps=[
+                StepMeta(
+                    t=0,
+                    reward=task_result.get("reward", 0.0),
+                    done=True,
+                    timing_ms=task_result.get("total_llm_latency_ms", 0.0),
+                )
+            ],
             summary=summary,
             created_at=time.time(),
             metadata={
@@ -279,9 +288,7 @@ max_steps = 50
         """Create a failed episode placeholder."""
         from clawloop.core.reward import RewardSignal
 
-        signals = {
-            "outcome": RewardSignal(name="outcome", value=-1.0, confidence=0.5)
-        }
+        signals = {"outcome": RewardSignal(name="outcome", value=-1.0, confidence=0.5)}
         return Episode(
             id=uuid4().hex,
             state_id=getattr(self, "_current_state_id", ""),

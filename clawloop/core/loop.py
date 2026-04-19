@@ -29,7 +29,7 @@ from clawloop.core.episode import Episode
 from clawloop.core.evolution_log import EvolutionEntry, EvolutionLog
 from clawloop.core.intensity import AdaptiveIntensity
 from clawloop.core.state import StateID
-from clawloop.core.types import Datum, FBResult, Future, OptimResult
+from clawloop.core.types import Datum, FBResult
 from clawloop.learning_layers.harness import Harness
 from clawloop.learning_layers.router import Router
 from clawloop.learning_layers.weights import Weights
@@ -70,6 +70,7 @@ class ExperimentLog:
         if output_dir:
             try:
                 from tinker_cookbook.utils import ml_log
+
                 self._ml_logger = ml_log.setup_logging(
                     log_dir=str(Path(output_dir).expanduser()),
                     wandb_project=wandb_project,
@@ -103,7 +104,9 @@ class ExperimentLog:
         per_task: dict[str, dict] = {}
         for tid, eps in by_task.items():
             task_rewards = [e.summary.total_reward for e in eps]
-            errors = [e.metadata.get("error") for e in eps if e.metadata and e.metadata.get("error")]
+            errors = [
+                e.metadata.get("error") for e in eps if e.metadata and e.metadata.get("error")
+            ]
             # Latest episode's signals in the original {value, confidence} shape —
             # keeps the existing viewer (`learning_viewer.html` reads
             # `info.signals.<name>.value`) working without a simultaneous viewer
@@ -114,7 +117,8 @@ class ExperimentLog:
             if latest.summary.signals:
                 for k, s in latest.summary.signals.items():
                     latest_signals[k] = {
-                        "value": s.value, "confidence": s.confidence,
+                        "value": s.value,
+                        "confidence": s.confidence,
                     }
             rollouts = [
                 {
@@ -151,21 +155,16 @@ class ExperimentLog:
             "max_reward": max(rewards) if rewards else 0.0,
             "per_task": per_task,
             "fb_results": {
-                name: {"status": r.status, "metrics": r.metrics}
-                for name, r in fb_results.items()
+                name: {"status": r.status, "metrics": r.metrics} for name, r in fb_results.items()
             },
         }
         if backend is not None and hasattr(backend, "list_tinker_checkpoints"):
             try:
                 entry["tinker_checkpoints"] = backend.list_tinker_checkpoints()
             except Exception as e:  # best-effort — never abort the run
-                entry["tinker_checkpoints"] = [
-                    {"error": type(e).__name__, "message": str(e)}
-                ]
+                entry["tinker_checkpoints"] = [{"error": type(e).__name__, "message": str(e)}]
             entry["tinker_model_id"] = getattr(backend, "model_id", None)
-            entry["tinker_durable_paths"] = list(
-                getattr(backend, "_durable_paths", [])
-            )
+            entry["tinker_durable_paths"] = list(getattr(backend, "_durable_paths", []))
         if harness is not None:
             entry["playbook_size"] = len(harness.playbook.entries)
             entry["playbook_entries"] = [
@@ -194,10 +193,10 @@ class ExperimentLog:
             try:
                 # Flatten to scalar metrics — wandb/Rich expect numbers, not nested dicts.
                 scalar_metrics: dict[str, Any] = {
-                    "n_episodes":     entry["n_episodes"],
-                    "avg_reward":     entry["avg_reward"],
-                    "min_reward":     entry["min_reward"],
-                    "max_reward":     entry["max_reward"],
+                    "n_episodes": entry["n_episodes"],
+                    "avg_reward": entry["avg_reward"],
+                    "min_reward": entry["min_reward"],
+                    "max_reward": entry["max_reward"],
                 }
                 for name, r in fb_results.items():
                     for mk, mv in (r.metrics or {}).items():
@@ -218,9 +217,12 @@ class AgentState:
     router: Router = field(default_factory=Router)
     weights: Weights = field(default_factory=Weights)
     inference_url: str | None = None  # vLLM endpoint for Harbor agents
-    sampling_client: Any = None   # Tinker SamplingClient, set per iter by TinkerWeightsBackend; kept Any to avoid tinker import.
-    renderer: Any = None          # tinker_cookbook renderer; set per iter by TinkerWeightsBackend.
-    tokenizer: Any = None         # Tinker training-client tokenizer; set per iter by TinkerWeightsBackend.
+    # Tinker SamplingClient, set per iter by TinkerWeightsBackend; kept Any to avoid tinker import.
+    sampling_client: Any = None
+    renderer: Any = None  # tinker_cookbook renderer; set per iter by TinkerWeightsBackend.
+    tokenizer: Any = (
+        None  # Tinker training-client tokenizer; set per iter by TinkerWeightsBackend.
+    )
     tried_paradigms: list[str] = field(default_factory=list)  # paradigm contents tried
     _prev_playbook_generation: int = 0  # tracks generation for flush logic
 
@@ -228,13 +230,14 @@ class AgentState:
         return StateID.from_layers(self.harness, self.router, self.weights)
 
     def get_layers(
-        self, active: list[str] | None = None,
+        self,
+        active: list[str] | None = None,
     ) -> list[tuple[str, Any]]:
         """Return (name, layer) pairs, filtered by *active* if given."""
         all_layers = [(name, getattr(self, name)) for name in LAYER_NAMES]
         if active is None:
             return all_layers
-        return [(n, l) for n, l in all_layers if n in active]
+        return [(n, layer) for n, layer in all_layers if n in active]
 
 
 class AdapterLike(Protocol):
@@ -299,7 +302,9 @@ def learning_loop(
     state_id = agent_state.state_id()
     layers = agent_state.get_layers(active_layers)
     exp_log = ExperimentLog(
-        output_dir, wandb_project=wandb_project, wandb_name=wandb_name,
+        output_dir,
+        wandb_project=wandb_project,
+        wandb_name=wandb_name,
     )
     evo_log = EvolutionLog(output_dir)
     _archive: ArchiveStore = archive if archive is not None else NullArchiveStore()
@@ -382,9 +387,7 @@ def learning_loop(
             else:
                 selected_tasks = random.choices(tasks, k=n_episodes)
 
-            if hasattr(adapter, "run_batch") and callable(
-                getattr(adapter, "run_batch", None)
-            ):
+            if hasattr(adapter, "run_batch") and callable(getattr(adapter, "run_batch", None)):
                 episodes = adapter.run_batch(agent_state, selected_tasks)
             elif hasattr(adapter, "run_episodes_batch") and callable(
                 getattr(adapter, "run_episodes_batch", None)
@@ -400,9 +403,7 @@ def learning_loop(
                     episodes.append(ep)
 
         avg_reward = (
-            sum(ep.summary.total_reward for ep in episodes) / len(episodes)
-            if episodes
-            else 0.0
+            sum(ep.summary.total_reward for ep in episodes) / len(episodes) if episodes else 0.0
         )
         log.info("  Collected %d episodes, avg reward: %.4f", len(episodes), avg_reward)
 
@@ -422,7 +423,9 @@ def learning_loop(
                         signals={
                             k: {"value": s.value, "confidence": s.confidence}
                             for k, s in ep.summary.signals.items()
-                        } if ep.summary.signals else {},
+                        }
+                        if ep.summary.signals
+                        else {},
                         n_steps=ep.n_steps(),
                         n_tool_calls=tool_call_count,
                         token_usage=(
@@ -475,7 +478,11 @@ def learning_loop(
         fb_results: dict[str, FBResult] = {}
         for name, layer in layers:
             # Skip harness reflection when intensity says not to
-            if name == "harness" and intensity is not None and not intensity.should_reflect(iteration):
+            if (
+                name == "harness"
+                and intensity is not None
+                and not intensity.should_reflect(iteration)
+            ):
                 log.info("  skipping harness fb (adaptive intensity)")
                 fb_results[name] = FBResult(status="skipped")
                 continue
@@ -518,9 +525,9 @@ def learning_loop(
 
         # 4. Phase 2: optim_step with cross-layer rollback
         layers_to_optim = [
-            (name, layer) for name, layer in layers
-            if fb_results.get(name, FBResult(status="error")).status
-            not in ("error", "skipped")
+            (name, layer)
+            for name, layer in layers
+            if fb_results.get(name, FBResult(status="error")).status not in ("error", "skipped")
         ]
 
         # Snapshot all layers before optim (for cross-layer rollback)
@@ -543,17 +550,21 @@ def learning_loop(
                 result = layer.optim_step().result()
                 log.info(
                     "  optim %s: %s, %d updates",
-                    name, result.status, result.updates_applied,
+                    name,
+                    result.status,
+                    result.updates_applied,
                 )
                 if result.status == "error":
                     optim_failed = True
                     log.error(
-                        "  optim %s returned error — triggering rollback", name,
+                        "  optim %s returned error — triggering rollback",
+                        name,
                     )
                     break
             except Exception:
                 log.exception(
-                    "optim_step failed for %s — triggering rollback", name,
+                    "optim_step failed for %s — triggering rollback",
+                    name,
                 )
                 optim_failed = True
                 break
@@ -566,7 +577,9 @@ def learning_loop(
                         lr = layer.load_state(snapshots[name]).result()
                         if lr.status != "ok":
                             log.error(
-                                "  rollback returned %s for %s", lr.status, name,
+                                "  rollback returned %s for %s",
+                                lr.status,
+                                name,
                             )
                     except Exception:
                         log.exception("  rollback failed for %s", name)
@@ -586,11 +599,7 @@ def learning_loop(
             if weights_fb is not None and weights_fb.metrics
             else 0
         )
-        if (
-            backend is not None
-            and hasattr(backend, "save_state")
-            and n_datums > 0
-        ):
+        if backend is not None and hasattr(backend, "save_state") and n_datums > 0:
             try:
                 backend.save_state(f"iter_{iteration}").result()
             except Exception:
@@ -612,7 +621,9 @@ def learning_loop(
                 agent_state.weights.clear_pending_state()
                 log.info(
                     "  Generation %d->%d: flushed %d stale episodes from weights buffer",
-                    prev_gen, current_gen, stale,
+                    prev_gen,
+                    current_gen,
+                    stale,
                 )
             agent_state._prev_playbook_generation = current_gen
 
@@ -635,19 +646,21 @@ def learning_loop(
                 if result.metrics.get("paradigm_shifted"):
                     actions.append("paradigm_shift")
         if actions:
-            evo_log.append(EvolutionEntry(
-                iteration=iteration,
-                state_hash_before=prev_hash,
-                state_hash_after=state_id.combined_hash,
-                actions=actions,
-                reward_before=prev_avg_reward,
-                reward_after=avg_reward,
-                backend=(
-                    agent_state.harness.evolver.name()
-                    if isinstance(agent_state.harness, Harness) and agent_state.harness.evolver
-                    else "none"
-                ),
-            ))
+            evo_log.append(
+                EvolutionEntry(
+                    iteration=iteration,
+                    state_hash_before=prev_hash,
+                    state_hash_after=state_id.combined_hash,
+                    actions=actions,
+                    reward_before=prev_avg_reward,
+                    reward_after=avg_reward,
+                    backend=(
+                        agent_state.harness.evolver.name()
+                        if isinstance(agent_state.harness, Harness) and agent_state.harness.evolver
+                        else "none"
+                    ),
+                )
+            )
 
         try:
             _cur_config = _build_agent_config(agent_state)
@@ -657,9 +670,7 @@ def learning_loop(
                 if result.status == "ok":
                     _evolver_action[name] = result.metrics
             _iter_cost = sum(
-                r.metrics.get("tokens_used", 0)
-                for r in fb_results.values()
-                if r.status == "ok"
+                r.metrics.get("tokens_used", 0) for r in fb_results.values() if r.status == "ok"
             )
             _total_cost += _iter_cost
             _archive.log_iteration(

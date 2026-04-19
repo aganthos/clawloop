@@ -25,6 +25,7 @@ TASK_NAMES = ["bfcl-simple-0", "bfcl-simple-1", "bfcl-fail-0"]
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_env_from_fixture(task_name: str) -> HarborTaskEnvironment:
     """Create HarborTaskEnvironment from fixture dir with mocked Harbor deps."""
     env = HarborTaskEnvironment.__new__(HarborTaskEnvironment)
@@ -50,9 +51,13 @@ def _mock_trial_success(reward: float = 1.0, messages: list | None = None):
     results = MagicMock()
     results.verifier_result.rewards = {"reward": reward}
     results.agent_result.metadata = {
-        "all_messages": messages or [
+        "all_messages": messages
+        or [
             {"role": "user", "content": "Call get_weather with city='London'"},
-            {"role": "assistant", "content": '{"function_name": "get_weather", "arguments": {"city": "London"}}'},
+            {
+                "role": "assistant",
+                "content": '{"function_name": "get_weather", "arguments": {"city": "London"}}',
+            },
         ],
     }
     return results
@@ -61,6 +66,7 @@ def _mock_trial_success(reward: float = 1.0, messages: list | None = None):
 # ---------------------------------------------------------------------------
 # Fixture structure validation (always runs, no external deps)
 # ---------------------------------------------------------------------------
+
 
 class TestHarborFixtureStructure:
     """Validate fixture files match Harbor task directory format.
@@ -96,6 +102,7 @@ class TestHarborFixtureStructure:
 # ---------------------------------------------------------------------------
 # Episode construction from fixtures (always runs, mocked Harbor)
 # ---------------------------------------------------------------------------
+
 
 class TestHarborEpisodeFromFixture:
     """Verify HarborTaskEnvironment builds correct Episodes from fixture dirs."""
@@ -145,6 +152,7 @@ class TestHarborEpisodeFromFixture:
 # Full translation path: Harbor Episode → SkyRLExporter → GeneratorOutput
 # ---------------------------------------------------------------------------
 
+
 class TestFullTranslationPath:
     """Episode from Harbor fixture → SkyRLExporter → GeneratorOutput."""
 
@@ -190,9 +198,11 @@ class TestFullTranslationPath:
 # Conditional: Real Harbor parser (skip if Harbor not installed)
 # ---------------------------------------------------------------------------
 
+
 def _harbor_available() -> bool:
     try:
         from harbor.models.trial.config import TrialConfig  # noqa: F401
+
         return True
     except ImportError:
         return False
@@ -217,9 +227,11 @@ class TestHarborRealParser:
 # Conditional: Real HF tokenizer (skip if deps/model not available)
 # ---------------------------------------------------------------------------
 
+
 def _skyrl_available() -> bool:
     try:
         import skyrl.tinker.types  # noqa: F401
+
         return True
     except ImportError:
         return False
@@ -228,6 +240,7 @@ def _skyrl_available() -> bool:
 def _transformers_available() -> bool:
     try:
         import transformers  # noqa: F401
+
         return True
     except ImportError:
         return False
@@ -246,7 +259,9 @@ class TestRealTokenizerPath:
         model_name = "Qwen/Qwen2.5-0.5B-Instruct"
         try:
             tok = AutoTokenizer.from_pretrained(
-                model_name, local_files_only=True, trust_remote_code=False,
+                model_name,
+                local_files_only=True,
+                trust_remote_code=False,
             )
         except Exception:
             pytest.skip(f"Model {model_name} not cached locally")

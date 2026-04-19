@@ -12,20 +12,17 @@ Skipped automatically if GOOGLE_API_KEY is not set.
 
 from __future__ import annotations
 
-import json
 import logging
 import os
-from typing import Any
 
 import pytest
 
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
-from clawloop.core.evolution import EvolverConfig, PromptEvolver
 from clawloop.core.evolver import EvolverContext, HarnessSnapshot
 from clawloop.core.reflector import Reflector, ReflectorConfig
 from clawloop.core.types import Datum
 from clawloop.harness_backends.local import LocalEvolver
-from clawloop.learning_layers.harness import Harness, PlaybookEntry, PromptCandidate, ParetoFront
+from clawloop.learning_layers.harness import Harness
 from clawloop.llm import LiteLLMClient
 
 log = logging.getLogger(__name__)
@@ -201,9 +198,9 @@ class TestEvolverProtocolRealLLM:
 
         # Should have at least as many entries (may not grow if reflector
         # produces update insights instead of add, but shouldn't shrink)
-        assert entries_after_2 >= entries_after_1, (
-            f"Playbook should not shrink: {entries_after_1} → {entries_after_2}"
-        )
+        assert (
+            entries_after_2 >= entries_after_1
+        ), f"Playbook should not shrink: {entries_after_1} → {entries_after_2}"
 
         log.info(
             "Two-cycle learning: %d → %d playbook entries",

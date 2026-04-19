@@ -39,10 +39,12 @@ class TestConsolidation:
         config = CuratorConfig(cluster_threshold=0.7)
         curator = PlaybookCurator(embeddings, llm, config)
 
-        playbook = Playbook(entries=[
-            _entry("always use structured logging", entry_id="e1"),
-            _entry("always use structured logging", entry_id="e2"),
-        ])
+        playbook = Playbook(
+            entries=[
+                _entry("always use structured logging", entry_id="e1"),
+                _entry("always use structured logging", entry_id="e2"),
+            ]
+        )
 
         report = curator.consolidate(playbook)
 
@@ -57,10 +59,12 @@ class TestConsolidation:
         llm = MockLLMClient(responses=["merged"])
         curator = PlaybookCurator(embeddings, llm)
 
-        playbook = Playbook(entries=[
-            _entry("good tip", entry_id="e1", helpful=5, harmful=0),
-            _entry("bad tip", entry_id="e2", helpful=0, harmful=3),
-        ])
+        playbook = Playbook(
+            entries=[
+                _entry("good tip", entry_id="e1", helpful=5, harmful=0),
+                _entry("bad tip", entry_id="e2", helpful=0, harmful=3),
+            ]
+        )
 
         report = curator.consolidate(playbook)
 
@@ -78,10 +82,9 @@ class TestConsolidation:
         )
         curator = PlaybookCurator(embeddings, llm, config)
 
-        playbook = Playbook(entries=[
-            _entry(f"unique tip number {i}", entry_id=f"e{i}")
-            for i in range(5)
-        ])
+        playbook = Playbook(
+            entries=[_entry(f"unique tip number {i}", entry_id=f"e{i}") for i in range(5)]
+        )
 
         report = curator.consolidate(playbook)
 
@@ -94,10 +97,12 @@ class TestConsolidation:
         config = CuratorConfig(cluster_threshold=0.99)
         curator = PlaybookCurator(embeddings, llm, config)
 
-        playbook = Playbook(entries=[
-            _entry("tip A", entry_id="eA"),
-            _entry("tip B", entry_id="eB", helpful=0, harmful=5),
-        ])
+        playbook = Playbook(
+            entries=[
+                _entry("tip A", entry_id="eA"),
+                _entry("tip B", entry_id="eB", helpful=0, harmful=5),
+            ]
+        )
 
         report = curator.consolidate(playbook)
 
@@ -115,11 +120,13 @@ class TestConsolidation:
         config = CuratorConfig(cluster_threshold=0.99)
         curator = PlaybookCurator(embeddings, llm, config)
 
-        playbook = Playbook(entries=[
-            _entry("handle network timeouts gracefully", entry_id="e1"),
-            _entry("always validate user input against schema", entry_id="e2"),
-            _entry("prefer batch operations over single-item", entry_id="e3"),
-        ])
+        playbook = Playbook(
+            entries=[
+                _entry("handle network timeouts gracefully", entry_id="e1"),
+                _entry("always validate user input against schema", entry_id="e2"),
+                _entry("prefer batch operations over single-item", entry_id="e3"),
+            ]
+        )
 
         report = curator.consolidate(playbook)
 

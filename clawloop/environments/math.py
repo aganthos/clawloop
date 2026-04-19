@@ -25,6 +25,7 @@ log = logging.getLogger(__name__)
 # Answer extraction
 # ---------------------------------------------------------------------------
 
+
 def extract_answer(response: str) -> str:
     r"""Extract the final answer from an LLM response.
 
@@ -57,7 +58,7 @@ def extract_answer(response: str) -> str:
         return m.group(1)
 
     # 3. Last number on last non-empty line
-    lines = [l for l in response.splitlines() if l.strip()]
+    lines = [line for line in response.splitlines() if line.strip()]
     if lines:
         nums = re.findall(r"-?\d+(?:\.\d+)?(?:/\d+)?", lines[-1])
         if nums:
@@ -70,6 +71,7 @@ def extract_answer(response: str) -> str:
 # ---------------------------------------------------------------------------
 # Normalization
 # ---------------------------------------------------------------------------
+
 
 def _normalize_answer(answer: str) -> str:
     r"""Normalize an answer string for comparison.
@@ -196,7 +198,10 @@ _BUILTIN_PROBLEMS: list[dict] = [
     },
     # --- Geometry / misc (medium) ---
     {
-        "question": "A right triangle has legs of length 5 and 12. What is the length of the hypotenuse?",
+        "question": (
+            "A right triangle has legs of length 5 and 12. "
+            "What is the length of the hypotenuse?"
+        ),
         "answer": "13",
         "difficulty": "easy",
         "source": "geometry",
@@ -226,6 +231,7 @@ _BUILTIN_PROBLEMS: list[dict] = [
 # MathEnvironment
 # ---------------------------------------------------------------------------
 
+
 class MathEnvironment:
     """MATH/AIME-style environment with built-in problems and exact-match scoring."""
 
@@ -240,9 +246,7 @@ class MathEnvironment:
             Sample(
                 question=p["question"],
                 ground_truth=p["answer"],
-                metadata={
-                    k: v for k, v in p.items() if k not in ("question", "answer")
-                },
+                metadata={k: v for k, v in p.items() if k not in ("question", "answer")},
             )
             for p in self._problems
         ]
@@ -276,6 +280,7 @@ class MathEnvironment:
 # MathAdapter — AdapterLike wrapper for the learning loop
 # ---------------------------------------------------------------------------
 
+
 class MathAdapter:
     """Wraps MathEnvironment + LLM client as AdapterLike for the learning loop.
 
@@ -308,16 +313,24 @@ class MathAdapter:
 
         # Call LLM — on failure return a filtered episode so training continues
         try:
-            response = str(self._client.complete([
-                {"role": "system", "content": prompt},
-                {"role": "user", "content": sample.question},
-            ]))
+            response = str(
+                self._client.complete(
+                    [
+                        {"role": "system", "content": prompt},
+                        {"role": "user", "content": sample.question},
+                    ]
+                )
+            )
         except Exception as e:
             log.warning("MathAdapter LLM call failed for %s: %s", sample.question[:40], e)
             return Episode(
-                id=uuid4().hex, state_id="",
+                id=uuid4().hex,
+                state_id="",
                 task_id=hashlib.sha256(sample.question.encode()).hexdigest()[:12],
-                bench="math", messages=[], step_boundaries=[], steps=[],
+                bench="math",
+                messages=[],
+                step_boundaries=[],
+                steps=[],
                 summary=EpisodeSummary(filtered=True),
                 metadata={"error": type(e).__name__},
             )
@@ -328,7 +341,9 @@ class MathAdapter:
         # Map [0, 1] score to [-1, 1] reward signal
         summary = EpisodeSummary(total_reward=reward)
         summary.signals["outcome"] = RewardSignal(
-            name="outcome", value=reward * 2 - 1, confidence=1.0,
+            name="outcome",
+            value=reward * 2 - 1,
+            confidence=1.0,
         )
 
         state_id = ""

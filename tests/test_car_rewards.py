@@ -1,7 +1,7 @@
 # tests/test_car_rewards.py
 """Tests for CAR-bench reward mapping."""
 
-from clawloop.environments._car_rewards import map_car_scores, DEFAULT_CAR_WEIGHTS
+from clawloop.environments._car_rewards import DEFAULT_CAR_WEIGHTS, map_car_scores
 
 
 class TestMapCarScores:
@@ -79,9 +79,7 @@ class TestMapCarScores:
         """Custom weights override defaults."""
         custom = {"r_actions_final": 1.0}
         reward_info = {"r_actions_final": 1.0, "r_policy_errors": 0.0}
-        signals, breakdown = map_car_scores(
-            reward_info, task_reward=1.0, weights=custom
-        )
+        signals, breakdown = map_car_scores(reward_info, task_reward=1.0, weights=custom)
 
         # Only r_actions_final mapped (custom weights has only that)
         assert "r_actions_final" in signals

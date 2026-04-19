@@ -41,8 +41,6 @@ class EnvAdapter(ABC):
         """Return available tasks for a given split."""
         ...
 
-    def run_batch(
-        self, agent_state: "AgentState", task_ids: list[Any]
-    ) -> list[Episode]:
+    def run_batch(self, agent_state: "AgentState", task_ids: list[Any]) -> list[Episode]:
         """Run a batch of tasks. Default falls back to sequential run_episode."""
         return [self.run_episode(task_id, agent_state) for task_id in task_ids]

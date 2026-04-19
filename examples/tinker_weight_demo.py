@@ -36,6 +36,7 @@ version: your env's ``Episode``s must carry ``prompt_tokens``,
 are the alignment payload the exporter reads directly so it never has to
 re-tokenize anything.
 """
+
 from __future__ import annotations
 
 import logging
@@ -54,17 +55,16 @@ def main() -> int:
     #    a YAML and pass to `scripts/run_pilot.py`; we inline it here so
     #    the moving parts are visible on one screen.
     config = TrainConfig(
-        mode="weight",                 # [ADAPT] "weight" trains via a weights backend
-        env_type="openspiel",          # [ADAPT] swap for your env_type once registered
-        weight_backend="tinker",       # [ADAPT] stays "tinker" for Tinker-backed training
-
+        mode="weight",  # [ADAPT] "weight" trains via a weights backend
+        env_type="openspiel",  # [ADAPT] swap for your env_type once registered
+        weight_backend="tinker",  # [ADAPT] stays "tinker" for Tinker-backed training
         # [ADAPT] env-specific config — put anything your `_build_<env>` needs here.
         # `episodes_per_iter` is derived automatically from `seeds × episodes_per_seed`
         # by `effective_episodes_per_iter(config)` — here: 4 seeds * 2 = 8 episodes/iter.
         openspiel={
             "game_name": "blackjack",
             "seeds": [0, 1, 2, 3],
-            "episodes_per_seed": 2,    # GRPO needs K >= 2 per scenario for variance
+            "episodes_per_seed": 2,  # GRPO needs K >= 2 per scenario for variance
             "prompt_style": "canonical",
             "rethink_k": 3,
             "max_turns": 10,
@@ -72,7 +72,6 @@ def main() -> int:
             "top_p": 0.95,
             "max_tokens": 128,
         },
-
         # Tinker LoRA training knobs.  `base_model` must be in
         # `service.get_server_capabilities().supported_models`; run
         # `scripts/tinker_preflight.py` to see the live list for your account.
@@ -91,10 +90,8 @@ def main() -> int:
                 "eps": 1.0e-8,
             },
         },
-
-        n_iterations=1,                # Smoke — one iter. Bump for real runs.
+        n_iterations=1,  # Smoke — one iter. Bump for real runs.
         output_dir="pilot_runs/tinker_demo",
-
         # Optional: mirror metrics to wandb.  Requires `WANDB_API_KEY` in
         # env or .env.  Disabled by default so the demo runs without signup.
         # wandb_project="clawloop-tinker-demo",

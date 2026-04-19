@@ -54,9 +54,7 @@ class PromptEvolver:
         episode_ctx = feedback[: self.config.max_episode_context]
         episode_summaries = []
         for ep in episode_ctx:
-            msgs = [
-                f"{m.role}: {m.content[:200]}" for m in ep.messages[:6]
-            ]
+            msgs = [f"{m.role}: {m.content[:200]}" for m in ep.messages[:6]]
             episode_summaries.append(
                 f"Task {ep.task_id} (reward={ep.summary.effective_reward():.2f}):\n"
                 + "\n".join(msgs)
@@ -67,11 +65,10 @@ class PromptEvolver:
         ]
         if playbook_context:
             user_parts.append(
-                f"## Current Playbook (dynamic, appended per-query — do NOT duplicate these)\n{playbook_context}"
+                "## Current Playbook (dynamic, appended per-query — do NOT "
+                f"duplicate these)\n{playbook_context}"
             )
-        user_parts.append(
-            f"## Failing Episodes\n" + "\n---\n".join(episode_summaries)
-        )
+        user_parts.append("## Failing Episodes\n" + "\n---\n".join(episode_summaries))
         user_parts.append(
             "Propose a revised system prompt that addresses these failures. "
             "Only modify the static system prompt — do not include playbook strategies."
@@ -126,12 +123,14 @@ class PromptEvolver:
 
         Returns a new candidate, or None if the LLM response cannot be parsed.
         """
-        a_tasks = ", ".join(
-            f"{k}: {v:.2f}" for k, v in sorted(a.per_task_scores.items())
-        ) or "no scores yet"
-        b_tasks = ", ".join(
-            f"{k}: {v:.2f}" for k, v in sorted(b.per_task_scores.items())
-        ) or "no scores yet"
+        a_tasks = (
+            ", ".join(f"{k}: {v:.2f}" for k, v in sorted(a.per_task_scores.items()))
+            or "no scores yet"
+        )
+        b_tasks = (
+            ", ".join(f"{k}: {v:.2f}" for k, v in sorted(b.per_task_scores.items()))
+            or "no scores yet"
+        )
 
         user_parts = [
             f"## Candidate A (scores: {a_tasks})\n{a.text}",
@@ -139,7 +138,8 @@ class PromptEvolver:
         ]
         if playbook_context:
             user_parts.append(
-                f"## Current Playbook (dynamic, appended per-query — do NOT duplicate these)\n{playbook_context}"
+                "## Current Playbook (dynamic, appended per-query — do NOT "
+                f"duplicate these)\n{playbook_context}"
             )
         user_parts.append(
             "Create a hybrid system prompt that combines the strengths of both. "

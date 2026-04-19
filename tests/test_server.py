@@ -2,6 +2,7 @@
 
 import pytest
 from starlette.testclient import TestClient
+
 from clawloop.server import create_app
 
 
@@ -27,30 +28,36 @@ def protected_client(tmp_path):
 
 class TestIngest:
     def test_valid_messages(self, client):
-        resp = client.post("/ingest", json={
-            "messages": [
-                {"role": "system", "content": "You are helpful."},
-                {"role": "user", "content": "Hello"},
-                {"role": "assistant", "content": "Hi there, how can I help?"},
-            ],
-        })
+        resp = client.post(
+            "/ingest",
+            json={
+                "messages": [
+                    {"role": "system", "content": "You are helpful."},
+                    {"role": "user", "content": "Hello"},
+                    {"role": "assistant", "content": "Hi there, how can I help?"},
+                ],
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert "episode_id" in data
         assert isinstance(data["playbook_version"], int)
 
     def test_with_metadata(self, client):
-        resp = client.post("/ingest", json={
-            "messages": [
-                {"role": "user", "content": "Hello"},
-                {"role": "assistant", "content": "Hi there!"},
-            ],
-            "metadata": {
-                "conversation_id": "conv-1",
-                "model": "gpt-4o-mini",
-                "usage": {"prompt_tokens": 10, "completion_tokens": 5},
+        resp = client.post(
+            "/ingest",
+            json={
+                "messages": [
+                    {"role": "user", "content": "Hello"},
+                    {"role": "assistant", "content": "Hi there!"},
+                ],
+                "metadata": {
+                    "conversation_id": "conv-1",
+                    "model": "gpt-4o-mini",
+                    "usage": {"prompt_tokens": 10, "completion_tokens": 5},
+                },
             },
-        })
+        )
         assert resp.status_code == 200
 
     def test_empty_messages_rejected(self, client):
@@ -60,20 +67,26 @@ class TestIngest:
         assert client.post("/ingest", json={}).status_code == 422
 
     def test_invalid_role_rejected(self, client):
-        resp = client.post("/ingest", json={
-            "messages": [{"role": "invalid", "content": "test"}],
-        })
+        resp = client.post(
+            "/ingest",
+            json={
+                "messages": [{"role": "invalid", "content": "test"}],
+            },
+        )
         assert resp.status_code == 422
 
 
 class TestFeedback:
     def test_on_existing_episode(self, client):
-        ingest_resp = client.post("/ingest", json={
-            "messages": [
-                {"role": "user", "content": "Hello"},
-                {"role": "assistant", "content": "Hi there, how can I help?"},
-            ],
-        })
+        ingest_resp = client.post(
+            "/ingest",
+            json={
+                "messages": [
+                    {"role": "user", "content": "Hello"},
+                    {"role": "assistant", "content": "Hi there, how can I help?"},
+                ],
+            },
+        )
         episode_id = ingest_resp.json()["episode_id"]
         resp = client.post("/feedback", json={"episode_id": episode_id, "score": -1.0})
         assert resp.status_code == 200
@@ -125,12 +138,15 @@ class TestState:
 
 class TestReset:
     def test_clears_state(self, client):
-        client.post("/ingest", json={
-            "messages": [
-                {"role": "user", "content": "Hello"},
-                {"role": "assistant", "content": "Hi!"},
-            ],
-        })
+        client.post(
+            "/ingest",
+            json={
+                "messages": [
+                    {"role": "user", "content": "Hello"},
+                    {"role": "assistant", "content": "Hi!"},
+                ],
+            },
+        )
         resp = client.post("/reset")
         assert resp.status_code == 200
         assert resp.json()["ok"] is True
@@ -160,16 +176,14 @@ class TestEvents:
         route metadata directly rather than making a live HTTP request.
         """
         from starlette.routing import Route
+
         from clawloop.server import events as events_handler
 
         seed = tmp_path / "seed.txt"
         seed.write_text("You are a support agent.")
         app = create_app(seed_prompt_path=str(seed), bench="n8n")
 
-        sse_routes = [
-            r for r in app.routes
-            if isinstance(r, Route) and r.path == "/events"
-        ]
+        sse_routes = [r for r in app.routes if isinstance(r, Route) and r.path == "/events"]
         assert len(sse_routes) == 1, "/events route must be registered"
         assert "GET" in sse_routes[0].methods, "/events must accept GET"
         assert sse_routes[0].endpoint is events_handler
@@ -178,23 +192,29 @@ class TestEvents:
 class TestIntegration:
     def test_ingest_and_metrics(self, client):
         for text in ["Help with refund", "App crashes"]:
-            client.post("/ingest", json={
-                "messages": [
-                    {"role": "user", "content": text},
-                    {"role": "assistant", "content": "I can help with that."},
-                ],
-            })
+            client.post(
+                "/ingest",
+                json={
+                    "messages": [
+                        {"role": "user", "content": text},
+                        {"role": "assistant", "content": "I can help with that."},
+                    ],
+                },
+            )
         metrics = client.get("/metrics").json()
         assert metrics["episodes_collected"] == 2
         assert len(metrics["reward_trend"]) == 2
 
     def test_reset_clears_everything(self, client):
-        client.post("/ingest", json={
-            "messages": [
-                {"role": "user", "content": "test"},
-                {"role": "assistant", "content": "response"},
-            ],
-        })
+        client.post(
+            "/ingest",
+            json={
+                "messages": [
+                    {"role": "user", "content": "test"},
+                    {"role": "assistant", "content": "response"},
+                ],
+            },
+        )
         client.post("/reset")
         state = client.get("/state").json()
         assert state["playbook_version"] == 0

@@ -26,8 +26,14 @@ if TYPE_CHECKING:
     from clawloop.weight_backends.base import ClawLoopBackend
 
 from clawloop.core.types import (
-    Datum, FBResult, Future, LoadResult, OptimResult,
-    SampleContext, SampleResult, SaveResult,
+    Datum,
+    FBResult,
+    Future,
+    LoadResult,
+    OptimResult,
+    SampleContext,
+    SampleResult,
+    SaveResult,
 )
 
 
@@ -51,6 +57,7 @@ class GRPOConfig:
 @dataclass
 class _WeightsPending:
     """Accumulator for GRPO advantages. Drained by optim_step."""
+
     advantages: list[tuple[str, float]] = field(default_factory=list)
     # (episode_id, advantage)
 
@@ -83,10 +90,12 @@ class Weights:
     ) -> None:
         """Record a completed GRPO training step."""
         self.adapter_refs.append(adapter_path)
-        self.training_history.append({
-            "adapter_path": adapter_path,
-            "metrics": metrics,
-        })
+        self.training_history.append(
+            {
+                "adapter_path": adapter_path,
+                "metrics": metrics,
+            }
+        )
 
     def to_dict(self) -> dict[str, Any]:
         if self._backend:
@@ -156,10 +165,12 @@ class Weights:
         # Snapshot-rollback: snapshot training_history before applying
         snapshot = list(self.training_history)
         try:
-            self.training_history.append({
-                "status": "deferred",
-                "advantages_computed": n,
-            })
+            self.training_history.append(
+                {
+                    "status": "deferred",
+                    "advantages_computed": n,
+                }
+            )
             # Drain pending on success
             self._pending.advantages.clear()
         except Exception:
@@ -167,20 +178,24 @@ class Weights:
             self.training_history = snapshot
             raise
 
-        return Future.immediate(OptimResult(
-            status="skipped",
-            updates_applied=0,
-            metrics={"advantages_computed": n},
-        ))
+        return Future.immediate(
+            OptimResult(
+                status="skipped",
+                updates_applied=0,
+                metrics={"advantages_computed": n},
+            )
+        )
 
     def sample(self, ctx: SampleContext) -> Future[SampleResult]:
         """Return the current model reference."""
         if self._backend:
             return self._backend.sample(ctx)
-        return Future.immediate(SampleResult(
-            output=self.model_ref,
-            metadata={"active_adapter": self.active_adapter},
-        ))
+        return Future.immediate(
+            SampleResult(
+                output=self.model_ref,
+                metadata={"active_adapter": self.active_adapter},
+            )
+        )
 
     def save_state(self, name: str) -> Future[SaveResult]:
         """Save current state."""

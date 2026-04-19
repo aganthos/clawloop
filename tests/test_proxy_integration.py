@@ -1,4 +1,5 @@
 """End-to-end integration test: mock upstream -> proxy -> EpisodeCollector."""
+
 from __future__ import annotations
 
 import json
@@ -30,6 +31,7 @@ from clawloop.proxy_skills import SENTINEL
 @dataclass
 class _StubPlaybook:
     """Minimal stub that satisfies harness.playbook.render()."""
+
     text: str
 
     def render(self) -> str:
@@ -39,6 +41,7 @@ class _StubPlaybook:
 @dataclass
 class _StubHarness:
     """Minimal harness stub with a .playbook.render() method."""
+
     playbook: _StubPlaybook
 
 
@@ -89,14 +92,18 @@ def mock_upstream():
     async def handler(request: Request) -> JSONResponse:
         body = await request.json()
         captured.append(body)
-        return JSONResponse({
-            "choices": [{
-                "message": {"role": "assistant", "content": "mock reply"},
-                "finish_reason": "stop",
-            }],
-            "usage": {"prompt_tokens": 5, "completion_tokens": 3, "total_tokens": 8},
-            "model": "mock-model",
-        })
+        return JSONResponse(
+            {
+                "choices": [
+                    {
+                        "message": {"role": "assistant", "content": "mock reply"},
+                        "finish_reason": "stop",
+                    }
+                ],
+                "usage": {"prompt_tokens": 5, "completion_tokens": 3, "total_tokens": 8},
+                "model": "mock-model",
+            }
+        )
 
     app = Starlette(
         routes=[Route("/chat/completions", handler, methods=["POST"])],
@@ -137,6 +144,7 @@ def mock_streaming_upstream():
 @pytest.fixture()
 def mock_error_upstream():
     """Upstream that returns 429 rate-limit error."""
+
     async def handler(request: Request) -> JSONResponse:
         return JSONResponse(
             {"error": {"message": "Rate limit exceeded", "type": "rate_limit_error"}},
@@ -171,9 +179,7 @@ def _assert_no_ingestion(ingested: list, *, settle: float = 0.3, polls: int = 5)
     interval = settle / polls
     for _ in range(polls):
         time.sleep(interval)
-        assert len(ingested) == 0, (
-            f"Expected no ingestion but got {len(ingested)} item(s)"
-        )
+        assert len(ingested) == 0, f"Expected no ingestion but got {len(ingested)} item(s)"
 
 
 # ---------------------------------------------------------------------------
@@ -320,9 +326,9 @@ class TestEndToEnd:
 
         # Ingested messages must NOT contain the sentinel
         for msg in ep.messages:
-            assert SENTINEL not in (msg.content or ""), (
-                f"Skills sentinel found in ingested message: {msg.content!r}"
-            )
+            assert SENTINEL not in (
+                msg.content or ""
+            ), f"Skills sentinel found in ingested message: {msg.content!r}"
 
         # But they must contain the user and assistant messages
         roles = [m.role for m in ep.messages]

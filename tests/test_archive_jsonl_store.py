@@ -183,7 +183,9 @@ def test_get_similar_runs_limit(tmp_path: Path) -> None:
     store = JsonlArchiveStore(tmp_path)
     for i in range(5):
         store.log_run_start(_make_run(run_id=f"r{i}", config_hash="H"))
-        store.log_run_complete(f"r{i}", best_reward=0.1 * i, improvement_delta=0.0, total_cost_tokens=0)
+        store.log_run_complete(
+            f"r{i}", best_reward=0.1 * i, improvement_delta=0.0, total_cost_tokens=0
+        )
 
     hits = store.get_similar_runs(config_hash="H", domain_tags=[], limit=3)
     assert len(hits) == 3

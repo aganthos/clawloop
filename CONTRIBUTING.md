@@ -92,7 +92,24 @@ private modules.
 - Add docstrings to public classes and functions
 - Use `from __future__ import annotations` for forward references
 - Use `Protocol` for interfaces, `@dataclass` for value types
-- No linter is enforced yet — just keep it consistent with surrounding code
+
+We use [ruff](https://docs.astral.sh/ruff/) for formatting and linting
+(rules `E`, `F`, `I`). Enable the pre-commit hook once:
+
+```bash
+uv sync --extra dev
+uv run pre-commit install
+```
+
+After that, `ruff format` and `ruff check --fix` run automatically on
+`git commit`.
+
+To run manually:
+
+```bash
+uv run ruff format clawloop tests examples
+uv run ruff check --select E,F,I clawloop tests examples
+```
 
 ## Commits
 
