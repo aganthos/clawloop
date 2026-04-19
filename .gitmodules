@@ -7,6 +7,13 @@
 [submodule "benchmarks/a2a/entropic-crmarenapro"]
 	path = benchmarks/a2a/entropic-crmarenapro
 	url = https://github.com/rkstu/entropic-crmarenapro.git
+[submodule "benchmarks/enterpriseops-gym"]
+	path = benchmarks/enterpriseops-gym
+	url = https://github.com/ServiceNow/EnterpriseOps-Gym.git
+[submodule "benchmarks/tau"]
+	path = benchmarks/tau
+	url = https://github.com/sierra-research/tau2-bench.git
+	branch = dev/tau3
 [submodule "clawloop/skyrl"]
 	path = clawloop/skyrl
 	url = https://github.com/NovaSky-AI/SkyRL
