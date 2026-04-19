@@ -6,7 +6,7 @@
 
 [![License: BSL 1.1](https://img.shields.io/badge/License-BSL%201.1-blue.svg)](LICENSE)
 [![CI](https://github.com/aganthos/clawloop/actions/workflows/ci.yml/badge.svg)](https://github.com/aganthos/clawloop/actions/workflows/ci.yml)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12%20|%203.13-blue.svg)](https://www.python.org/downloads/)
 
 Your AI agents run, fail, and forget. ClawLoop closes the loop: it observes
 agent-environment interactions, learns from them, and feeds improvements back
@@ -19,21 +19,35 @@ all following the same protocol.
 
 ## Install
 
-Requires Python 3.11+.
+Requires Python 3.12 or 3.13.
 
 ```bash
-pip install -e .
+git clone https://github.com/aganthos/clawloop
+cd clawloop
+uv sync                # installs all deps from uv.lock, creates .venv automatically
 ```
 
 For weight training (GPU):
 ```bash
 git submodule update --init clawloop/skyrl
-pip install -e clawloop/skyrl[fsdp]
+uv sync --extra taubench
 ```
 
 ## Try It in 10 Seconds
 
 No API keys. No setup. Just run:
+
+```bash
+uv run clawloop demo math --dry-run
+```
+
+or as a module:
+
+```bash
+uv run python -m clawloop.demo_math --dry-run
+```
+
+or via the examples shim (also works from a clone):
 
 ```bash
 python examples/demo_math.py --dry-run
@@ -88,7 +102,8 @@ python examples/train_runner.py examples/configs/math_harness.json
 
 | You have... | Start here | What it shows |
 |---|---|---|
-| A Python agent | [`examples/demo_math.py`](examples/demo_math.py) | Full learning loop with `ClawLoopAgent` |
+| A repo clone | `uv run clawloop demo math --dry-run` | Full learning loop, no API keys needed |
+| A Python agent | [`examples/demo_math.py`](examples/demo_math.py) | Thin shim — delegates to `clawloop.demo_math` |
 | An n8n or workflow platform | [`examples/n8n/`](examples/n8n/) | Webhook integration, zero Python needed |
 | An OpenAI-compatible agent | [`examples/train_runner.py`](examples/train_runner.py) with configs | CRMArena, Harbor BFCL via litellm |
 | Want zero-code-change learning | [`examples/openclaw_demo.py`](examples/openclaw_demo.py) | Transparent proxy captures traces + injects skills |
