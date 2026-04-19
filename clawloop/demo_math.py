@@ -226,11 +226,11 @@ def main(argv: list[str] | None = None) -> None:
 
         task_client = LiteLLMClient(
             model=task_model, api_key=api_key or None, api_base=api_base or None,
-            temperature=0.7, max_tokens=1024,
+            temperature=0.7, max_tokens=1024, drop_params=True,
         )
         reflector_client = LiteLLMClient(
             model=reflector_model, api_key=api_key or None, api_base=api_base or None,
-            temperature=0.7, max_tokens=2000,
+            temperature=0.7, max_tokens=2000, drop_params=True,
         )
 
     log.info("  Iterations:      %d", iterations)
