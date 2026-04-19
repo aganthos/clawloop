@@ -104,9 +104,12 @@ One commit per logical change with a prefix:
 
 ## Pull Requests
 
-- Run `pytest tests/ -x` before submitting
+- Run `make test` before submitting
 - Keep PRs focused — one concern per PR
 - Describe what changed and why in the PR description
+
+Run `make` (no arguments) to see all available targets, including building
+docs (`make docs`), release artifacts (`make build`), and more.
 
 ## Issues
 

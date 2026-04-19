@@ -22,11 +22,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: "3.12"
-      - run: pip install mkdocs-material
-      - run: mkdocs build --strict
+          enable-cache: true
+      - run: uv python install 3.12
+      - run: make docs
 
   deploy:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
@@ -37,11 +38,12 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: "3.12"
-      - run: pip install mkdocs-material
-      - run: mkdocs build --strict
+          enable-cache: true
+      - run: uv python install 3.12
+      - run: make docs
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site/
