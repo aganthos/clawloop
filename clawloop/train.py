@@ -56,16 +56,22 @@ class TrainConfig(BaseModel):
 
     mode: Literal["weight", "harness_learning", "full"]
     env_type: str = "harbor"
+    weight_backend: Literal["skyrl", "tinker"] = "skyrl"
 
     llm_clients: dict[str, LLMClientConfig] = {}
     skyrl: dict[str, Any] | None = None
+    tinker: dict[str, Any] | None = None
     harbor: HarborConfig | None = None
+    openspiel: dict[str, Any] | None = None
     env_config: dict[str, Any] | None = None
 
     system_prompt: str = "You are a helpful assistant."
     benches: list[str] = ["default"]
     episodes_per_iter: int = 10
     n_iterations: int = 100
+    output_dir: str | Path | None = None
+    wandb_project: str | None = None    # if set, mirrors metrics to wandb (requires WANDB_API_KEY)
+    wandb_name: str | None = None       # optional wandb run name; defaults to output_dir basename
 
     model_config = {"arbitrary_types_allowed": True}
 
@@ -171,17 +177,122 @@ def _build_openclaw(
 # Environment registry — add new envs here
 # ---------------------------------------------------------------------------
 
+def _build_openspiel(config: "TrainConfig", llm_clients: dict[str, "LLMClientConfig"]):
+    """Build a ClawLoop adapter over one or more OpenSpiel games.
+
+    Two config shapes are accepted:
+
+    1. **Single game (legacy)** — ``openspiel`` is a flat dict with
+       ``game_name, seeds, episodes_per_seed, ...`` fields. All knobs apply to
+       that single game.
+
+    2. **Mixed-game** — ``openspiel`` has a ``games`` list; each entry is a
+       per-game dict that can override ``max_turns`` / ``max_tokens`` etc.
+       Shared sampling knobs (``prompt_style``, ``temperature``, ``top_p``)
+       can live at the top level and are inherited by each game unless the
+       per-game dict overrides them. Episodes from all games land in one
+       ``forward_backward`` batch; GRPO still groups per-scenario via
+       ``task_id = f"{game}_seed_{seed}"``.
+    """
+    from clawloop.environments.openspiel import (
+        OpenSpielGameAdapter,
+        OpenSpielTaskConfig,
+        OpenSpielTaskEnvironment,
+        _resolve_opponent,
+    )
+
+    raw = dict(config.openspiel or {})
+
+    if "games" in raw:
+        games_specs = list(raw.pop("games"))
+        shared = raw  # remaining keys act as defaults for every game
+        envs_by_task_id: dict[str, OpenSpielTaskEnvironment] = {}
+        tasks: list[str] = []
+        for spec in games_specs:
+            game_raw = {**shared, **dict(spec)}  # per-game overrides win
+            epk = int(game_raw.pop("episodes_per_seed", 4))
+            if "opponent" in game_raw:
+                game_raw["opponent"] = _resolve_opponent(game_raw["opponent"])
+            cfg = OpenSpielTaskConfig(**game_raw)
+            for s in cfg.seeds:
+                tid = f"{cfg.game_name}_seed_{s}"
+                envs_by_task_id[tid] = OpenSpielTaskEnvironment(cfg, seed=s)
+                tasks.extend([tid] * epk)
+        return OpenSpielGameAdapter(envs_by_task_id), tasks
+
+    # Legacy single-game path.
+    episodes_per_seed = int(raw.pop("episodes_per_seed", 4))
+    cfg = OpenSpielTaskConfig(**raw)
+    envs_by_task_id = {
+        f"{cfg.game_name}_seed_{s}": OpenSpielTaskEnvironment(cfg, seed=s)
+        for s in cfg.seeds
+    }
+    tasks = [tid for tid in envs_by_task_id for _ in range(episodes_per_seed)]
+    return OpenSpielGameAdapter(envs_by_task_id), tasks
+
+
 ENV_BUILDERS: dict[str, Any] = {
     "harbor": _build_harbor,
     "math": _build_math,
     "entropic": _build_entropic,
     "openclaw": _build_openclaw,
+    "openspiel": _build_openspiel,
 }
 
 
 # ---------------------------------------------------------------------------
 # Validation
 # ---------------------------------------------------------------------------
+
+def effective_episodes_per_iter(config: TrainConfig) -> int:
+    """Derive the actual episodes-per-iter without mutating the config.
+
+    For ``env_type='openspiel'`` the count is determined by the seed pools
+    and ``episodes_per_seed`` knob (single-game or per-game list); for every
+    other env_type we honor ``config.episodes_per_iter`` as supplied.
+
+    Keeping this pure makes :func:`validate_config` non-mutating and lets
+    callers compute the value consistently at construction time.
+    """
+    if config.env_type != "openspiel" or not config.openspiel:
+        return config.episodes_per_iter
+    osp = config.openspiel
+
+    def _check_positive(k: int, label: str) -> int:
+        if k <= 0:
+            raise ValueError(f"{label} must be a positive int (got {k})")
+        return k
+
+    def _check_seeds(seeds: Any, label: str) -> list:
+        if not isinstance(seeds, (list, tuple)):
+            raise ValueError(
+                f"{label} must be a list/tuple (got {type(seeds).__name__})"
+            )
+        if len(seeds) == 0:
+            raise ValueError(f"{label} must be non-empty")
+        return list(seeds)
+
+    if "games" in osp:
+        total = 0
+        shared_k = _check_positive(
+            int(osp.get("episodes_per_seed", 4)),
+            "openspiel.episodes_per_seed",
+        )
+        for i, g in enumerate(osp["games"]):
+            seeds = _check_seeds(g.get("seeds"), f"openspiel.games[{i}].seeds")
+            k = _check_positive(
+                int(g.get("episodes_per_seed", shared_k)),
+                f"openspiel.games[{i}].episodes_per_seed",
+            )
+            total += len(seeds) * k
+        return total
+    seeds = _check_seeds(osp.get("seeds"), "openspiel.seeds")
+    k = _check_positive(
+        int(osp.get("episodes_per_seed", 4)),
+        "openspiel.episodes_per_seed",
+    )
+    return len(seeds) * k
+
 
 def validate_config(config: TrainConfig) -> list[str]:
     """Validate config consistency. Returns the active layers list."""
@@ -195,8 +306,15 @@ def validate_config(config: TrainConfig) -> list[str]:
 
     layers = MODE_LAYERS[config.mode]
 
-    if "weights" in layers and not config.skyrl:
-        raise ValueError(f"mode='{config.mode}' requires 'skyrl' config for weight training")
+    if "weights" in layers:
+        if config.weight_backend == "tinker" and not config.tinker:
+            raise ValueError(
+                f"mode='{config.mode}' with weight_backend='tinker' requires 'tinker' config"
+            )
+        if config.weight_backend == "skyrl" and not config.skyrl:
+            raise ValueError(
+                f"mode='{config.mode}' with weight_backend='skyrl' requires 'skyrl' config"
+            )
 
     if "harness" in layers and "reflector" not in config.llm_clients:
         raise ValueError(f"mode='{config.mode}' requires 'reflector' in llm_clients")
@@ -217,6 +335,37 @@ def validate_config(config: TrainConfig) -> list[str]:
     if config.env_type == "entropic":
         if not config.env_config:
             raise ValueError("entropic env requires 'env_config'")
+    if config.env_type == "openspiel":
+        # OpenSpielTaskEnvironment.run_episode reads sampling_client /
+        # renderer / tokenizer off AgentState — those are only populated
+        # by TinkerWeightsBackend's per-iter refresh hooks. Any other
+        # weight_backend would fail at runtime with a non-obvious
+        # RuntimeError; fail fast here with a clear message.
+        if config.weight_backend != "tinker":
+            raise ValueError(
+                f"env_type='openspiel' currently requires weight_backend='tinker' "
+                f"(got {config.weight_backend!r}) — the OpenSpiel env consumes "
+                f"Tinker's SamplingClient directly. Self-hosted sampling is a "
+                f"follow-up."
+            )
+        if not config.openspiel:
+            raise ValueError("openspiel env requires 'openspiel' config")
+        if "games" in config.openspiel:
+            games = config.openspiel["games"]
+            if not games:
+                raise ValueError("openspiel.games must be a non-empty list")
+            for i, g in enumerate(games):
+                if not g.get("game_name"):
+                    raise ValueError(f"openspiel.games[{i}].game_name required")
+                if not g.get("seeds"):
+                    raise ValueError(f"openspiel.games[{i}].seeds must be non-empty")
+        else:
+            if not config.openspiel.get("seeds"):
+                raise ValueError("openspiel.seeds must be a non-empty list")
+            if not config.openspiel.get("game_name"):
+                raise ValueError("openspiel.game_name required")
+        # episodes_per_iter is derived from the openspiel spec at train() time
+        # via effective_episodes_per_iter(); we do NOT mutate config here.
 
     return layers
 
@@ -258,11 +407,24 @@ def train(config: TrainConfig):
     # 2. Weights backend
     backend = None
     if "weights" in layers:
-        from clawloop.weight_backends.skyrl import SkyRLWeightsBackend, SkyRLWeightsConfig
+        if config.weight_backend == "tinker":
+            from clawloop.weight_backends.tinker import (
+                TinkerWeightsBackend,
+                TinkerWeightsConfig,
+            )
 
-        skyrl_cfg = SkyRLWeightsConfig(**config.skyrl)
-        backend = SkyRLWeightsBackend(skyrl_cfg)
-        weights = Weights(model_ref=skyrl_cfg.base_model, _backend=backend)
+            tinker_cfg = TinkerWeightsConfig(**config.tinker)
+            backend = TinkerWeightsBackend(tinker_cfg)
+            weights = Weights(model_ref=tinker_cfg.base_model, _backend=backend)
+        else:  # skyrl (existing default)
+            from clawloop.weight_backends.skyrl import (
+                SkyRLWeightsBackend,
+                SkyRLWeightsConfig,
+            )
+
+            skyrl_cfg = SkyRLWeightsConfig(**config.skyrl)
+            backend = SkyRLWeightsBackend(skyrl_cfg)
+            weights = Weights(model_ref=skyrl_cfg.base_model, _backend=backend)
     else:
         weights = Weights()
 
@@ -289,8 +451,11 @@ def train(config: TrainConfig):
         adapter=adapter,
         agent_state=agent_state,
         tasks=tasks,
-        n_episodes=config.episodes_per_iter,
+        n_episodes=effective_episodes_per_iter(config),
         n_iterations=config.n_iterations,
         active_layers=layers,
         intensity=AdaptiveIntensity() if "harness" in layers else None,
+        output_dir=config.output_dir,
+        wandb_project=config.wandb_project,
+        wandb_name=config.wandb_name,
     )

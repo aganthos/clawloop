@@ -31,3 +31,4 @@ examples/openclaw_runner/package-lock.json
 # Runtime artifacts
 playbook.json
 runs/
+pilot_runs/

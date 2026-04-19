@@ -1,145 +1,111 @@
-# ClawLoop Examples
+# Tinker weight-tuning with ClawLoop — examples
 
-## Start Here
+A worked example of doing **reinforcement learning against a LoRA adapter
+trained on Thinking Machines Lab's managed [Tinker](https://thinkingmachines.ai)
+service**, using ClawLoop as the orchestration layer and
+[OpenSpiel](https://github.com/google-deepmind/open_spiel) as a reference
+environment.
 
-**Zero setup, 10 seconds:**
-```bash
-uv run clawloop demo math --dry-run
-```
+> **Use Tinker with a different env.** The pieces below are env-agnostic;
+> OpenSpiel is just the first adapter wired. See
+> [Using Tinker with another env](#using-tinker-with-another-env) at the
+> bottom for the Harbor-and-beyond story.
 
-**See the playbook learning internals:**
-```bash
-uv run python examples/playbook_demo.py --dry-run
-```
+## Start here
 
-Both run with mock LLMs — no API keys, no network, finishes instantly.
-
-## Choose Your Path
-
-### Harness demo: Python learning loop
-
-Use `ClawLoopAgent` with any litellm-supported LLM:
+The 100-line inline example, [`tinker_weight_demo.py`](tinker_weight_demo.py),
+builds a `TrainConfig` from Python, runs one Blackjack training iter against
+Tinker, and prints the durable Tinker checkpoint path it just wrote:
 
 ```bash
-# With Anthropic
-ANTHROPIC_API_KEY=... uv run python examples/demo_math.py
-
-# With OpenAI (weak task model, stronger critic)
-CLAWLOOP_TASK_MODEL=openai/gpt-4o-mini \
-CLAWLOOP_REFLECTOR_MODEL=openai/gpt-5.4-nano \
-    uv run python examples/demo_math.py
-
-# With Gemini (weak task model, stronger critic)
-CLAWLOOP_TASK_MODEL=gemini/gemini-2.0-flash-lite \
-CLAWLOOP_REFLECTOR_MODEL=gemini/gemini-2.5-flash-lite \
-    uv run python examples/demo_math.py
+# Put your TINKER_API_KEY in clawloop/.env (gitignored; see .env.example).
+uv sync --extra games
+uv run python examples/tinker_weight_demo.py
 ```
 
-For deeper control, see [`playbook_demo.py`](playbook_demo.py) — walks through
-the two-phase protocol (forward_backward → optim_step), playbook scoring,
-structured skill entries, and tag-based retrieval step by step.
+Reads cleanly top-to-bottom. Every place you'd change to adapt the demo to
+another env or another model is flagged with `[ADAPT]` comments.
 
-### Workflow integration: n8n webhooks
+## YAML recipes (longer runs)
 
-ClawLoop integrates with n8n via webhooks — no Python code in your workflow.
-An n8n workflow sends tickets to the LLM, posts traces to clawloop-server,
-and the server learns in the background.
+For multi-iter runs + cross-run comparison, use YAML + `scripts/run_pilot.py`:
 
-See [`n8n/README.md`](n8n/README.md) for setup, the importable workflow, and
-a demo script that shows a customer support agent improving across rounds.
-Set `CLAWLOOP_BASE_URL` in n8n if your Docker host cannot reach
-`host.docker.internal`.
-
-### Harness benchmarks: config-driven runner
-
-Use the unified `train_runner.py` with JSON configs. Same runner, different
-environments:
+| File | What it does |
+|---|---|
+| [`blackjack_tinker_pilot.yaml`](blackjack_tinker_pilot.yaml) | Single-game Blackjack on Qwen3-8B. |
+| [`blackjack_plus_2048_tinker_pilot.yaml`](blackjack_plus_2048_tinker_pilot.yaml) | **Multi-task RL in one LoRA** — Blackjack + 2048 episodes interleave into the same `forward_backward` batch; GRPO baselines stay per-scenario. |
 
 ```bash
-uv run python examples/train_runner.py examples/configs/math_harness.json        # math, prompt optimization
-uv run python examples/train_runner.py examples/configs/entropic_harness.json    # CRMArena A2A, prompt optimization
-uv run python examples/train_runner.py examples/configs/harbor_harness.json      # Harbor BFCL, prompt optimization
+uv run python scripts/run_pilot.py examples/blackjack_plus_2048_tinker_pilot.yaml \
+    --n-iterations 3 --output-dir pilot_runs/mixed_3iter
+
+# Live reward curves:
+uv run python -m http.server 8770 --bind 127.0.0.1
+# then http://localhost:8770/clawloop/static/learning_viewer.html?exp=/pilot_runs/mixed_3iter/experiment.jsonl
 ```
 
-Switch to weight training by changing `mode`:
+Add `--wandb-project NAME` to any run — metrics mirror through
+`tinker_cookbook.utils.ml_log.setup_logging` (Neptune on the same switch
+via `NEPTUNE_API_TOKEN`). No integration = Rich console tables + `experiment.jsonl` on disk.
 
-```bash
-uv run python examples/train_runner.py examples/configs/math_weight.json         # math, SkyRL on GPU
-uv run python examples/train_runner.py examples/configs/entropic_weight.json     # CRMArena, weight training
-uv run python examples/train_runner.py examples/configs/harbor_weight.json       # Harbor, weight training
-```
+## What each iteration does
 
-All configs follow the same `TrainConfig` schema. See [`configs/`](configs/)
-for the full set.
+1. Refresh `agent_state.sampling_client` from `backend.current_sampling_client()`.
+2. Fan out N episode rollouts via `asyncio.gather` over `OpenSpielGameAdapter.run_episodes_batch`. Tinker's `SamplingClient.sample` returns a `ConcurrentFuture`; we wrap it with `asyncio.wrap_future` so asyncio can actually interleave them (without the wrap, `.result()` serializes everything — we measured ~7–8× speedup from the fix).
+3. Each episode captures `prompt_tokens`, `sampled_tokens`, `sampling_logprobs` on `StepMeta.info` at sampling time. No tokenizer round-trip later.
+4. `episodes_to_tinker_datums` applies GRPO (group-mean subtraction per `task_id = f"{game}_seed_{seed}"`), drops zero-variance groups, emits one `tinker.types.Datum` per LLM turn with prompt positions zero-padded.
+5. `forward_backward` and `optim_step` submitted back-to-back as futures (both land in the same Tinker "clock cycle"), then awaited together.
+6. `save_state(f"iter_{i}")` writes a durable, enumerable checkpoint (`tinker://...`); `save_weights_and_get_sampling_client` returns the fresh `SamplingClient` the next iter will use for rollouts. The durable path is listable via `RestClient.list_checkpoints` and reloadable via `load_state_with_optimizer`.
 
-### Proxy harness: zero-code-change OpenClaw
+## The three files worth lifting
 
-The OpenClaw proxy sits transparently between any OpenAI-compatible agent
-and its LLM. It captures traces, learns from them, and injects playbook
-skills — without touching agent code:
+If you already have an RL loop and just want the Tinker bits:
 
-```bash
-cd examples/openclaw_runner && npm install && cd ../..
+- [`clawloop/weight_backends/_tinker_sdk.py`](../clawloop/weight_backends/_tinker_sdk.py) — thin typed adapter over the `tinker` SDK. One file you own; SDK drift lives in one place.
+- [`clawloop/weight_backends/_tinker_exporter.py`](../clawloop/weight_backends/_tinker_exporter.py) — `list[Episode] → list[tinker.Datum]` with episode-level GRPO baselines, strict token/logprob alignment, zero-variance filtering.
+- [`clawloop/weight_backends/tinker.py`](../clawloop/weight_backends/tinker.py) — `TinkerWeightsBackend` plugging into ClawLoop's `ClawLoopBackend` protocol. Dual save (ephemeral SamplingClient + durable `tinker://` path) every iter.
 
-UPSTREAM_URL=https://api.openai.com/v1 UPSTREAM_KEY=$OPENAI_API_KEY \
-    uv run python examples/openclaw_demo.py
-```
+## Using Tinker with another env
 
-Requires Node.js and an OpenAI-compatible Chat Completions endpoint.
-See [`openclaw_demo.py`](openclaw_demo.py) for the full annotated example.
+The only contract the exporter imposes on your env is that each rollout's
+`Episode` carries, for every LLM turn, a `StepMeta.info` dict with:
 
-### Remote OpenClaw: SSH-connected proxy harness
+- `prompt_tokens: list[int]` — exact tokens the SamplingClient saw.
+- `sampled_tokens: list[int]` — exact tokens it emitted.
+- `sampling_logprobs: list[float]` — per-token logprobs, aligned 1:1.
 
-Connect ClawLoop to your **remote** OpenClaw via SSH — no changes to your
-OpenClaw config, nothing installed permanently:
+`OpenSpielTaskEnvironment.run_episode` captures all three right at the
+sampling call site — see `_sample_one_llm_attempt` in
+`clawloop/environments/openspiel.py` for the pattern. Any env that *owns
+its sampling loop* can do the same.
 
-```bash
-# With Google Gemini:
-UPSTREAM_KEY=your-key uv run python examples/openclaw_demo_remote.py \
-    --host YOUR_HOST \
-    --upstream-url "https://generativelanguage.googleapis.com/v1beta/openai" \
-    --model gemini-2.5-flash-lite
+### Would Harbor work?
 
-# With a local model (Ollama on the same server):
-uv run python examples/openclaw_demo_remote.py \
-    --host YOUR_HOST \
-    --local-model localhost:11434 \
-    --model qwen3.5:0.8b
-```
+**Conceptually yes, ~50–100 LoC of wiring away.** Harbor's built-in agents
+(`claude-code`, `openhands`, `aider`, Terminus 2, …) sample via LiteLLM,
+which doesn't surface Tinker-compatible token IDs. Two ways to close the
+gap:
 
-Runs 10 benchmark tasks, learns strategies, re-runs with playbook injection,
-and prints a before/after comparison. Works with any Docker host with SSH
-access — Hetzner VPS, Mac Mini, DGX Spark, etc.
+1. **Ship a `TinkerAgent` in Harbor** that drives Tinker's `SamplingClient`
+   directly and writes the three `StepMeta.info` fields into the trial
+   trajectory. There's already a stub at
+   `benchmarks/harbor/src/harbor/llms/tinker.py` that could host this.
+2. **Write a `HarborTinkerAdapter` on the ClawLoop side** that wraps
+   `HarborTaskEnvironment`, intercepts the agent call, and captures the
+   fields during the trial run.
 
-See [`openclaw_demo_remote.py`](openclaw_demo_remote.py) for full docs,
-prerequisites, and all provider options.
+Either is a clean extension — the abstraction layers don't block it.
+Not wired today; filed as a follow-up so whoever ships it finds the
+design notes in one place.
 
-### Weight training: SkyRL/Tinker recipes
+## Scaling out
 
-The [recipes/](recipes/) directory contains SkyRL/Tinker-compatible scripts
-for GRPO, PPO, and full fine-tuning:
+- Swap `Qwen/Qwen3-8B` for any model in Tinker's catalog via `tinker.base_model` in the YAML (or the inline config). Run `scripts/tinker_preflight.py` against your account to see the live list.
+- Drop in new OpenSpiel games by appending to the `games:` list — GRPO groups stay per-scenario, reward scales don't cross-contaminate.
+- Bring your own env by implementing the `AdapterLike` Protocol in `clawloop/core/loop.py` and populating the `StepMeta.info` fields above. Backend, exporter, and logger are all game-agnostic.
 
-- **Arithmetic RL** — `recipes/arithmetic.py` (mirrors Tinker cookbook)
-- **Harbor BFCL** — `recipes/harbor_bfcl.py` (function calling in Docker)
-- **A2A CRMArena** — `recipes/a2a_crmarena.py` (multi-agent CRM tasks)
-- **Guess the Number** — `recipes/guess_number.py` (multi-turn RL)
+## Known limits (v1)
 
-See [`recipes/README.md`](recipes/README.md) for setup and details.
-
-## Mode Reference
-
-| `mode` | What trains | Infrastructure |
-|--------|------------|----------------|
-| `harness_learning` | System prompt via reflector | LLM API (no GPU) |
-| `weight` | Model weights via RL / fine-tuning | SkyRL/Tinker (vLLM + FSDP2 + Ray) on GPU |
-
-## Tested End-to-End
-
-| Env | harness_learning | weight |
-|-----|:---:|:---:|
-| Math | Gemini | Gemini + SkyRL |
-| Harbor BFCL | Gemini + Docker | Oracle + Docker + SkyRL |
-| Entropic A2A | Gemini | Gemini + SkyRL |
-| OpenClaw Proxy | OpenAI | -- |
-| OpenClaw Remote | Gemini, Ollama (qwen3, qwen3.5) | -- |
-| n8n Integration | any provider | -- |
+- Self-play for adversarial / hidden-info games is not wired — multi-player OpenSpiel games use a random opponent.
+- OpenSpiel's canonical action strings don't always match how an LLM writes moves (chess SAN, hanabi hint codes). `_parse_move_fallback` handles common cases; per-game parsers are a clean follow-up.
+- 2048's terminal reward only fires at the 2048 tile — rare at 30–50 turns. Intermediate reward shaping (score-delta, max-tile) is on the roadmap.

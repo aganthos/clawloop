@@ -22,6 +22,7 @@ classifiers = [
 dependencies = [
     "litellm>=1.0",
     "pydantic>=2.0",
+    "python-dotenv>=1.0",
 ]
 
 [project.optional-dependencies]
@@ -49,6 +50,16 @@ server = [
 taubench = [
     "tau2 @ git+https://github.com/sierra-research/tau2-bench.git@dev/tau3",
 ]
+games = [
+    "tinker>=0.18,<0.20",
+    "tinker-cookbook>=0.1.0",
+    "open_spiel>=1.5",
+    "numpy>=1.26",
+    "orjson>=3.9",  # transitive for tinker 0.18.x until Tinker declares it
+    # game_arena has no PyPI release; pinned to main SHA captured 2026-04-17.
+    "game_arena @ git+https://github.com/google-deepmind/game_arena@6ddcc7dac06321472f2f22fabdeceab97eebeb73",
+]
+
 [project.scripts]
 clawloop = "clawloop.cli:main"
 clawloop-server = "clawloop.server:main"
