@@ -1,17 +1,29 @@
-"""ClawLoop CLI — entry point for run, eval, and benchmark setup commands."""
+"""ClawLoop CLI — entry points for demo and benchmark setup commands.
+
+The legacy ``run`` and ``eval`` subcommands are disabled: they only wired a
+subset of environments and drifted from the unified ``TrainConfig`` runner.
+They remain in the parser so stale muscle memory gets a truthful redirect
+instead of a misleading ``Unknown benchmark`` failure.
+"""
 
 from __future__ import annotations
 
 import argparse
-import json
 import logging
-import random
 import sys
 from typing import Any
 
-from clawloop.core.loop import AgentState, learning_loop
-
 log = logging.getLogger("clawloop")
+
+_DISABLED_MSG = (
+    "`clawloop {cmd}` is temporarily disabled. Use one of:\n"
+    "  - Real benchmark:  uv run python examples/train_runner.py \\\n"
+    "                         examples/configs/entropic_harness.json\n"
+    "  - Other configs:   examples/configs/  (math, harbor, entropic, openclaw, taubench)\n"
+    "  - No-key demo:     uv run clawloop demo math --dry-run\n"
+    "The config-driven runner covers every supported environment; "
+    "reintroduction of `{cmd}` as a thin wrapper is tracked upstream."
+)
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -22,40 +34,16 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable debug logging")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    # -- run --
-    run_p = sub.add_parser("run", help="Run the learning loop")
-    run_p.add_argument("-v", "--verbose", action="store_true", help="Enable debug logging")
-    run_p.add_argument("--bench", required=True, help="Benchmark name")
-    run_p.add_argument("--iterations", type=int, default=1, help="Number of learning iterations")
-    run_p.add_argument("--episodes", type=int, default=10, help="Episodes per iteration")
-    run_p.add_argument("--config", type=str, default=None, help="Config JSON file")
-    run_p.add_argument("--model", type=str, default=None, help="LLM model (litellm format)")
-    run_p.add_argument(
-        "--api-base", type=str, default=None, help="LLM API base URL (OpenAI-compatible endpoint)"
-    )
-    run_p.add_argument(
-        "--task-type",
-        type=str,
-        default="base",
-        help="Task type: base, hallucination, disambiguation",
-    )
-    run_p.add_argument("--task-split", type=str, default="test", help="Data split: train, test")
-    run_p.add_argument("--output", type=str, default=None, help="Output directory")
-    run_p.add_argument("--seed", type=int, default=None, help="Random seed")
+    # Disabled subcommands. add_help=False so `run --help` hits the redirect
+    # rather than argparse's auto-generated help output. Any legacy flags land
+    # in `unknown` via parse_known_args() in main() and are ignored.
+    sub.add_parser("run", help="(disabled) use examples/train_runner.py", add_help=False)
+    sub.add_parser("eval", help="(disabled) use examples/train_runner.py", add_help=False)
 
-    # -- eval --
-    eval_p = sub.add_parser("eval", help="Evaluate current state (no learning)")
-    eval_p.add_argument("-v", "--verbose", action="store_true", help="Enable debug logging")
-    eval_p.add_argument("--bench", required=True, help="Benchmark name")
-    eval_p.add_argument("--episodes", type=int, default=10, help="Number of episodes")
-    eval_p.add_argument("--config", type=str, default=None, help="Config JSON file")
-
-    # -- setup-bench --
     setup_p = sub.add_parser("setup-bench", help="Install benchmark dependencies")
     setup_p.add_argument("-v", "--verbose", action="store_true", help="Enable debug logging")
     setup_p.add_argument("--bench", required=True, help="Benchmark name")
 
-    # -- demo --
     demo_p = sub.add_parser("demo", help="Run built-in demos")
     demo_sub = demo_p.add_subparsers(dest="demo_name", required=True)
 
@@ -70,161 +58,6 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-ADAPTER_REGISTRY: dict[str, tuple[str, str]] = {
-    "entropic": ("clawloop.environments.entropic", "EntropicAdapter"),
-    "car": ("clawloop.environments.car", "CARAdapter"),
-}
-
-
-def _get_adapter(bench: str) -> Any:
-    """Resolve a benchmark name to its adapter (lazy import)."""
-    import importlib
-
-    if bench not in ADAPTER_REGISTRY:
-        print(f"Unknown benchmark: {bench}", file=sys.stderr)
-        sys.exit(1)
-
-    module_name, class_name = ADAPTER_REGISTRY[bench]
-    module = importlib.import_module(module_name)
-    adapter_class = getattr(module, class_name)
-    return adapter_class()
-
-
-def _load_config(path: str | None) -> dict[str, Any]:
-    """Load a JSON config file, returning {} if no path given."""
-    if not path:
-        return {}
-    try:
-        with open(path) as f:
-            return json.load(f)
-    except FileNotFoundError:
-        print(f"Error: Config file not found: {path}", file=sys.stderr)
-        sys.exit(1)
-    except json.JSONDecodeError as e:
-        print(f"Error: Invalid JSON in config file {path}: {e}", file=sys.stderr)
-        sys.exit(1)
-
-
-def _build_evolver(config: dict[str, Any]) -> Any | None:
-    """Create a LocalEvolver with Reflector if api_base is configured."""
-    api_base = config.get("api_base")
-    if not api_base:
-        log.warning("No api_base in config — Reflector disabled (no learning)")
-        return None
-
-    from clawloop.core.reflector import Reflector, ReflectorConfig
-    from clawloop.harness_backends.local import LocalEvolver
-    from clawloop.llm import LiteLLMClient
-
-    model = config.get(
-        "reflector_model", config.get("model", "anthropic/claude-haiku-4-5-20251001")
-    )
-    client = LiteLLMClient(
-        model=model,
-        api_base=api_base,
-        api_key=config.get("api_key"),
-    )
-    log.info("Reflector enabled: model=%s via %s", model, api_base)
-    rbs = config.get("reflection_batch_size", 1)
-    reflector = Reflector(client=client, config=ReflectorConfig(reflection_batch_size=rbs))
-    return LocalEvolver(reflector=reflector)
-
-
-def _ensure_output_dir(config: dict[str, Any], bench: str) -> None:
-    """Set output dir if not configured. Convention: runs/<bench>/<timestamp>."""
-    import time
-
-    if "output" not in config or not config["output"]:
-        config["output"] = f"./runs/{bench}/{int(time.time())}"
-
-
-def cmd_run(args: argparse.Namespace) -> None:
-    config = _load_config(args.config)
-    # CLI args override config file
-    if args.model:
-        config["model"] = args.model
-    if getattr(args, "api_base", None):
-        config["api_base"] = args.api_base
-    if args.output:
-        config["output"] = args.output
-    if hasattr(args, "task_type"):
-        config["task_type"] = args.task_type
-    if hasattr(args, "task_split"):
-        config["task_split"] = args.task_split
-    if hasattr(args, "seed") and args.seed is not None:
-        config["seed"] = args.seed
-
-    _ensure_output_dir(config, args.bench)
-
-    adapter = _get_adapter(args.bench)
-    adapter.setup(config)
-
-    if args.seed is not None:
-        random.seed(args.seed)
-
-    # Wire LocalEvolver (with Reflector) into harness for ICL learning
-    from clawloop.learning_layers.harness import Harness
-
-    evolver = _build_evolver(config)
-    agent_state = AgentState(harness=Harness(evolver=evolver))
-
-    try:
-        tasks = adapter.list_tasks()
-    except NotImplementedError:
-        tasks = None
-
-    output_dir = config.get("output")
-
-    if tasks is not None:
-        _, state_id = learning_loop(
-            adapter=adapter,
-            agent_state=agent_state,
-            tasks=tasks,
-            n_episodes=args.episodes,
-            n_iterations=args.iterations,
-            output_dir=output_dir,
-        )
-    else:
-        # Batch-oriented adapter (e.g. CAR) — generate task IDs from config
-        task_type = config.get("task_type", "base")
-        task_ids = [f"{task_type}_{i}" for i in range(args.episodes)]
-        _, state_id = learning_loop(
-            adapter=adapter,
-            agent_state=agent_state,
-            tasks=task_ids,
-            n_episodes=args.episodes,
-            n_iterations=args.iterations,
-            output_dir=output_dir,
-        )
-    print(f"Final state: {state_id.combined_hash}")
-
-
-def cmd_eval(args: argparse.Namespace) -> None:
-    config = _load_config(args.config)
-    adapter = _get_adapter(args.bench)
-    adapter.setup(config)
-    agent_state = AgentState()
-
-    try:
-        tasks = adapter.list_tasks()
-        selected = tasks[: args.episodes]
-    except NotImplementedError:
-        task_type = config.get("task_type", "base")
-        selected = [f"{task_type}_{i}" for i in range(args.episodes)]
-
-    episodes = []
-    for task in selected:
-        ep = adapter.run_episode(task, agent_state)
-        episodes.append(ep)
-
-    if episodes:
-        avg = sum(e.summary.total_reward for e in episodes) / len(episodes)
-        print(f"Evaluated {len(episodes)} episodes — avg reward: {avg:.4f}")
-    else:
-        print("No episodes collected.")
-
-
-# Benchmark setup registry: bench -> (setup_script_path, uv_sync_extras)
 BENCH_SETUP: dict[str, dict[str, Any]] = {
     "car": {
         "bench_dir": "benchmarks/a2a/car-bench",
@@ -264,7 +97,6 @@ def cmd_setup_bench(args: argparse.Namespace) -> None:
         print(f"Benchmark dir not found: {bench_dir}", file=sys.stderr)
         sys.exit(1)
 
-    # Run data setup script if defined
     data_setup = setup.get("data_setup")
     if data_setup:
         script = bench_dir / data_setup
@@ -272,13 +104,11 @@ def cmd_setup_bench(args: argparse.Namespace) -> None:
             print(f"Running data setup: {script}")
             subprocess.run(["bash", str(script)], check=True)
 
-    # Install dependencies via uv
     uv_cmd = setup.get("uv_sync_cmd")
     if uv_cmd:
         print(f"Installing dependencies in {bench_dir}...")
         subprocess.run(uv_cmd, cwd=str(bench_dir), check=True)
 
-    # Also sync clawloop extras for this bench
     print(f"Syncing clawloop extras: --extra {bench}")
     subprocess.run(["uv", "sync", "--extra", bench, "--extra", "dev"], check=True)
 
@@ -307,7 +137,9 @@ def cmd_demo(args: argparse.Namespace) -> None:
 
 def main() -> None:
     parser = _build_parser()
-    args = parser.parse_args()
+    # Use parse_known_args so disabled subcommands can ignore legacy flags
+    # (`clawloop run --bench entropic`) and fall through to the redirect.
+    args, _unknown = parser.parse_known_args()
 
     log_level = logging.DEBUG if getattr(args, "verbose", False) else logging.INFO
     logging.basicConfig(
@@ -316,9 +148,13 @@ def main() -> None:
         datefmt="%H:%M:%S",
     )
 
+    if args.command in {"run", "eval"}:
+        print(_DISABLED_MSG.format(cmd=args.command), file=sys.stderr)
+        sys.exit(2)
+
+    # For active subcommands, re-parse strictly so typos still error.
+    args = parser.parse_args()
     handlers = {
-        "run": cmd_run,
-        "eval": cmd_eval,
         "setup-bench": cmd_setup_bench,
         "demo": cmd_demo,
     }
