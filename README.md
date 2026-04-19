@@ -6,7 +6,7 @@
 
 [![License: BSL 1.1](https://img.shields.io/badge/License-BSL%201.1-blue.svg)](LICENSE)
 [![CI](https://github.com/aganthos/clawloop/actions/workflows/ci.yml/badge.svg)](https://github.com/aganthos/clawloop/actions/workflows/ci.yml)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12%20|%203.13-blue.svg)](https://www.python.org/downloads/)
 
 Your AI agents run, fail, and forget. ClawLoop closes the loop: it observes
 agent-environment interactions, learns from them, and feeds improvements back
@@ -19,16 +19,18 @@ all following the same protocol.
 
 ## Install
 
-Requires Python 3.11+.
+Requires Python 3.12 or 3.13.
 
 ```bash
-pip install -e .
+git clone https://github.com/aganthos/clawloop
+cd clawloop
+uv sync                # installs all deps from uv.lock, creates .venv automatically
 ```
 
 For weight training (GPU):
 ```bash
 git submodule update --init clawloop/skyrl
-pip install -e clawloop/skyrl[fsdp]
+uv sync --extra taubench
 ```
 
 ## Try It in 10 Seconds
@@ -36,7 +38,19 @@ pip install -e clawloop/skyrl[fsdp]
 No API keys. No setup. Just run:
 
 ```bash
-python examples/demo_math.py --dry-run
+uv run clawloop demo math --dry-run
+```
+
+or as a module:
+
+```bash
+uv run python -m clawloop.demo_math --dry-run
+```
+
+or via the examples shim (also works from a clone):
+
+```bash
+uv run python examples/demo_math.py --dry-run
 ```
 
 ```
@@ -81,19 +95,21 @@ results = agent.learn(MathEnvironment(), iterations=10, episodes_per_iter=5)
 **Config-driven training (no code):**
 
 ```bash
-python examples/train_runner.py examples/configs/math_harness.json
+uv run python examples/train_runner.py examples/configs/math_harness.json
 ```
 
 ## Choose Your Integration Path
 
-| You have... | Start here | What it shows |
+| Example type | Start here | What it shows |
 |---|---|---|
-| A Python agent | [`examples/demo_math.py`](examples/demo_math.py) | Full learning loop with `ClawLoopAgent` |
-| An n8n or workflow platform | [`examples/n8n/`](examples/n8n/) | Webhook integration, zero Python needed |
-| An OpenAI-compatible agent | [`examples/train_runner.py`](examples/train_runner.py) with configs | CRMArena, Harbor BFCL via litellm |
-| Want zero-code-change learning | [`examples/openclaw_demo.py`](examples/openclaw_demo.py) | Transparent proxy captures traces + injects skills |
-| A running OpenClaw instance | [`examples/openclaw_demo_remote.py`](examples/openclaw_demo_remote.py) | SSH into your OpenClaw, learn from traces, show improvement |
-| GPU resources for weight training | [`examples/recipes/`](examples/recipes/) | SkyRL/Tinker GRPO, PPO, full finetune |
+| Harness: no-key math learning loop | `uv run clawloop demo math --dry-run` | ClawLoopAgent learns from math episodes without API keys |
+| Harness: package/module demo entry points | `uv run python -m clawloop.demo_math --dry-run` or [`examples/demo_math.py`](examples/demo_math.py) | Same math demo from an installed package or source clone |
+| Playbook internals walkthrough | `uv run python examples/playbook_demo.py --dry-run` | `forward_backward`, `optim_step`, entry scoring, structured skills |
+| Workflow: n8n webhook integration | [`examples/n8n/`](examples/n8n/) | Workflow platform sends traces to clawloop-server; no Python in the workflow |
+| Harness benchmarks: config-driven runner | `uv run python examples/train_runner.py examples/configs/math_harness.json` | Math, CRMArena, Harbor BFCL via JSON configs and litellm |
+| Proxy harness: zero-code-change OpenClaw | `uv run python examples/openclaw_demo.py` | Transparent proxy captures traces and injects learned skills |
+| Remote OpenClaw: SSH-connected proxy harness | `uv run python examples/openclaw_demo_remote.py --host YOUR_HOST ...` | Learn from a remote OpenClaw instance and compare before/after |
+| Weights: SkyRL/Tinker training recipes | [`examples/recipes/`](examples/recipes/) | GRPO, PPO, and fine-tuning recipes for GPU training |
 
 See [`examples/README.md`](examples/README.md) for details on each path.
 

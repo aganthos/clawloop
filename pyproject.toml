@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "clawloop"
 version = "0.0.1"
 description = "AI agents that learn from experience — observe, learn, improve"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 license = {file = "LICENSE"}
 authors = [{name = "Aganthos Inc."}]
 readme = "README.md"
@@ -16,8 +16,8 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: Other/Proprietary License",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
     "litellm>=1.0",
@@ -84,7 +84,6 @@ packages = ["clawloop"]
 
 [tool.uv]
 python-preference = "only-managed"
-exclude-newer = "3 days"
 constraint-dependencies = [
   "litellm!=1.82.7,!=1.82.8",
 ]

@@ -4,36 +4,42 @@
 
 **Zero setup, 10 seconds:**
 ```bash
-python examples/demo_math.py --dry-run
+uv run clawloop demo math --dry-run
 ```
 
 **See the playbook learning internals:**
 ```bash
-python examples/playbook_demo.py --dry-run
+uv run python examples/playbook_demo.py --dry-run
 ```
 
 Both run with mock LLMs — no API keys, no network, finishes instantly.
 
 ## Choose Your Path
 
-### I have a Python agent
+### Harness demo: Python learning loop
 
 Use `ClawLoopAgent` with any litellm-supported LLM:
 
 ```bash
 # With Anthropic
-ANTHROPIC_API_KEY=... python examples/demo_math.py
+ANTHROPIC_API_KEY=... uv run python examples/demo_math.py
 
-# With OpenAI
-CLAWLOOP_TASK_MODEL=openai/gpt-5-nano CLAWLOOP_REFLECTOR_MODEL=openai/gpt-5 \
-    python examples/demo_math.py
+# With OpenAI (weak task model, stronger critic)
+CLAWLOOP_TASK_MODEL=openai/gpt-4o-mini \
+CLAWLOOP_REFLECTOR_MODEL=openai/gpt-5.4-nano \
+    uv run python examples/demo_math.py
+
+# With Gemini (weak task model, stronger critic)
+CLAWLOOP_TASK_MODEL=gemini/gemini-2.0-flash-lite \
+CLAWLOOP_REFLECTOR_MODEL=gemini/gemini-2.5-flash-lite \
+    uv run python examples/demo_math.py
 ```
 
 For deeper control, see [`playbook_demo.py`](playbook_demo.py) — walks through
 the two-phase protocol (forward_backward → optim_step), playbook scoring,
 structured skill entries, and tag-based retrieval step by step.
 
-### I use n8n or a workflow platform
+### Workflow integration: n8n webhooks
 
 ClawLoop integrates with n8n via webhooks — no Python code in your workflow.
 An n8n workflow sends tickets to the LLM, posts traces to clawloop-server,
@@ -44,29 +50,29 @@ a demo script that shows a customer support agent improving across rounds.
 Set `CLAWLOOP_BASE_URL` in n8n if your Docker host cannot reach
 `host.docker.internal`.
 
-### I have an OpenAI-compatible agent or API
+### Harness benchmarks: config-driven runner
 
 Use the unified `train_runner.py` with JSON configs. Same runner, different
 environments:
 
 ```bash
-python examples/train_runner.py examples/configs/math_harness.json        # math, prompt optimization
-python examples/train_runner.py examples/configs/entropic_harness.json    # CRMArena A2A, prompt optimization
-python examples/train_runner.py examples/configs/harbor_harness.json      # Harbor BFCL, prompt optimization
+uv run python examples/train_runner.py examples/configs/math_harness.json        # math, prompt optimization
+uv run python examples/train_runner.py examples/configs/entropic_harness.json    # CRMArena A2A, prompt optimization
+uv run python examples/train_runner.py examples/configs/harbor_harness.json      # Harbor BFCL, prompt optimization
 ```
 
 Switch to weight training by changing `mode`:
 
 ```bash
-python examples/train_runner.py examples/configs/math_weight.json         # math, SkyRL on GPU
-python examples/train_runner.py examples/configs/entropic_weight.json     # CRMArena, weight training
-python examples/train_runner.py examples/configs/harbor_weight.json       # Harbor, weight training
+uv run python examples/train_runner.py examples/configs/math_weight.json         # math, SkyRL on GPU
+uv run python examples/train_runner.py examples/configs/entropic_weight.json     # CRMArena, weight training
+uv run python examples/train_runner.py examples/configs/harbor_weight.json       # Harbor, weight training
 ```
 
 All configs follow the same `TrainConfig` schema. See [`configs/`](configs/)
 for the full set.
 
-### I want zero-code-change learning (OpenClaw)
+### Proxy harness: zero-code-change OpenClaw
 
 The OpenClaw proxy sits transparently between any OpenAI-compatible agent
 and its LLM. It captures traces, learns from them, and injects playbook
@@ -76,26 +82,26 @@ skills — without touching agent code:
 cd examples/openclaw_runner && npm install && cd ../..
 
 UPSTREAM_URL=https://api.openai.com/v1 UPSTREAM_KEY=$OPENAI_API_KEY \
-    PYTHONPATH=. python examples/openclaw_demo.py
+    uv run python examples/openclaw_demo.py
 ```
 
 Requires Node.js and an OpenAI-compatible Chat Completions endpoint.
 See [`openclaw_demo.py`](openclaw_demo.py) for the full annotated example.
 
-### I have a running OpenClaw instance (Hetzner, Mac Mini, etc.)
+### Remote OpenClaw: SSH-connected proxy harness
 
 Connect ClawLoop to your **remote** OpenClaw via SSH — no changes to your
 OpenClaw config, nothing installed permanently:
 
 ```bash
 # With Google Gemini:
-UPSTREAM_KEY=your-key python examples/openclaw_demo_remote.py \
+UPSTREAM_KEY=your-key uv run python examples/openclaw_demo_remote.py \
     --host YOUR_HOST \
     --upstream-url "https://generativelanguage.googleapis.com/v1beta/openai" \
     --model gemini-2.5-flash-lite
 
 # With a local model (Ollama on the same server):
-python examples/openclaw_demo_remote.py \
+uv run python examples/openclaw_demo_remote.py \
     --host YOUR_HOST \
     --local-model localhost:11434 \
     --model qwen3.5:0.8b
@@ -108,7 +114,7 @@ access — Hetzner VPS, Mac Mini, DGX Spark, etc.
 See [`openclaw_demo_remote.py`](openclaw_demo_remote.py) for full docs,
 prerequisites, and all provider options.
 
-### I have GPU resources for weight training
+### Weight training: SkyRL/Tinker recipes
 
 The [recipes/](recipes/) directory contains SkyRL/Tinker-compatible scripts
 for GRPO, PPO, and full fine-tuning:

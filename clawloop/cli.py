@@ -58,6 +58,16 @@ def _build_parser() -> argparse.ArgumentParser:
     setup_p.add_argument("-v", "--verbose", action="store_true", help="Enable debug logging")
     setup_p.add_argument("--bench", required=True, help="Benchmark name")
 
+    # -- demo --
+    demo_p = sub.add_parser("demo", help="Run built-in demos")
+    demo_sub = demo_p.add_subparsers(dest="demo_name", required=True)
+
+    math_p = demo_sub.add_parser("math", help="Math learning loop demo")
+    math_p.add_argument("--dry-run", action="store_true", help="Use mock LLMs (no API calls)")
+    math_p.add_argument("--iterations", type=int, default=None, help="Number of learning iterations")
+    math_p.add_argument("--episodes", type=int, default=None, help="Episodes per iteration")
+    math_p.add_argument("--output", type=str, default="playbook.json", help="Playbook output path")
+
     return parser
 
 
@@ -265,6 +275,26 @@ def cmd_setup_bench(args: argparse.Namespace) -> None:
     print(f"Setup complete for {bench}")
 
 
+def cmd_demo(args: argparse.Namespace) -> None:
+    """Dispatch to the requested built-in demo."""
+    if args.demo_name == "math":
+        from clawloop.demo_math import main as demo_math_main
+
+        argv: list[str] = []
+        if getattr(args, "dry_run", False):
+            argv.append("--dry-run")
+        if getattr(args, "iterations", None) is not None:
+            argv += ["--iterations", str(args.iterations)]
+        if getattr(args, "episodes", None) is not None:
+            argv += ["--episodes", str(args.episodes)]
+        if getattr(args, "output", None):
+            argv += ["--output", args.output]
+        demo_math_main(argv)
+    else:
+        print(f"Unknown demo: {args.demo_name}", file=sys.stderr)
+        sys.exit(1)
+
+
 def main() -> None:
     parser = _build_parser()
     args = parser.parse_args()
@@ -280,6 +310,7 @@ def main() -> None:
         "run": cmd_run,
         "eval": cmd_eval,
         "setup-bench": cmd_setup_bench,
+        "demo": cmd_demo,
     }
     handlers[args.command](args)
 
