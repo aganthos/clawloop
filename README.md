@@ -50,7 +50,7 @@ uv run python -m clawloop.demo_math --dry-run
 or via the examples shim (also works from a clone):
 
 ```bash
-python examples/demo_math.py --dry-run
+uv run python examples/demo_math.py --dry-run
 ```
 
 ```
@@ -95,20 +95,21 @@ results = agent.learn(MathEnvironment(), iterations=10, episodes_per_iter=5)
 **Config-driven training (no code):**
 
 ```bash
-python examples/train_runner.py examples/configs/math_harness.json
+uv run python examples/train_runner.py examples/configs/math_harness.json
 ```
 
 ## Choose Your Integration Path
 
-| You have... | Start here | What it shows |
+| Example type | Start here | What it shows |
 |---|---|---|
-| A repo clone | `uv run clawloop demo math --dry-run` | Full learning loop, no API keys needed |
-| A Python agent | [`examples/demo_math.py`](examples/demo_math.py) | Thin shim — delegates to `clawloop.demo_math` |
-| An n8n or workflow platform | [`examples/n8n/`](examples/n8n/) | Webhook integration, zero Python needed |
-| An OpenAI-compatible agent | [`examples/train_runner.py`](examples/train_runner.py) with configs | CRMArena, Harbor BFCL via litellm |
-| Want zero-code-change learning | [`examples/openclaw_demo.py`](examples/openclaw_demo.py) | Transparent proxy captures traces + injects skills |
-| A running OpenClaw instance | [`examples/openclaw_demo_remote.py`](examples/openclaw_demo_remote.py) | SSH into your OpenClaw, learn from traces, show improvement |
-| GPU resources for weight training | [`examples/recipes/`](examples/recipes/) | SkyRL/Tinker GRPO, PPO, full finetune |
+| Harness: no-key math learning loop | `uv run clawloop demo math --dry-run` | ClawLoopAgent learns from math episodes without API keys |
+| Harness: package/module demo entry points | `uv run python -m clawloop.demo_math --dry-run` or [`examples/demo_math.py`](examples/demo_math.py) | Same math demo from an installed package or source clone |
+| Playbook internals walkthrough | `uv run python examples/playbook_demo.py --dry-run` | `forward_backward`, `optim_step`, entry scoring, structured skills |
+| Workflow: n8n webhook integration | [`examples/n8n/`](examples/n8n/) | Workflow platform sends traces to clawloop-server; no Python in the workflow |
+| Harness benchmarks: config-driven runner | `uv run python examples/train_runner.py examples/configs/math_harness.json` | Math, CRMArena, Harbor BFCL via JSON configs and litellm |
+| Proxy harness: zero-code-change OpenClaw | `uv run python examples/openclaw_demo.py` | Transparent proxy captures traces and injects learned skills |
+| Remote OpenClaw: SSH-connected proxy harness | `uv run python examples/openclaw_demo_remote.py --host YOUR_HOST ...` | Learn from a remote OpenClaw instance and compare before/after |
+| Weights: SkyRL/Tinker training recipes | [`examples/recipes/`](examples/recipes/) | GRPO, PPO, and fine-tuning recipes for GPU training |
 
 See [`examples/README.md`](examples/README.md) for details on each path.
 
