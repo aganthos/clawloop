@@ -68,16 +68,16 @@ Output varies slightly between runs.)*
 
 ## What the Code Looks Like
 
-**Add learning to an existing agent (2 lines):**
+**Add learning to an existing agent (2 lines — pseudo-code):**
 
 ```python
 import clawloop
 
-wrapped = clawloop.wrap(your_llm_client, collector)
+wrapped = clawloop.wrap(your_llm_client, collector)  # your existing LLM client
 result = wrapped.complete(messages)  # transparently captures traces for learning
 ```
 
-**Run a full learning loop:**
+**Run a full learning loop (pseudo-code):**
 
 ```python
 from clawloop import ClawLoopAgent

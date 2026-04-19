@@ -28,10 +28,10 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
 
       - name: Sync dependencies (latest, editable + dev extras)
-        run: uv sync --upgrade --extra dev --extra server --extra car --python ${{ matrix.python-version }}
+        run: uv sync --upgrade --extra dev --python ${{ matrix.python-version }}
 
       - name: Run tests
-        run: uv run pytest tests/ -x -q --timeout=30
+        run: make test
         env:
           PYTHONDONTWRITEBYTECODE: "1"
 
