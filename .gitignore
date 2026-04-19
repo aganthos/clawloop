@@ -9,6 +9,9 @@
 .idea/
 .pytest_cache/
 .vscode/
+*.iml
+*.~undo-tree~
+*.backup
 
 # Secrets
 .env

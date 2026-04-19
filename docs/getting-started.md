@@ -18,7 +18,7 @@ pip install -e clawloop/skyrl[fsdp]
 ## Try It (No API Keys)
 
 ```bash
-python examples/demo_math.py --dry-run
+uv run clawloop demo math --dry-run
 ```
 
 This runs a complete learning loop with a mock LLM. The agent starts with
@@ -31,14 +31,16 @@ Set your API key and run:
 
 ```bash
 export ANTHROPIC_API_KEY=sk-...
-python examples/demo_math.py
+uv run python examples/demo_math.py
 ```
 
 ClawLoop uses [litellm](https://docs.litellm.ai/) — any provider works:
 
 ```bash
 export OPENAI_API_KEY=sk-...
-CLAWLOOP_TASK_MODEL=openai/gpt-5-nano python examples/demo_math.py
+CLAWLOOP_TASK_MODEL=openai/gpt-4o-mini \
+CLAWLOOP_REFLECTOR_MODEL=openai/gpt-5.4-nano \
+    uv run python examples/demo_math.py
 ```
 
 ## Add Learning to Your Agent

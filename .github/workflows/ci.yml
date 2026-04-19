@@ -13,15 +13,82 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: false
-      - uses: actions/setup-python@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: ${{ matrix.python-version }}
-      - run: pip install -e ".[dev,server,car]"
-      - run: pytest tests/ -x -q --timeout=30
+          enable-cache: true
+
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Sync dependencies (latest, editable + dev extras)
+        run: uv sync --upgrade --extra dev --extra server --extra car --python ${{ matrix.python-version }}
+
+      - name: Run tests
+        run: uv run pytest tests/ -x -q --timeout=30
         env:
           PYTHONDONTWRITEBYTECODE: "1"
+
+  wheel-smoke:
+    runs-on: ubuntu-latest
+    needs: test
+    strategy:
+      matrix:
+        python-version: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Build wheel and sdist
+        run: uv build --python ${{ matrix.python-version }}
+
+      - name: Audit built artifacts — no unwanted paths
+        run: |
+          WHL=$(ls dist/*.whl | head -1)
+          SDIST=$(ls dist/*.tar.gz | head -1)
+          echo "=== Wheel contents ==="
+          unzip -l "$WHL"
+          echo "=== Sdist contents ==="
+          tar -tzf "$SDIST"
+          for forbidden in benchmarks/ .codeboarding/ skyrl/ runs/; do
+            if unzip -l "$WHL" | grep -q "$forbidden"; then
+              echo "ERROR: wheel contains forbidden path: $forbidden" && exit 1
+            fi
+            if tar -tzf "$SDIST" | grep -q "$forbidden"; then
+              echo "ERROR: sdist contains forbidden path: $forbidden" && exit 1
+            fi
+          done
+          echo "Artifact audit passed."
+
+      - name: Smoke test — install from wheel into clean venv
+        run: |
+          uv venv .venv-wheel --python ${{ matrix.python-version }}
+          uv pip install --python .venv-wheel/bin/python dist/*.whl
+          .venv-wheel/bin/python -c "import clawloop; print('version:', clawloop.__version__)"
+          .venv-wheel/bin/clawloop --help
+          .venv-wheel/bin/clawloop demo math --dry-run
+          .venv-wheel/bin/python -m clawloop.demo_math --dry-run
+
+      - name: Smoke test — install from sdist into clean venv
+        run: |
+          uv venv .venv-sdist --python ${{ matrix.python-version }}
+          uv pip install --python .venv-sdist/bin/python dist/*.tar.gz
+          .venv-sdist/bin/python -c "import clawloop; print('version:', clawloop.__version__)"
+          .venv-sdist/bin/clawloop --help
+          .venv-sdist/bin/clawloop demo math --dry-run
+          .venv-sdist/bin/python -m clawloop.demo_math --dry-run

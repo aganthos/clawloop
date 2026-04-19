@@ -9,8 +9,8 @@ into the agent.
 ## Quick Start
 
 ```bash
-pip install -e .
-python examples/demo_math.py --dry-run
+uv sync
+uv run clawloop demo math --dry-run
 ```
 
 No API keys needed. The agent learns strategies, builds a playbook, and
