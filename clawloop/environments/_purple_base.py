@@ -11,9 +11,12 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import socket
 import threading
+import time
 from typing import Any, ClassVar
 
+import httpx
 import litellm
 import uvicorn
 from starlette.applications import Starlette
@@ -109,6 +112,10 @@ class _PurpleAgentBase:
         The LLM needs matching ids between assistant tool_calls and tool-role
         messages. Handles duplicate tool names by only rewriting calls that
         still hold their LLM-generated id (not a green id already in use).
+
+        Only the most recent assistant message is searched: tool results
+        always follow their triggering assistant call in this protocol, so
+        reconciling against older assistant messages would be incorrect.
         """
         used_green_ids = {
             m["tool_call_id"] for m in messages if m.get("role") == "tool" and "tool_call_id" in m
@@ -120,7 +127,7 @@ class _PurpleAgentBase:
                 if tc["function"]["name"] == tool_name and tc["id"] not in used_green_ids:
                     tc["id"] = green_id
                     return
-            return
+            return  # most recent assistant msg had no matching tool_call — stop
 
     def _build_message_parts(self, assistant_msg: Any) -> list[dict]:
         """Build the A2A ``parts`` list from an assistant message."""
@@ -268,9 +275,6 @@ def start_purple_server(
     agent: _PurpleAgentBase, host: str = "127.0.0.1", port: int = 0
 ) -> tuple[threading.Thread, int]:
     """Start the purple agent server in a background thread. Returns (thread, actual_port)."""
-    import socket
-    import time
-
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind((host, port))
@@ -282,8 +286,6 @@ def start_purple_server(
 
     thread = threading.Thread(target=server.run, kwargs={"sockets": [sock]}, daemon=True)
     thread.start()
-
-    import httpx
 
     for _ in range(50):
         try:
