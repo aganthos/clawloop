@@ -2,23 +2,26 @@
 
 import json
 
-import pytest
-
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
 from clawloop.core.intensity import AdaptiveIntensity
 from clawloop.core.loop import AgentState, learning_loop
-from clawloop.core.paradigm import ParadigmBreakthrough
 from clawloop.core.reflector import Reflector, ReflectorConfig
 from clawloop.core.types import Datum, FBResult, Future, OptimResult
 from clawloop.harness_backends.local import LocalEvolver
-from clawloop.learning_layers.harness import Harness, Insight, PlaybookEntry
+from clawloop.learning_layers.harness import Harness, PlaybookEntry
 
 
 def _make_episode(
-    bench: str = "test", task_id: str = "t1", reward: float = 0.8, model: str = "haiku",
+    bench: str = "test",
+    task_id: str = "t1",
+    reward: float = 0.8,
+    model: str = "haiku",
 ) -> Episode:
     return Episode(
-        id=Episode.new_id(), state_id="deadbeef", task_id=task_id, bench=bench,
+        id=Episode.new_id(),
+        state_id="deadbeef",
+        task_id=task_id,
+        bench=bench,
         messages=[
             Message(role="system", content="You are helpful."),
             Message(role="user", content="Hello"),
@@ -47,15 +50,17 @@ class _MockLLMClient:
 
     def __init__(self, response: str | None = None) -> None:
         self.call_log: list[dict] = []
-        self._response = response or json.dumps([
-            {
-                "action": "add",
-                "content": "Use chain-of-thought for math problems",
-                "target_entry_id": None,
-                "tags": ["strategy"],
-                "source_episode_ids": [],
-            }
-        ])
+        self._response = response or json.dumps(
+            [
+                {
+                    "action": "add",
+                    "content": "Use chain-of-thought for math problems",
+                    "target_entry_id": None,
+                    "tags": ["strategy"],
+                    "source_episode_ids": [],
+                }
+            ]
+        )
 
     def complete(self, messages, **kwargs) -> str:
         self.call_log.append({"messages": messages, **kwargs})
@@ -115,9 +120,9 @@ class TestPerSampleReflection:
         )
 
         # With batch_size=1, reflector should be called once per support episode
-        assert len(client.call_log) == 3, (
-            f"Expected 3 reflector calls (one per episode), got {len(client.call_log)}"
-        )
+        assert (
+            len(client.call_log) == 3
+        ), f"Expected 3 reflector calls (one per episode), got {len(client.call_log)}"
 
     def test_batch_reflection_calls_reflector_once(self) -> None:
         client = _MockLLMClient()
@@ -138,9 +143,9 @@ class TestPerSampleReflection:
         )
 
         # With batch_size=5, all 3 episodes fit in one batch
-        assert len(client.call_log) == 1, (
-            f"Expected 1 reflector call (one batch), got {len(client.call_log)}"
-        )
+        assert (
+            len(client.call_log) == 1
+        ), f"Expected 1 reflector call (one batch), got {len(client.call_log)}"
 
     def test_per_sample_auto_tags_insights(self) -> None:
         client = _MockLLMClient()
@@ -153,7 +158,6 @@ class TestPerSampleReflection:
         ep = _make_episode(bench="entropic", task_id="t1", reward=-0.5)
         ep.metadata = {"entropic_category": "knowledge_qa"}
 
-        from clawloop.core.types import Datum
         harness.forward_backward(Datum(episodes=[ep]))
 
         # Insights should be auto-tagged with bench + category
@@ -166,44 +170,62 @@ class TestSelectivePlaybookRetrieval:
     """Playbook.render(tags=...) filters entries by tag (ACE/DC-RS style)."""
 
     def test_render_filters_by_tag(self):
-        from clawloop.learning_layers.harness import Playbook, PlaybookEntry
-        pb = Playbook(entries=[
-            PlaybookEntry(id="e1", content="Refuse confidential info", tags=["confidential_company_knowledge"]),
-            PlaybookEntry(id="e2", content="Check data access", tags=["handle_time"]),
-            PlaybookEntry(id="e3", content="General strategy", tags=["general"]),
-        ])
+        from clawloop.learning_layers.harness import Playbook
+
+        pb = Playbook(
+            entries=[
+                PlaybookEntry(
+                    id="e1",
+                    content="Refuse confidential info",
+                    tags=["confidential_company_knowledge"],
+                ),
+                PlaybookEntry(id="e2", content="Check data access", tags=["handle_time"]),
+                PlaybookEntry(id="e3", content="General strategy", tags=["general"]),
+            ]
+        )
         rendered = pb.render(tags={"handle_time"})
         assert "Check data access" in rendered
         assert "Refuse confidential" not in rendered
         assert "General strategy" not in rendered
 
     def test_render_no_match_falls_back_to_all(self):
-        from clawloop.learning_layers.harness import Playbook, PlaybookEntry
-        pb = Playbook(entries=[
-            PlaybookEntry(id="e1", content="Entry one", tags=["alpha"]),
-            PlaybookEntry(id="e2", content="Entry two", tags=["beta"]),
-        ])
+        from clawloop.learning_layers.harness import Playbook
+
+        pb = Playbook(
+            entries=[
+                PlaybookEntry(id="e1", content="Entry one", tags=["alpha"]),
+                PlaybookEntry(id="e2", content="Entry two", tags=["beta"]),
+            ]
+        )
         rendered = pb.render(tags={"nonexistent"})
         assert "Entry one" in rendered
         assert "Entry two" in rendered
 
     def test_render_no_tags_returns_all(self):
-        from clawloop.learning_layers.harness import Playbook, PlaybookEntry
-        pb = Playbook(entries=[
-            PlaybookEntry(id="e1", content="Entry one", tags=["alpha"]),
-            PlaybookEntry(id="e2", content="Entry two", tags=["beta"]),
-        ])
+        from clawloop.learning_layers.harness import Playbook
+
+        pb = Playbook(
+            entries=[
+                PlaybookEntry(id="e1", content="Entry one", tags=["alpha"]),
+                PlaybookEntry(id="e2", content="Entry two", tags=["beta"]),
+            ]
+        )
         rendered = pb.render(tags=None)
         assert "Entry one" in rendered
         assert "Entry two" in rendered
 
     def test_system_prompt_passes_tags(self):
-        from clawloop.learning_layers.harness import Playbook, PlaybookEntry
+        from clawloop.learning_layers.harness import Playbook
+
         harness = Harness(system_prompts={"test": "Base prompt."})
-        harness.playbook = Playbook(entries=[
-            PlaybookEntry(id="e1", content="Privacy rule", tags=["confidential_company_knowledge"]),
-            PlaybookEntry(id="e2", content="Handle time rule", tags=["handle_time"]),
-        ])
+        harness.playbook = Playbook(
+            entries=[
+                PlaybookEntry(
+                    id="e1", content="Privacy rule", tags=["confidential_company_knowledge"]
+                ),
+                PlaybookEntry(id="e2", content="Handle time rule", tags=["handle_time"]),
+            ]
+        )
         prompt = harness.system_prompt("test", task_tags={"handle_time"})
         assert "Handle time rule" in prompt
         assert "Privacy rule" not in prompt
@@ -245,9 +267,9 @@ class TestLoopWithAdaptiveIntensity:
         # In any case, with gating some iterations should skip the harness fb.
         # The reflector should have been called fewer than 4 times.
         reflector_calls = len(client.call_log)
-        assert reflector_calls < 4, (
-            f"Expected fewer than 4 reflector calls with intensity gating, got {reflector_calls}"
-        )
+        assert (
+            reflector_calls < 4
+        ), f"Expected fewer than 4 reflector calls with intensity gating, got {reflector_calls}"
         assert reflector_calls > 0, "Reflector should have been called at least once"
 
 
@@ -304,15 +326,15 @@ class TestCrossLayerRollback:
 
         # Harness should be rolled back to pre-optim state
         harness_after = json.dumps(state.harness.to_dict(), sort_keys=True)
-        assert harness_after == harness_before, (
-            "Harness should be rolled back when router optim fails"
-        )
+        assert (
+            harness_after == harness_before
+        ), "Harness should be rolled back when router optim fails"
 
         # Router should also be rolled back to pre-optim state
         router_after = json.dumps(state.router.to_dict(), sort_keys=True)
-        assert router_after == router_before, (
-            "Router should be rolled back when its own optim fails"
-        )
+        assert (
+            router_after == router_before
+        ), "Router should be rolled back when its own optim fails"
 
     def test_optim_error_status_triggers_rollback(self) -> None:
         client = _MockLLMClient()
@@ -344,9 +366,9 @@ class TestCrossLayerRollback:
 
         # Harness should be rolled back when router optim returns error status
         harness_after = json.dumps(state.harness.to_dict(), sort_keys=True)
-        assert harness_after == harness_before, (
-            "Harness should be rolled back when router optim_step returns error status"
-        )
+        assert (
+            harness_after == harness_before
+        ), "Harness should be rolled back when router optim_step returns error status"
 
     def test_fb_error_clears_pending_state(self) -> None:
         state = AgentState()
@@ -377,6 +399,6 @@ class TestCrossLayerRollback:
             active_layers=["router"],
         )
 
-        assert len(clear_called) > 0, (
-            "clear_pending_state should be called when forward_backward returns error"
-        )
+        assert (
+            len(clear_called) > 0
+        ), "clear_pending_state should be called when forward_backward returns error"

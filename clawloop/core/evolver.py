@@ -17,10 +17,10 @@ from typing import Any, Protocol
 from clawloop.core.episode import Episode
 from clawloop.learning_layers.harness import Insight, PromptCandidate
 
-
 # ---------------------------------------------------------------------------
 # Harness state snapshot (serializable for cloud evolvers)
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class HarnessSnapshot:
@@ -45,6 +45,7 @@ class HarnessSnapshot:
 # ---------------------------------------------------------------------------
 # Evolver context and result
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class Provenance:
@@ -88,6 +89,7 @@ class EvolverResult:
 # ---------------------------------------------------------------------------
 # Evolver interface (internal, not exported as public API)
 # ---------------------------------------------------------------------------
+
 
 class Evolver(Protocol):
     """Internal interface for harness optimization backends.

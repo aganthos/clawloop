@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import sys
-import time
 from typing import Any
 from unittest.mock import patch
 
@@ -28,7 +27,6 @@ from clawloop.core.episode import (
 )
 from clawloop.core.reward import RewardSignal
 from clawloop.exporters.otel import OTelExporter, _ms_to_ns, _to_ns
-
 
 # ---------------------------------------------------------------------------
 # Shared fixture helpers
@@ -691,7 +689,6 @@ class TestTracerInjection:
     def test_global_provider_respected(self) -> None:
         """When a real global TracerProvider is set, OTelExporter should use it."""
         from opentelemetry import trace
-        from opentelemetry.sdk.trace import TracerProvider
 
         provider, exp = _make_provider()
         original = trace.get_tracer_provider()
@@ -721,7 +718,7 @@ class TestTracerInjection:
 
     def test_flush_calls_force_flush_on_owned_provider(self) -> None:
         """When OTelExporter owns the provider, flush() must call force_flush."""
-        from unittest.mock import MagicMock, patch as _patch
+        from unittest.mock import MagicMock
 
         provider, _ = _make_provider()
         tracer = provider.get_tracer("test")
@@ -747,10 +744,20 @@ class TestStepIndexMultipleAssistants:
         messages = [
             Message(role="system", content="sys", timestamp=_BASE_TS),
             Message(role="user", content="q1", timestamp=_BASE_TS + 1),
-            Message(role="assistant", content="thinking...", model="gpt-4o",
-                    token_count=5, timestamp=_BASE_TS + 2),
-            Message(role="assistant", content="done", model="gpt-4o",
-                    token_count=10, timestamp=_BASE_TS + 3),
+            Message(
+                role="assistant",
+                content="thinking...",
+                model="gpt-4o",
+                token_count=5,
+                timestamp=_BASE_TS + 2,
+            ),
+            Message(
+                role="assistant",
+                content="done",
+                model="gpt-4o",
+                token_count=10,
+                timestamp=_BASE_TS + 3,
+            ),
         ]
         ep = Episode(
             id="ep-multi-asst",
@@ -852,13 +859,14 @@ class TestOpenInferenceFallback:
 
         import clawloop.exporters.otel as otel_mod
 
-        original_span_kind = otel_mod._SPAN_KIND_ATTR
-        original_kind_agent = otel_mod._KIND_AGENT
-
         # Simulate import failure
         with patch.dict(
             "sys.modules",
-            {"openinference.semconv.trace": None, "openinference": None, "openinference.semconv": None},
+            {
+                "openinference.semconv.trace": None,
+                "openinference": None,
+                "openinference.semconv": None,
+            },
         ):
             # Force reimport to trigger fallback path
             try:

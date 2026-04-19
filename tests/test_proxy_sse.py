@@ -25,9 +25,7 @@ class TestParseSSEBytesSimpleText:
                 {
                     "id": "chatcmpl-1",
                     "model": "gpt-4o",
-                    "choices": [
-                        {"index": 0, "delta": {"role": "assistant", "content": "Hello"}}
-                    ],
+                    "choices": [{"index": 0, "delta": {"role": "assistant", "content": "Hello"}}],
                 }
             )
             + _sse_chunk(
@@ -138,9 +136,7 @@ class TestParseSSEBytesToolCalls:
                 {
                     "id": "chatcmpl-2",
                     "model": "gpt-4o-mini",
-                    "choices": [
-                        {"index": 0, "delta": {}, "finish_reason": "tool_calls"}
-                    ],
+                    "choices": [{"index": 0, "delta": {}, "finish_reason": "tool_calls"}],
                     "usage": {
                         "prompt_tokens": 20,
                         "completion_tokens": 10,
@@ -205,9 +201,7 @@ class TestParseSSEBytesToolCalls:
                         {
                             "index": 0,
                             "delta": {
-                                "tool_calls": [
-                                    {"index": 0, "function": {"arguments": '"hi"}'}}
-                                ]
+                                "tool_calls": [{"index": 0, "function": {"arguments": '"hi"}'}}]
                             },
                         }
                     ],
@@ -241,9 +235,7 @@ class TestParseSSEBytesToolCalls:
                 {
                     "id": "chatcmpl-3",
                     "model": "gpt-4o",
-                    "choices": [
-                        {"index": 0, "delta": {}, "finish_reason": "tool_calls"}
-                    ],
+                    "choices": [{"index": 0, "delta": {}, "finish_reason": "tool_calls"}],
                 }
             )
             + b"data: [DONE]\n\n"
@@ -269,18 +261,14 @@ class TestParseSSEBytesMissingUsage:
                 {
                     "id": "chatcmpl-4",
                     "model": "gpt-4o",
-                    "choices": [
-                        {"index": 0, "delta": {"role": "assistant", "content": "Hi"}}
-                    ],
+                    "choices": [{"index": 0, "delta": {"role": "assistant", "content": "Hi"}}],
                 }
             )
             + _sse_chunk(
                 {
                     "id": "chatcmpl-4",
                     "model": "gpt-4o",
-                    "choices": [
-                        {"index": 0, "delta": {}, "finish_reason": "stop"}
-                    ],
+                    "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}],
                 }
             )
             + b"data: [DONE]\n\n"
@@ -302,9 +290,7 @@ class TestParseSSEBytesIncomplete:
             {
                 "id": "chatcmpl-5",
                 "model": "gpt-4o",
-                "choices": [
-                    {"index": 0, "delta": {"role": "assistant", "content": "partial"}}
-                ],
+                "choices": [{"index": 0, "delta": {"role": "assistant", "content": "partial"}}],
             }
         )
 

@@ -243,6 +243,7 @@ class TestTokenLogProb:
 
     def test_frozen(self) -> None:
         import pytest
+
         lp = TokenLogProb(token="x", logprob=-0.1)
         with pytest.raises(AttributeError):
             lp.token = "y"  # type: ignore[misc]
@@ -254,7 +255,10 @@ class TestCapLogprobs:
         assert cap_logprobs(lps) is lps  # no copy needed
 
     def test_cap_over_limit(self) -> None:
-        lps = [TokenLogProb(token=f"t{i}", logprob=-0.1) for i in range(MAX_LOGPROBS_PER_MESSAGE + 100)]
+        lps = [
+            TokenLogProb(token=f"t{i}", logprob=-0.1)
+            for i in range(MAX_LOGPROBS_PER_MESSAGE + 100)
+        ]
         capped = cap_logprobs(lps)
         assert len(capped) == MAX_LOGPROBS_PER_MESSAGE
 
@@ -306,9 +310,7 @@ class TestMessageReasoningContent:
         """to_openai_dict() is the OpenAI Chat Completions request shape.
         reasoning_content is an internal record field — must not be emitted.
         """
-        msg = Message(
-            role="assistant", content="x", reasoning_content="y"
-        )
+        msg = Message(role="assistant", content="x", reasoning_content="y")
         d = msg.to_openai_dict()
         assert "reasoning_content" not in d
         assert "reasoning" not in d
@@ -318,9 +320,7 @@ class TestMessageReasoningContent:
         """Document the contract: Message -> to_openai_dict -> Message loses
         reasoning_content. Future maintainers must not assume lossless
         round-trips through the OpenAI wire format."""
-        original = Message(
-            role="assistant", content="x", reasoning_content="y"
-        )
+        original = Message(role="assistant", content="x", reasoning_content="y")
         d = original.to_openai_dict()
         reconstructed = Message(role=d["role"], content=d["content"])
         assert reconstructed.reasoning_content is None

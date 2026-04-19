@@ -8,22 +8,21 @@ Requires:
 Run with:
     pytest tests/test_e2e_enterpriseops_gym.py -m e2e -s --timeout=600
 """
+
 from __future__ import annotations
 
 import json
 import logging
 import os
-import shutil
 import socket
 import subprocess
-import tempfile
 import time
 from pathlib import Path
 
 import pytest
 
-from clawloop.core.loop import AgentState, learning_loop
 from clawloop.core.episode import Episode
+from clawloop.core.loop import AgentState, learning_loop
 from clawloop.learning_layers.harness import Harness
 
 log = logging.getLogger(__name__)
@@ -61,7 +60,10 @@ def _image_available(image: str) -> bool:
     try:
         result = subprocess.run(
             ["docker", "images", "-q", image],
-            capture_output=True, text=True, check=True, timeout=10,
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=10,
         )
         return bool(result.stdout.strip())
     except (subprocess.CalledProcessError, FileNotFoundError):
@@ -84,6 +86,7 @@ def _wait_for_server(port: int, timeout: float = 60.0) -> bool:
 # LLM config helper
 # ---------------------------------------------------------------------------
 
+
 def _proxy_available() -> bool:
     """Check if a local OpenAI-compatible proxy is running (configured via env vars)."""
     url = os.environ.get("LLM_PROXY_URL", "")
@@ -92,8 +95,8 @@ def _proxy_available() -> bool:
         return False
     try:
         import httpx
-        r = httpx.get(f"{url}/models",
-                      headers={"Authorization": f"Bearer {key}"}, timeout=5)
+
+        r = httpx.get(f"{url}/models", headers={"Authorization": f"Bearer {key}"}, timeout=5)
         return r.status_code == 200
     except Exception:
         return False
@@ -140,7 +143,9 @@ def _create_llm_config(tmp_dir: Path) -> Path:
                 "max_tokens": 8192,
             }
         else:
-            pytest.skip("No LLM configured: set LLM_PROXY_URL+LLM_PROXY_KEY, GOOGLE_API_KEY, or ANTHROPIC_API_KEY")
+            pytest.skip(
+                "No LLM configured: set LLM_PROXY_URL+LLM_PROXY_KEY, GOOGLE_API_KEY, or ANTHROPIC_API_KEY"
+            )
 
     config_path = tmp_dir / "llm_config.json"
     config_path.write_text(json.dumps(config))
@@ -150,6 +155,7 @@ def _create_llm_config(tmp_dir: Path) -> Path:
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture(scope="module")
 def docker_teams_server():
@@ -165,27 +171,38 @@ def docker_teams_server():
     # Stop any leftover container from a previous run
     subprocess.run(
         ["docker", "rm", "-f", CONTAINER_NAME],
-        capture_output=True, timeout=10,
+        capture_output=True,
+        timeout=10,
     )
 
     subprocess.run(
         [
-            "docker", "run", "-d",
-            "--name", CONTAINER_NAME,
-            "-p", f"{port}:8005",
+            "docker",
+            "run",
+            "-d",
+            "--name",
+            CONTAINER_NAME,
+            "-p",
+            f"{port}:8005",
             DOCKER_IMAGE,
         ],
-        check=True, capture_output=True, timeout=30,
+        check=True,
+        capture_output=True,
+        timeout=30,
     )
 
     if not _wait_for_server(port, timeout=90):
         # Grab logs for debugging, then clean up before failing
         logs = subprocess.run(
             ["docker", "logs", CONTAINER_NAME],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         subprocess.run(["docker", "rm", "-f", CONTAINER_NAME], capture_output=True, timeout=10)
-        pytest.fail(f"Teams MCP server failed to start on port {port}.\nLogs:\n{logs.stdout}\n{logs.stderr}")
+        pytest.fail(
+            f"Teams MCP server failed to start on port {port}.\nLogs:\n{logs.stdout}\n{logs.stderr}"
+        )
 
     log.info("Teams MCP server ready on port %d", port)
     yield port
@@ -204,12 +221,16 @@ def llm_config_path(tmp_path_factory):
 # Test
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.e2e
 class TestEnterpriseOpsGymHarnessLearning:
     """Real e2e: Docker MCP server + real LLM + harness learning loop."""
 
     def test_harness_learns_from_enterprise_tasks(
-        self, docker_teams_server, llm_config_path, tmp_path,
+        self,
+        docker_teams_server,
+        llm_config_path,
+        tmp_path,
     ):
         from clawloop.environments.enterpriseops_gym import build_adapter_from_hf
 
@@ -246,6 +267,7 @@ class TestEnterpriseOpsGymHarnessLearning:
 
         # Build harness with a base system prompt and reflector
         from clawloop.llm import LiteLLMClient
+
         # Use cheapest available model for reflector
         proxy_url = os.environ.get("LLM_PROXY_URL", "")
         proxy_key = os.environ.get("LLM_PROXY_KEY", "")
@@ -263,16 +285,18 @@ class TestEnterpriseOpsGymHarnessLearning:
             reflector_client = LiteLLMClient(model="anthropic/claude-haiku-4-5-20251001")
 
         harness = Harness(
-            system_prompts={"enterpriseops-gym": (
-                "You are an enterprise operations assistant. Use the available tools "
-                "to complete tasks in the Teams application. Think step by step about "
-                "what data you need and which tools to call."
-            )},
+            system_prompts={
+                "enterpriseops-gym": (
+                    "You are an enterprise operations assistant. Use the available tools "
+                    "to complete tasks in the Teams application. Think step by step about "
+                    "what data you need and which tools to call."
+                )
+            },
         )
 
         # Set up evolver with reflector for learning
-        from clawloop.harness_backends.local import LocalEvolver
         from clawloop.core.reflector import Reflector
+        from clawloop.harness_backends.local import LocalEvolver
 
         reflector = Reflector(client=reflector_client)
         evolver = LocalEvolver(reflector=reflector)
@@ -285,14 +309,16 @@ class TestEnterpriseOpsGymHarnessLearning:
 
         log.info(
             "Starting learning loop: %d tasks, %d iterations, %d episodes/iter",
-            len(tasks_to_use), N_ITERATIONS, N_EPISODES,
+            len(tasks_to_use),
+            N_ITERATIONS,
+            N_EPISODES,
         )
 
         # --- Pre-flight: verify adapter produces valid episodes ---
         preflight_episode = adapter.run_episode(tasks_to_use[0], agent_state)
-        assert isinstance(preflight_episode, Episode), (
-            f"Adapter should return Episode, got {type(preflight_episode)}"
-        )
+        assert isinstance(
+            preflight_episode, Episode
+        ), f"Adapter should return Episode, got {type(preflight_episode)}"
         assert preflight_episode.bench == "enterpriseops-gym"
         assert preflight_episode.task_id, "Episode must have a task_id"
 
@@ -300,7 +326,8 @@ class TestEnterpriseOpsGymHarnessLearning:
         is_filtered = preflight_episode.summary.filtered
         log.info(
             "Preflight episode: %d messages, filtered=%s, reward=%.3f",
-            len(preflight_episode.messages), is_filtered,
+            len(preflight_episode.messages),
+            is_filtered,
             preflight_episode.summary.effective_reward() if not is_filtered else 0.0,
         )
 
@@ -324,9 +351,9 @@ class TestEnterpriseOpsGymHarnessLearning:
         # --- Assertions ---
 
         # 1. State ID changed (learning happened)
-        assert state_id.combined_hash != AgentState().state_id().combined_hash, (
-            "State ID should change after learning — harness should have been modified"
-        )
+        assert (
+            state_id.combined_hash != AgentState().state_id().combined_hash
+        ), "State ID should change after learning — harness should have been modified"
 
         # 2. Playbook version incremented (forward_backward + optim_step ran)
         assert agent_state.harness.playbook_version > 0, (
@@ -339,5 +366,7 @@ class TestEnterpriseOpsGymHarnessLearning:
         n_entries = len(playbook.entries)
         log.info(
             "E2E test passed: %d playbook entries, version=%d, state_id=%s",
-            n_entries, agent_state.harness.playbook_version, state_id.combined_hash[:12],
+            n_entries,
+            agent_state.harness.playbook_version,
+            state_id.combined_hash[:12],
         )

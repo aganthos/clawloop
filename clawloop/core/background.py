@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import logging
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Protocol, runtime_checkable
 
 from clawloop.core.episode import Episode
@@ -73,7 +73,10 @@ class PlaybookConsolidation:
             report = self.curator.consolidate(state.playbook)
             log.info(
                 "Consolidation: %d->%d entries (merged=%d, pruned=%d)",
-                report.before, report.after, report.merged, report.pruned,
+                report.before,
+                report.after,
+                report.merged,
+                report.pruned,
             )
         except Exception:
             log.exception("PlaybookConsolidation failed")
@@ -111,9 +114,7 @@ class EpisodeDreamer:
             reward = ep.summary.effective_reward()
             task = ep.task_id
             msgs = len(ep.messages)
-            episode_summaries.append(
-                f"- Task={task} reward={reward:.2f} messages={msgs}"
-            )
+            episode_summaries.append(f"- Task={task} reward={reward:.2f} messages={msgs}")
 
         if not episode_summaries:
             return
@@ -136,8 +137,7 @@ class EpisodeDreamer:
                     + "\n".join(episode_summaries)
                     + "\n\n## Current Playbook Entries\n"
                     + "\n".join(
-                        f"- {e.content[:100]}"
-                        for e in state.playbook.active_entries()[:10]
+                        f"- {e.content[:100]}" for e in state.playbook.active_entries()[:10]
                     )
                     + "\n\nWhat meta-patterns do you see across these episodes?"
                 ),
@@ -155,11 +155,13 @@ class EpisodeDreamer:
                     tags.append("meta-pattern")
                 content = item.get("content", "")
                 if content:
-                    insights.append(Insight(
-                        action=item.get("action", "add"),
-                        content=content,
-                        tags=tags,
-                    ))
+                    insights.append(
+                        Insight(
+                            action=item.get("action", "add"),
+                            content=content,
+                            tags=tags,
+                        )
+                    )
 
             if not insights:
                 return

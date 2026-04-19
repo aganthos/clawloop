@@ -213,7 +213,9 @@ class TestClawLoopCallbackBasic:
         response.choices = []
         cb.log_success_event(
             {"messages": [{"role": "user", "content": "hi"}]},
-            response, time.time(), time.time(),
+            response,
+            time.time(),
+            time.time(),
         )
         assert collector.metrics["episodes_collected"] == 0
 
@@ -224,10 +226,17 @@ class TestClawLoopCallbackBasic:
         kwargs = {
             "messages": [
                 {"role": "user", "content": "call search"},
-                {"role": "assistant", "content": None, "tool_calls": [
-                    {"id": "tc-1", "type": "function",
-                     "function": {"name": "search", "arguments": '{"q":"x"}'}},
-                ]},
+                {
+                    "role": "assistant",
+                    "content": None,
+                    "tool_calls": [
+                        {
+                            "id": "tc-1",
+                            "type": "function",
+                            "function": {"name": "search", "arguments": '{"q":"x"}'},
+                        },
+                    ],
+                },
                 {"role": "tool", "content": "found x", "tool_call_id": "tc-1"},
             ],
         }

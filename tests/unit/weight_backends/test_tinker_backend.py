@@ -6,6 +6,7 @@ The backend tests cover __init__ + current_sampling_client (Task 8) and
 the Layer-protocol methods (Task 9); they must NOT hit the network — every
 Tinker SDK call is monkey-patched.
 """
+
 from dataclasses import asdict
 from types import SimpleNamespace
 from typing import Any
@@ -42,13 +43,14 @@ def test_config_merges_partial_adam_params_with_defaults():
     three required keys (beta1, beta2, eps) — otherwise ``AdamParams(**...)``
     would TypeError at optim_step time."""
     from clawloop.weight_backends.tinker import TinkerWeightsConfig
+
     cfg = TinkerWeightsConfig(
         base_model="Qwen/Qwen3-8B",
         adam_params={"learning_rate": 5e-6},
     )
     # All four required AdamParams kwargs present after the merge.
-    assert cfg.adam_params["learning_rate"] == 5e-6   # user override kept
-    assert cfg.adam_params["beta1"] == 0.9            # default filled in
+    assert cfg.adam_params["learning_rate"] == 5e-6  # user override kept
+    assert cfg.adam_params["beta1"] == 0.9  # default filled in
     assert cfg.adam_params["beta2"] == 0.999
     assert cfg.adam_params["eps"] == 1e-8
 
@@ -79,18 +81,17 @@ def test_init_fails_without_api_key(monkeypatch):
     monkeypatch.setenv("CLAWLOOP_ENV_FILE", "/nonexistent/path")
     monkeypatch.chdir("/tmp")
     import clawloop.config
+
     clawloop.config._loaded = False
     # Belt-and-braces: also no-op the load_env reference inside tinker.py so
     # the package-scoped clawloop/.env can never be picked up.
-    monkeypatch.setattr(
-        "clawloop.weight_backends.tinker.load_env", lambda: []
-    )
+    monkeypatch.setattr("clawloop.weight_backends.tinker.load_env", lambda: [])
 
+    from clawloop.weight_backends._tinker_sdk import TinkerBackendError
     from clawloop.weight_backends.tinker import (
         TinkerWeightsBackend,
         TinkerWeightsConfig,
     )
-    from clawloop.weight_backends._tinker_sdk import TinkerBackendError
 
     with pytest.raises(TinkerBackendError) as excinfo:
         TinkerWeightsBackend(TinkerWeightsConfig(base_model="Qwen/Qwen3-8B"))
@@ -155,9 +156,7 @@ def test_init_creates_training_and_sampling_clients(monkeypatch):
         "clawloop.weight_backends.tinker._tinker_sdk.get_model_id",
         lambda training: "fake-model-id",
     )
-    monkeypatch.setattr(
-        "clawloop.weight_backends.tinker.get_renderer", _get_renderer
-    )
+    monkeypatch.setattr("clawloop.weight_backends.tinker.get_renderer", _get_renderer)
     monkeypatch.setattr(
         "clawloop.weight_backends.tinker.get_recommended_renderer_name",
         _recommended,
@@ -250,9 +249,7 @@ def test_init_uses_explicit_renderer_name_when_provided(monkeypatch):
         TinkerWeightsConfig,
     )
 
-    cfg = TinkerWeightsConfig(
-        base_model="Qwen/Qwen3-8B", renderer_name="custom-renderer"
-    )
+    cfg = TinkerWeightsConfig(base_model="Qwen/Qwen3-8B", renderer_name="custom-renderer")
     TinkerWeightsBackend(cfg)
 
     assert recommended_calls == []
@@ -273,9 +270,7 @@ def _fake_backend(monkeypatch):
     """
     monkeypatch.setenv("TINKER_API_KEY", "fake")
     # Don't let load_env clobber our env var.
-    monkeypatch.setattr(
-        "clawloop.weight_backends.tinker.load_env", lambda: []
-    )
+    monkeypatch.setattr("clawloop.weight_backends.tinker.load_env", lambda: [])
 
     fake_service = SimpleNamespace(name="service")
     fake_tokenizer = SimpleNamespace(name="tokenizer")
@@ -356,16 +351,10 @@ def test_forward_backward_pipelines_fb_and_optim(monkeypatch):
         opt_calls.append(adam_params)
         return opt_future
 
-    monkeypatch.setattr(
-        "clawloop.weight_backends.tinker._tinker_sdk.forward_backward", _fb
-    )
-    monkeypatch.setattr(
-        "clawloop.weight_backends.tinker._tinker_sdk.optim_step", _opt
-    )
+    monkeypatch.setattr("clawloop.weight_backends.tinker._tinker_sdk.forward_backward", _fb)
+    monkeypatch.setattr("clawloop.weight_backends.tinker._tinker_sdk.optim_step", _opt)
 
-    result = backend.forward_backward(
-        Datum(episodes=[], loss_fn="importance_sampling")
-    ).result()
+    result = backend.forward_backward(Datum(episodes=[], loss_fn="importance_sampling")).result()
 
     assert result.status == "ok"
     assert result.metrics["n_datums"] == 1
@@ -414,16 +403,12 @@ def test_forward_backward_wraps_backend_error(monkeypatch):
         lambda episodes, *, loss_fn: [MagicMock(name="datum")],
     )
 
-    err = TinkerBackendError(
-        BackendError(code="rate_limit", message="slow", recoverable=True)
-    )
+    err = TinkerBackendError(BackendError(code="rate_limit", message="slow", recoverable=True))
 
     def _raise(*a, **kw):
         raise err
 
-    monkeypatch.setattr(
-        "clawloop.weight_backends.tinker._tinker_sdk.forward_backward", _raise
-    )
+    monkeypatch.setattr("clawloop.weight_backends.tinker._tinker_sdk.forward_backward", _raise)
     monkeypatch.setattr(
         "clawloop.weight_backends.tinker._tinker_sdk.optim_step",
         lambda *a, **kw: MagicMock(),
@@ -555,9 +540,9 @@ def test_to_dict_has_no_secret_keys(monkeypatch):
     blob = str(d).lower()
     for forbidden in ("api_key", "secret", "bearer", "token"):
         assert forbidden not in blob, f"{forbidden} leaked into to_dict()"
-        assert all(forbidden not in str(k).lower() for k in d.keys()), (
-            f"{forbidden} appeared as a key in to_dict()"
-        )
+        assert all(
+            forbidden not in str(k).lower() for k in d.keys()
+        ), f"{forbidden} appeared as a key in to_dict()"
 
 
 # 11. to_dict contains the expected config + adapter_paths

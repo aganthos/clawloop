@@ -86,11 +86,12 @@ class TestGenerationAdvanceFlushesWeightsBuffer:
         )
 
         # The flush logic should have cleared the stale advantages
-        assert state.weights._pending.advantages == [], (
-            "Stale advantages should be flushed after playbook_generation advances"
-        )
+        assert (
+            state.weights._pending.advantages == []
+        ), "Stale advantages should be flushed after playbook_generation advances"
         # _prev_playbook_generation should now track the new generation
         assert state._prev_playbook_generation == 1
+
 
 class TestNoFlushWhenGenerationUnchanged:
     """When playbook_generation stays the same, weights buffer is preserved."""
@@ -128,9 +129,9 @@ class TestNoFlushWhenGenerationUnchanged:
         )
 
         # Buffer should be untouched — no flush because generation didn't change
-        assert state.weights._pending.advantages == stale_advantages, (
-            "Weights buffer should be preserved when playbook_generation is unchanged"
-        )
+        assert (
+            state.weights._pending.advantages == stale_advantages
+        ), "Weights buffer should be preserved when playbook_generation is unchanged"
 
 
 class TestFlushLogsStaleCount:
@@ -152,9 +153,7 @@ class TestFlushLogsStaleCount:
         )
 
         # Seed 5 stale advantages
-        state.weights._pending.advantages = [
-            (f"ep-stale-{i}", float(i) * 0.1) for i in range(5)
-        ]
+        state.weights._pending.advantages = [(f"ep-stale-{i}", float(i) * 0.1) for i in range(5)]
 
         # Advance generation
         state.harness.playbook_generation = 1
@@ -171,14 +170,13 @@ class TestFlushLogsStaleCount:
 
         # Find the flush log message
         flush_messages = [
-            r.message for r in caplog.records
-            if "flushed" in r.message and "stale" in r.message
+            r.message for r in caplog.records if "flushed" in r.message and "stale" in r.message
         ]
         assert flush_messages, "Expected a log message about flushing stale episodes"
 
         # Verify the count in the message
         msg = flush_messages[0]
         assert "5" in msg, f"Expected stale count of 5 in log message, got: {msg}"
-        assert "0->1" in msg or "Generation 0->1" in msg, (
-            f"Expected generation transition 0->1 in log message, got: {msg}"
-        )
+        assert (
+            "0->1" in msg or "Generation 0->1" in msg
+        ), f"Expected generation transition 0->1 in log message, got: {msg}"

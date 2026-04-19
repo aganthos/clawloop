@@ -25,7 +25,9 @@ if TYPE_CHECKING:
 def _safe_default(obj: Any) -> str:
     """Fallback serializer that logs a warning before using str()."""
     log.warning(
-        "Non-serializable object in StateID: %s (%s)", type(obj).__name__, obj,
+        "Non-serializable object in StateID: %s (%s)",
+        type(obj).__name__,
+        obj,
     )
     return str(obj)
 

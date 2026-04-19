@@ -2,6 +2,7 @@
 
 `run_episode` is implemented in Task 13 — not tested here.
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -24,6 +25,7 @@ async def test_sample_one_llm_attempt_raises_on_none_logprobs():
     None for .logprobs — silently falling back to 0.0 would give log(1)=prob 1.0
     IS ratios for importance_sampling loss (mathematically bogus)."""
     import concurrent.futures
+
     from clawloop.environments import openspiel as osp
 
     # Build a fake sampling_client.sample() that returns sequences[0].logprobs=None
@@ -38,7 +40,7 @@ async def test_sample_one_llm_attempt_raises_on_none_logprobs():
     sampling_client.sample.return_value = fut
 
     fake_tokenizer = MagicMock()
-    fake_renderer = MagicMock(spec=[])   # no build_generation_prompt
+    fake_renderer = MagicMock(spec=[])  # no build_generation_prompt
     fake_tokenizer.apply_chat_template.return_value = [1, 2, 3]
     fake_tokenizer.decode.return_value = "<text>"
 
@@ -65,8 +67,9 @@ async def test_sample_one_llm_attempt_raises_on_none_logprobs():
 def test_run_episodes_batch_concurrent():
     """run_episodes_batch gathers async episodes — episodes execute concurrently."""
     import asyncio
+
     from clawloop.environments.openspiel import (
-        OpenSpielGameAdapter, OpenSpielTaskConfig, OpenSpielTaskEnvironment,
+        OpenSpielGameAdapter,
     )
 
     # Stub envs whose async run_episode sleeps briefly + records start/end times.
@@ -76,6 +79,7 @@ def test_run_episodes_batch_concurrent():
     class _StubEnv:
         def __init__(self, name):
             self._name = name
+
         async def run_episode(self, agent_state, rollout_idx=None):
             t0 = _time.perf_counter()
             await asyncio.sleep(0.05)  # simulate sampling
@@ -99,6 +103,7 @@ def test_run_episodes_batch_concurrent():
 
 def test_config_defaults():
     from clawloop.environments.openspiel import OpenSpielTaskConfig
+
     cfg = OpenSpielTaskConfig(game_name="blackjack", seeds=[0, 1])
     assert cfg.prompt_style == "canonical"
     assert cfg.rethink_k == 3
@@ -111,8 +116,10 @@ def test_config_defaults():
 
 def test_task_env_task_id_format():
     from clawloop.environments.openspiel import (
-        OpenSpielTaskConfig, OpenSpielTaskEnvironment,
+        OpenSpielTaskConfig,
+        OpenSpielTaskEnvironment,
     )
+
     cfg = OpenSpielTaskConfig(game_name="blackjack", seeds=[0])
     env = OpenSpielTaskEnvironment(cfg, seed=7)
     assert env.task_id == "blackjack_seed_7"
@@ -120,8 +127,10 @@ def test_task_env_task_id_format():
 
 def test_task_env_exposes_seed_and_config():
     from clawloop.environments.openspiel import (
-        OpenSpielTaskConfig, OpenSpielTaskEnvironment,
+        OpenSpielTaskConfig,
+        OpenSpielTaskEnvironment,
     )
+
     cfg = OpenSpielTaskConfig(game_name="chess", seeds=[3])
     env = OpenSpielTaskEnvironment(cfg, seed=3)
     assert env.seed == 3
@@ -130,8 +139,11 @@ def test_task_env_exposes_seed_and_config():
 
 def test_adapter_stores_envs_keyed_by_task_id():
     from clawloop.environments.openspiel import (
-        OpenSpielGameAdapter, OpenSpielTaskConfig, OpenSpielTaskEnvironment,
+        OpenSpielGameAdapter,
+        OpenSpielTaskConfig,
+        OpenSpielTaskEnvironment,
     )
+
     cfg = OpenSpielTaskConfig(game_name="blackjack", seeds=[0, 1])
     envs = {
         "blackjack_seed_0": OpenSpielTaskEnvironment(cfg, seed=0),
@@ -158,6 +170,7 @@ def _fake_blackjack_state():
 
 def test_prompt_fallback_includes_observation_and_legal_actions():
     from clawloop.environments.openspiel import _prompt_fallback
+
     state = _fake_blackjack_state()
     prompt = _prompt_fallback(state, history=[], style="canonical")
     assert "Hand: 10, 7" in prompt
@@ -168,6 +181,7 @@ def test_prompt_fallback_includes_observation_and_legal_actions():
 
 def test_parse_move_fallback_final_answer_form():
     from clawloop.environments.openspiel import _parse_move_fallback
+
     state = _fake_blackjack_state()
     assert _parse_move_fallback("Final Answer: Hit", state) == 0
     assert _parse_move_fallback("final answer: stand", state) == 1
@@ -175,6 +189,7 @@ def test_parse_move_fallback_final_answer_form():
 
 def test_parse_move_fallback_free_form_match():
     from clawloop.environments.openspiel import _parse_move_fallback
+
     state = _fake_blackjack_state()
     assert _parse_move_fallback("I think I'll Hit now.", state) == 0
     assert _parse_move_fallback("Better to stand.", state) == 1
@@ -182,6 +197,7 @@ def test_parse_move_fallback_free_form_match():
 
 def test_parse_move_fallback_returns_none_on_gibberish():
     from clawloop.environments.openspiel import _parse_move_fallback
+
     state = _fake_blackjack_state()
     assert _parse_move_fallback("some unrelated text xyzzy", state) is None
 
@@ -189,6 +205,7 @@ def test_parse_move_fallback_returns_none_on_gibberish():
 def test_parse_move_fallback_longest_match_preferred():
     """If a shorter legal string is a substring of a longer one, prefer the longest."""
     from clawloop.environments.openspiel import _parse_move_fallback
+
     state = MagicMock()
     state.current_player.return_value = 0
     state.legal_actions.return_value = [0, 1]
@@ -199,24 +216,27 @@ def test_parse_move_fallback_longest_match_preferred():
 
 def test_build_prompt_uses_fallback_when_game_arena_unavailable(monkeypatch):
     """When game_arena raises on import, build_prompt must return the fallback prompt."""
-    from clawloop.environments.openspiel import build_prompt
     # game_arena IS installed, but we simulate it failing by patching _prompt_via_game_arena to None.
     import clawloop.environments.openspiel as osp
+    from clawloop.environments.openspiel import build_prompt
+
     monkeypatch.setattr(osp, "_prompt_via_game_arena", lambda *a, **kw: None)
     state = _fake_blackjack_state()
     prompt = build_prompt(state, history=[], style="canonical")
-    assert "Hand: 10, 7" in prompt   # fallback content
+    assert "Hand: 10, 7" in prompt  # fallback content
 
 
 def test_parse_move_uses_fallback_when_game_arena_unavailable(monkeypatch):
-    from clawloop.environments.openspiel import parse_move
     # Force fallback by patching game_arena parser call to raise.
-    import clawloop.environments.openspiel as osp
+    from clawloop.environments.openspiel import parse_move
+
     def _raise(*a, **kw):
         raise ImportError("no game_arena")
+
     # The function tries to `from game_arena.harness import parsers` inside.
     # Patch sys.modules so the import fails.
     import sys
+
     monkeypatch.setitem(sys.modules, "game_arena.harness", None)
     state = _fake_blackjack_state()
     assert parse_move("Final Answer: Hit", state) == 0
@@ -228,7 +248,10 @@ def test_parse_move_uses_fallback_when_game_arena_unavailable(monkeypatch):
 
 
 def _make_fake_agent_state(
-    *, sampling_client, renderer, tokenizer,
+    *,
+    sampling_client,
+    renderer,
+    tokenizer,
 ):
     """Build a minimal stand-in for AgentState.
 
@@ -237,6 +260,7 @@ def _make_fake_agent_state(
     reads.
     """
     from types import SimpleNamespace
+
     return SimpleNamespace(
         sampling_client=sampling_client,
         renderer=renderer,
@@ -251,6 +275,7 @@ def _make_fake_sampling(tokens, logprobs):
     which asserts ``isinstance(f, concurrent.futures.Future)``.
     """
     import concurrent.futures
+
     fake_seq = MagicMock()
     fake_seq.tokens = tokens
     fake_seq.logprobs = logprobs
@@ -281,11 +306,15 @@ async def test_run_episode_blackjack_terminates_and_captures_reward():
     fake_renderer = MagicMock(spec=[])
 
     fake_sampling = _make_fake_sampling(
-        tokens=[10, 11, 12], logprobs=[-0.1, -0.2, -0.3],
+        tokens=[10, 11, 12],
+        logprobs=[-0.1, -0.2, -0.3],
     )
 
     cfg = osp.OpenSpielTaskConfig(
-        game_name="blackjack", seeds=[0], max_turns=10, max_tokens=8,
+        game_name="blackjack",
+        seeds=[0],
+        max_turns=10,
+        max_tokens=8,
     )
     env = osp.OpenSpielTaskEnvironment(cfg, seed=0)
     agent_state = _make_fake_agent_state(
@@ -324,7 +353,11 @@ async def test_run_episode_illegal_parse_terminates_with_zero_reward():
     fake_sampling = _make_fake_sampling(tokens=[99], logprobs=[-0.5])
 
     cfg = osp.OpenSpielTaskConfig(
-        game_name="blackjack", seeds=[0], max_turns=10, max_tokens=8, rethink_k=1,
+        game_name="blackjack",
+        seeds=[0],
+        max_turns=10,
+        max_tokens=8,
+        rethink_k=1,
     )
     env = osp.OpenSpielTaskEnvironment(cfg, seed=0)
     agent_state = _make_fake_agent_state(
@@ -348,7 +381,9 @@ async def test_run_episode_requires_sampling_client():
     cfg = osp.OpenSpielTaskConfig(game_name="blackjack", seeds=[0])
     env = osp.OpenSpielTaskEnvironment(cfg, seed=0)
     agent_state = _make_fake_agent_state(
-        sampling_client=None, renderer=MagicMock(), tokenizer=MagicMock(),
+        sampling_client=None,
+        renderer=MagicMock(),
+        tokenizer=MagicMock(),
     )
     with pytest.raises(RuntimeError, match="sampling_client"):
         await env.run_episode(agent_state)
@@ -361,7 +396,9 @@ async def test_run_episode_requires_renderer_and_tokenizer():
     cfg = osp.OpenSpielTaskConfig(game_name="blackjack", seeds=[0])
     env = osp.OpenSpielTaskEnvironment(cfg, seed=0)
     agent_state = _make_fake_agent_state(
-        sampling_client=MagicMock(), renderer=None, tokenizer=None,
+        sampling_client=MagicMock(),
+        renderer=None,
+        tokenizer=None,
     )
     with pytest.raises(RuntimeError, match="renderer"):
         await env.run_episode(agent_state)

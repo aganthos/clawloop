@@ -30,13 +30,7 @@ _SCHEMA_VERSION = 1
 
 def _safe_run_id(run_id: str) -> str:
     """Reject run_id values that could escape the archive directory."""
-    if (
-        not run_id
-        or "/" in run_id
-        or "\\" in run_id
-        or ".." in run_id
-        or run_id.startswith(".")
-    ):
+    if not run_id or "/" in run_id or "\\" in run_id or ".." in run_id or run_id.startswith("."):
         raise ValueError(f"unsafe run_id for filesystem path: {run_id!r}")
     return run_id
 
@@ -248,9 +242,7 @@ class JsonlArchiveStore:
             if completion is not None:
                 start = {
                     **start,
-                    "best_reward": completion.get(
-                        "best_reward", start.get("best_reward", 0.0)
-                    ),
+                    "best_reward": completion.get("best_reward", start.get("best_reward", 0.0)),
                     "improvement_delta": completion.get(
                         "improvement_delta", start.get("improvement_delta", 0.0)
                     ),

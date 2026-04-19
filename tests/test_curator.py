@@ -5,7 +5,6 @@ from clawloop.core.embeddings import MockEmbedding, cosine_similarity
 from clawloop.learning_layers.harness import Insight, Playbook, PlaybookEntry
 from clawloop.llm import MockLLMClient
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -89,9 +88,11 @@ class TestCurateInsight:
         curator = PlaybookCurator(embeddings=_EMB, llm=llm)
 
         # Playbook has one entry about a completely different topic.
-        playbook = Playbook(entries=[
-            _make_entry("Use batch processing for large datasets", entry_id="e-1"),
-        ])
+        playbook = Playbook(
+            entries=[
+                _make_entry("Use batch processing for large datasets", entry_id="e-1"),
+            ]
+        )
         insight = _make_insight("Always greet users warmly")
 
         result = curator.curate_insight(insight, playbook)
@@ -100,9 +101,7 @@ class TestCurateInsight:
         assert result.new_entry is not None
         assert result.new_entry.content == "Always greet users warmly"
         # New entry should have been added to the playbook.
-        assert any(
-            e.content == "Always greet users warmly" for e in playbook.entries
-        )
+        assert any(e.content == "Always greet users warmly" for e in playbook.entries)
         assert curator.metrics.added == 1
 
     def test_skip_redundant_identical(self) -> None:
@@ -153,7 +152,9 @@ class TestCurateInsight:
         assert 0.8 <= sim < 0.95, f"setup check: sim={sim}"
 
         existing = _make_entry(
-            entry_text, entry_id="e-conflict", embedding=entry_emb,
+            entry_text,
+            entry_id="e-conflict",
+            embedding=entry_emb,
         )
         playbook = Playbook(entries=[existing])
 
@@ -182,7 +183,9 @@ class TestCurateInsight:
         assert 0.6 <= sim < 0.8, f"setup check: sim={sim}"
 
         existing = _make_entry(
-            base_text, entry_id="e-comp", embedding=entry_emb,
+            base_text,
+            entry_id="e-comp",
+            embedding=entry_emb,
         )
         playbook = Playbook(entries=[existing])
 
@@ -206,7 +209,8 @@ class TestCurateInsight:
         assert 0.6 <= sim < 0.8, f"setup check: sim={sim}"
 
         existing = _make_entry(
-            "Cache frequently accessed data", entry_id="e-unrel",
+            "Cache frequently accessed data",
+            entry_id="e-unrel",
             embedding=entry_emb,
         )
         playbook = Playbook(entries=[existing])
@@ -229,9 +233,11 @@ class TestCuratorFallbacks:
         failing_emb = _FailingEmbedding()
         curator = PlaybookCurator(embeddings=failing_emb, llm=llm)
 
-        playbook = Playbook(entries=[
-            _make_entry("Existing entry", entry_id="e-1"),
-        ])
+        playbook = Playbook(
+            entries=[
+                _make_entry("Existing entry", entry_id="e-1"),
+            ]
+        )
         insight = _make_insight("New insight despite embedding failure")
 
         result = curator.curate_insight(insight, playbook)
@@ -253,7 +259,8 @@ class TestCuratorFallbacks:
         assert 0.6 <= sim < 0.8, f"setup check: sim={sim}"
 
         existing = _make_entry(
-            "Code quality matters", entry_id="e-llm-fail",
+            "Code quality matters",
+            entry_id="e-llm-fail",
             embedding=entry_emb,
         )
         playbook = Playbook(entries=[existing])
@@ -273,10 +280,12 @@ class TestCuratorMetricsTracking:
 
     def test_metrics_tracking(self) -> None:
         """Run a sequence of operations and verify all counters."""
-        llm = MockLLMClient(responses=[
-            "complementary",     # classification for 2nd insight
-            "Merged entry text", # merge result for 2nd insight
-        ])
+        llm = MockLLMClient(
+            responses=[
+                "complementary",  # classification for 2nd insight
+                "Merged entry text",  # merge result for 2nd insight
+            ]
+        )
         curator = PlaybookCurator(embeddings=_EMB, llm=llm)
         playbook = Playbook()
 
@@ -322,7 +331,9 @@ class TestSupersededEntriesHiddenInRender:
         assert 0.8 <= sim < 0.95, f"setup check: sim={sim}"
 
         existing = _make_entry(
-            entry_text, entry_id="e-old", embedding=entry_emb,
+            entry_text,
+            entry_id="e-old",
+            embedding=entry_emb,
         )
         playbook = Playbook(entries=[existing])
 

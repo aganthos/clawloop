@@ -45,8 +45,8 @@ class RewardExtractor(Protocol):
 class RewardPipeline:
     """Run extractors in order, populating episode.summary.signals.
 
-    Judge extractors (name="judge") are automatically skipped when
-the episode already has a high-confidence signal.
+        Judge extractors (name="judge") are automatically skipped when
+    the episode already has a high-confidence signal.
     """
 
     def __init__(self, extractors: list[RewardExtractor]) -> None:

@@ -11,6 +11,7 @@ Modes:
     - bench_mode=False ("live mode"): intended for a deployed proxy.
       Requires `proxy_key` and enforces `Authorization: Bearer <proxy_key>`.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -126,7 +127,8 @@ class ProxyApp:
 
         # Wait with 10s grace period
         done, pending = await asyncio.wait(
-            self._workers, timeout=10.0,
+            self._workers,
+            timeout=10.0,
         )
         for task in pending:
             task.cancel()
@@ -186,12 +188,16 @@ class ProxyApp:
 
         if cfg.bench_mode and run_id is None:
             return JSONResponse(
-                {"error": "bad_request", "detail": "X-ClawLoop-Run-Id header required in bench mode"},
+                {
+                    "error": "bad_request",
+                    "detail": "X-ClawLoop-Run-Id header required in bench mode",
+                },
                 status_code=400,
             )
 
         session_id, _attributed = self.session_tracker.resolve_session(
-            run_id, session_id_header,
+            run_id,
+            session_id_header,
         )
 
         # 4. Turn ordering
@@ -224,9 +230,7 @@ class ProxyApp:
             val = request.headers.get(hname)
             if val is not None:
                 forward_headers[hname] = val
-        forward_headers["authorization"] = (
-            f"Bearer {cfg.upstream_api_key.get_secret_value()}"
-        )
+        forward_headers["authorization"] = f"Bearer {cfg.upstream_api_key.get_secret_value()}"
 
         upstream_url = f"{cfg.upstream_url}/chat/completions"
 
@@ -242,7 +246,8 @@ class ProxyApp:
             # the full response in memory.  The finally block ensures the
             # upstream connection is closed even if the client disconnects.
             req = self._http_client.build_request(
-                "POST", upstream_url,
+                "POST",
+                upstream_url,
                 content=json.dumps(body).encode(),
                 headers=forward_headers,
             )
@@ -396,7 +401,9 @@ class ProxyApp:
                 await self._process_item(item)
             except Exception:
                 log.error(
-                    "post-process worker %d failed", worker_id, exc_info=True,
+                    "post-process worker %d failed",
+                    worker_id,
+                    exc_info=True,
                 )
 
     async def _process_item(self, item: dict) -> None:
@@ -439,9 +446,7 @@ class ProxyApp:
         # Normalize usage to dict[str, int]
         usage_dict: dict[str, int] | None = None
         if isinstance(usage, dict):
-            usage_dict = {
-                k: int(v) for k, v in usage.items() if isinstance(v, (int, float))
-            }
+            usage_dict = {k: int(v) for k, v in usage.items() if isinstance(v, (int, float))}
 
         # Call collector if available
         if self.collector is not None:

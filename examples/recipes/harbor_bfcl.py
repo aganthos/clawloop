@@ -19,6 +19,7 @@ Weight mode (GPU + Docker):
 Harness mode (no GPU, needs API key + Docker):
     python examples/recipes/harbor_bfcl.py --mode harness_learning --task-dir ~/data/bfcl_parity
 """
+
 from __future__ import annotations
 
 import argparse
@@ -35,6 +36,7 @@ log = logging.getLogger("clawloop.recipe.harbor_bfcl")
 # ---------------------------------------------------------------------------
 # Harness learning — ClawLoop loop with Harbor trials
 # ---------------------------------------------------------------------------
+
 
 def run_harness_learning(args):
     """Prompt optimization via reflector. Harbor runs real agent trials."""
@@ -74,16 +76,22 @@ def run_harness_learning(args):
     }
     if args.agent != "oracle":
         trial_config["agent"]["model_name"] = args.task_model
-        trial_config["agent"]["kwargs"].update({
-            "max_turns": 16, "temperature": 0.7,
-            "api_base": args.api_base, "api_key": args.api_key,
-        })
+        trial_config["agent"]["kwargs"].update(
+            {
+                "max_turns": 16,
+                "temperature": 0.7,
+                "api_base": args.api_base,
+                "api_key": args.api_key,
+            }
+        )
 
     envs = [
         HarborTaskEnvironment(
-            task_dir=Path(d), trial_config=trial_config, train_on_truncated=True,
+            task_dir=Path(d),
+            trial_config=trial_config,
+            train_on_truncated=True,
         )
-        for d in task_dirs[:args.max_tasks]
+        for d in task_dirs[: args.max_tasks]
     ]
     adapter = HarborAdapter(envs)
     tasks = [e.task_id for e in envs]
@@ -91,7 +99,9 @@ def run_harness_learning(args):
     state, sid = learning_loop(
         adapter=adapter,
         agent_state=AgentState(harness=harness, router=Router(), weights=Weights()),
-        tasks=tasks, n_episodes=args.episodes, n_iterations=args.iterations,
+        tasks=tasks,
+        n_episodes=args.episodes,
+        n_iterations=args.iterations,
         active_layers=["harness", "router"],
         intensity=AdaptiveIntensity(),
     )
@@ -105,6 +115,7 @@ def run_harness_learning(args):
 # ---------------------------------------------------------------------------
 # Weight training — real Tinker via SkyRL Harbor integration
 # ---------------------------------------------------------------------------
+
 
 def run_weight_training(args):
     """GRPO weight training. SkyRL serves the model, Harbor runs trials."""
@@ -169,6 +180,7 @@ def run_weight_training(args):
     def entrypoint(cfg, task_dir):
         # Use SkyRL's Harbor integration
         from examples.train_integrations.harbor.entrypoints.main_harbor import HarborExp
+
         exp = HarborExp(cfg, harbor_task_dir=task_dir)
         exp.run()
 
@@ -180,6 +192,7 @@ def run_weight_training(args):
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _find_task_dirs(base_dir: str) -> list[str]:
     """Find Harbor task directories (contain instruction.md)."""
@@ -194,6 +207,7 @@ def _find_task_dirs(base_dir: str) -> list[str]:
 # CLI
 # ---------------------------------------------------------------------------
 
+
 def main():
     p = argparse.ArgumentParser(description="ClawLoop Harbor BFCL — Tinker-compatible")
     p.add_argument("--mode", choices=["weight", "harness_learning"], required=True)
@@ -204,13 +218,17 @@ def main():
     p.add_argument("--max-tasks", type=int, default=20, help="Max tasks to use")
     p.add_argument("--lora-rank", type=int, default=32)
     p.add_argument("--agent", default="oracle", help="Harbor agent (oracle, terminus-2)")
-    p.add_argument("--api-base", default=os.environ.get("CLAWLOOP_API_BASE", "http://localhost:11434/v1"))
+    p.add_argument(
+        "--api-base", default=os.environ.get("CLAWLOOP_API_BASE", "http://localhost:11434/v1")
+    )
     p.add_argument("--api-key", default=os.environ.get("CLAWLOOP_API_KEY", ""))
     p.add_argument("--task-model", default="gemini/gemini-2.0-flash-lite")
     p.add_argument("--reflector-model", default="openai/claude-sonnet-4-5-20250929")
     args = p.parse_args()
 
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+    )
     log.info("mode=%s model=%s task_dir=%s", args.mode, args.model, args.task_dir)
 
     if args.mode == "weight":

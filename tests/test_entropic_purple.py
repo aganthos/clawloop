@@ -1,8 +1,7 @@
 # tests/test_entropic_purple.py
 """Tests for Entropic CRMArenaPro A2A purple agent."""
 
-import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from clawloop.environments._entropic_purple import EntropicPurpleAgent
 from clawloop.learning_layers.harness import Harness
@@ -21,8 +20,11 @@ class TestToolSchemaConversion:
     def test_basic_conversion(self):
         agent = EntropicPurpleAgent(model="test", harness=_make_harness())
         tools = [
-            {"name": "query_leads", "description": "Query lead records",
-             "parameters": {"type": "object", "properties": {}}}
+            {
+                "name": "query_leads",
+                "description": "Query lead records",
+                "parameters": {"type": "object", "properties": {}},
+            }
         ]
         result = agent._convert_tools_to_openai(tools)
         assert len(result) == 1
@@ -31,7 +33,9 @@ class TestToolSchemaConversion:
 
     def test_already_openai_format(self):
         agent = EntropicPurpleAgent(model="test", harness=_make_harness())
-        tools = [{"type": "function", "function": {"name": "fn", "description": "", "parameters": {}}}]
+        tools = [
+            {"type": "function", "function": {"name": "fn", "description": "", "parameters": {}}}
+        ]
         result = agent._convert_tools_to_openai(tools)
         assert result == tools
 
@@ -137,8 +141,10 @@ class TestApiBasePassthrough:
 
     def test_api_base_stored(self):
         agent = EntropicPurpleAgent(
-            model="test", harness=_make_harness(),
-            api_base="http://localhost:9999", api_key="sk-test",
+            model="test",
+            harness=_make_harness(),
+            api_base="http://localhost:9999",
+            api_key="sk-test",
         )
         assert agent.api_base == "http://localhost:9999"
         assert agent.api_key == "sk-test"
@@ -177,8 +183,11 @@ class TestReconcileToolCallId:
                 "role": "assistant",
                 "content": "",
                 "tool_calls": [
-                    {"id": "llm_1", "type": "function",
-                     "function": {"name": "query_leads", "arguments": "{}"}},
+                    {
+                        "id": "llm_1",
+                        "type": "function",
+                        "function": {"name": "query_leads", "arguments": "{}"},
+                    },
                 ],
             },
         ]
@@ -191,8 +200,11 @@ class TestReconcileToolCallId:
                 "role": "assistant",
                 "content": "",
                 "tool_calls": [
-                    {"id": "llm_1", "type": "function",
-                     "function": {"name": "other_tool", "arguments": "{}"}},
+                    {
+                        "id": "llm_1",
+                        "type": "function",
+                        "function": {"name": "other_tool", "arguments": "{}"},
+                    },
                 ],
             },
         ]
@@ -209,10 +221,16 @@ class TestReconcileToolCallId:
                 "role": "assistant",
                 "content": "",
                 "tool_calls": [
-                    {"id": "llm_1", "type": "function",
-                     "function": {"name": "query", "arguments": '{"q":"a"}'}},
-                    {"id": "llm_2", "type": "function",
-                     "function": {"name": "query", "arguments": '{"q":"b"}'}},
+                    {
+                        "id": "llm_1",
+                        "type": "function",
+                        "function": {"name": "query", "arguments": '{"q":"a"}'},
+                    },
+                    {
+                        "id": "llm_2",
+                        "type": "function",
+                        "function": {"name": "query", "arguments": '{"q":"b"}'},
+                    },
                 ],
             },
         ]

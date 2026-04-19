@@ -12,10 +12,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Callable, Protocol
 
-
 # ---------------------------------------------------------------------------
 # Sample — a single evaluation task
 # ---------------------------------------------------------------------------
+
 
 @dataclass(frozen=True)
 class Sample:
@@ -36,6 +36,7 @@ class Sample:
 # EvalResult — the outcome of scoring one response
 # ---------------------------------------------------------------------------
 
+
 @dataclass(frozen=True)
 class EvalResult:
     """Result of evaluating an agent response against a ``Sample``.
@@ -53,6 +54,7 @@ class EvalResult:
 # ---------------------------------------------------------------------------
 # TaskEnvironment — Protocol
 # ---------------------------------------------------------------------------
+
 
 class TaskEnvironment(Protocol):
     """Protocol that custom benchmark environments implement.
@@ -73,6 +75,7 @@ class TaskEnvironment(Protocol):
 # ---------------------------------------------------------------------------
 # StaticTaskEnvironment — ready-made implementation
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class StaticTaskEnvironment:

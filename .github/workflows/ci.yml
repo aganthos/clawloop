@@ -9,6 +9,27 @@ permissions:
   contents: read
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Sync dependencies (dev extras)
+        run: uv sync --extra dev --python 3.12
+
+      - name: Run pre-commit hooks
+        run: uv run pre-commit run --all-files
+
   test:
     runs-on: ubuntu-latest
     strategy:

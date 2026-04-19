@@ -40,22 +40,26 @@ def test_evolution_entry_reward_delta():
 def test_evolution_log_writes_jsonl():
     with tempfile.TemporaryDirectory() as tmpdir:
         log = EvolutionLog(output_dir=tmpdir)
-        log.append(EvolutionEntry(
-            iteration=0,
-            state_hash_before="s0",
-            state_hash_after="s1",
-            actions=["reflect"],
-            reward_before=0.0,
-            reward_after=0.5,
-        ))
-        log.append(EvolutionEntry(
-            iteration=1,
-            state_hash_before="s1",
-            state_hash_after="s2",
-            actions=["mutate"],
-            reward_before=0.5,
-            reward_after=0.7,
-        ))
+        log.append(
+            EvolutionEntry(
+                iteration=0,
+                state_hash_before="s0",
+                state_hash_after="s1",
+                actions=["reflect"],
+                reward_before=0.0,
+                reward_after=0.5,
+            )
+        )
+        log.append(
+            EvolutionEntry(
+                iteration=1,
+                state_hash_before="s1",
+                state_hash_after="s2",
+                actions=["mutate"],
+                reward_before=0.5,
+                reward_after=0.7,
+            )
+        )
 
         path = Path(tmpdir) / "evolution.jsonl"
         assert path.exists()
@@ -75,11 +79,13 @@ def test_evolution_log_writes_jsonl():
 def test_evolution_log_none_dir_is_noop():
     log = EvolutionLog(output_dir=None)
     # Should not raise
-    log.append(EvolutionEntry(
-        iteration=0,
-        state_hash_before="a",
-        state_hash_after="b",
-        actions=[],
-        reward_before=0.0,
-        reward_after=0.0,
-    ))
+    log.append(
+        EvolutionEntry(
+            iteration=0,
+            state_hash_before="a",
+            state_hash_after="b",
+            actions=[],
+            reward_before=0.0,
+            reward_after=0.0,
+        )
+    )

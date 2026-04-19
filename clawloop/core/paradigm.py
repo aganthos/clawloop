@@ -93,11 +93,13 @@ class ParadigmBreakthrough:
         ]
 
         try:
-            raw = str(self.client.complete(
-                messages,
-                temperature=self.config.temperature,
-                max_tokens=self.config.max_tokens,
-            ))
+            raw = str(
+                self.client.complete(
+                    messages,
+                    temperature=self.config.temperature,
+                    max_tokens=self.config.max_tokens,
+                )
+            )
         except Exception:
             log.exception("LLM call failed during paradigm generation")
             return []
@@ -128,9 +130,7 @@ class ParadigmBreakthrough:
         # Previously tried paradigms
         if tried_paradigms:
             tried_str = "\n".join(f"- {p}" for p in tried_paradigms)
-            parts.append(
-                f"## Previously Tried Paradigms (DO NOT repeat these)\n{tried_str}"
-            )
+            parts.append(f"## Previously Tried Paradigms (DO NOT repeat these)\n{tried_str}")
 
         parts.append(
             "Propose 1 to 3 fundamentally new strategic directions. "

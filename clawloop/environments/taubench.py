@@ -9,6 +9,7 @@ Install tau2:
     # or directly:
     pip install git+https://github.com/sierra-research/tau2-bench.git@dev/tau3
 """
+
 from __future__ import annotations
 
 import logging
@@ -29,14 +30,14 @@ _AGENT_KEY = "clawloop_agent"
 # Module-level names imported lazily — set to None here so tests can patch them
 # without tau2 installed. _require_tau2() raises if they are still None at runtime.
 try:
-    from tau2.run import get_tasks, run_single_task
     from tau2.data_model.simulation import TextRunConfig
     from tau2.evaluator.evaluator import EvaluationType
+    from tau2.run import get_tasks, run_single_task
 except ImportError:
-    get_tasks = None          # type: ignore[assignment]
-    run_single_task = None    # type: ignore[assignment]
-    TextRunConfig = None      # type: ignore[assignment]
-    EvaluationType = None     # type: ignore[assignment]
+    get_tasks = None  # type: ignore[assignment]
+    run_single_task = None  # type: ignore[assignment]
+    TextRunConfig = None  # type: ignore[assignment]
+    EvaluationType = None  # type: ignore[assignment]
 
 
 def _require_tau2() -> None:
@@ -90,9 +91,7 @@ class TauBenchAdapter(EnvAdapter):
         episodes = self.run_batch(agent_state, [task])
         return episodes[0]
 
-    def run_batch(
-        self, agent_state: "AgentState", task_ids: list[Any]
-    ) -> list[Episode]:
+    def run_batch(self, agent_state: "AgentState", task_ids: list[Any]) -> list[Episode]:
         """Run a batch of tasks in parallel via ThreadPoolExecutor.
 
         Registers a ClawLoopAgent with the current harness prompt in tau2's
@@ -113,9 +112,7 @@ class TauBenchAdapter(EnvAdapter):
         _register_clawloop_agent(harness_prompt)
 
         # Load tau2 Task objects for the requested IDs
-        all_tasks = get_tasks(
-            task_set_name=self._domain, task_split_name=self._task_split
-        )
+        all_tasks = get_tasks(task_set_name=self._domain, task_split_name=self._task_split)
         task_map = {t.id: t for t in all_tasks}
 
         config = TextRunConfig(
@@ -143,7 +140,9 @@ class TauBenchAdapter(EnvAdapter):
             if task is None:
                 log.warning(
                     "Task %r not found in domain %r split %r",
-                    task_id, self._domain, self._task_split,
+                    task_id,
+                    self._domain,
+                    self._task_split,
                 )
                 return self._make_failed_episode(task_id, state_id, "task_not_found")
             try:
@@ -151,7 +150,8 @@ class TauBenchAdapter(EnvAdapter):
                 # truth; skip NL assertion evaluation (requires separate LLM
                 # judge config). DB state verification is the primary signal.
                 sim_run = run_single_task(
-                    config, task,
+                    config,
+                    task,
                     evaluation_type=EvaluationType.ALL_IGNORE_BASIS,
                 )
                 return self._map_to_episode(sim_run, task_id, state_id)
@@ -168,9 +168,7 @@ class TauBenchAdapter(EnvAdapter):
         self._iteration_count += 1
         return episodes
 
-    def _map_to_episode(
-        self, sim_run: Any, task_id: str, state_id: str
-    ) -> Episode:
+    def _map_to_episode(self, sim_run: Any, task_id: str, state_id: str) -> Episode:
         """Convert a tau2 SimulationRun to a ClawLoop Episode."""
         # Convert tau2 messages to ClawLoop Messages
         messages: list[Message] = []
@@ -193,13 +191,9 @@ class TauBenchAdapter(EnvAdapter):
             if reward_info.db_check is not None:
                 breakdown["db_check"] = reward_info.db_check.model_dump()
             if reward_info.env_assertions:
-                breakdown["env_assertions"] = [
-                    a.model_dump() for a in reward_info.env_assertions
-                ]
+                breakdown["env_assertions"] = [a.model_dump() for a in reward_info.env_assertions]
             if reward_info.action_checks:
-                breakdown["action_checks"] = [
-                    a.model_dump() for a in reward_info.action_checks
-                ]
+                breakdown["action_checks"] = [a.model_dump() for a in reward_info.action_checks]
             summary.score_breakdown = breakdown
         else:
             summary.total_reward = 0.0
@@ -231,10 +225,10 @@ class TauBenchAdapter(EnvAdapter):
             },
         )
 
-    def _make_failed_episode(
-        self, task_id: str, state_id: str, reason: str
-    ) -> Episode:
-        """Return a negative-reward episode for tasks that could not be run (missing task, exception, etc.).
+    def _make_failed_episode(self, task_id: str, state_id: str, reason: str) -> Episode:
+        """Return a negative-reward episode for tasks that could not be run.
+
+        Reasons include a missing task, exception, etc.
 
         The episode is kept unfiltered so the agent receives a -1.0 outcome signal as a
         training gradient. Only structural failures (MAX_ERRORS_REACHED) are filtered via
@@ -297,7 +291,7 @@ def _register_clawloop_agent(harness_instruction: str) -> None:
     _current_harness_instruction = harness_instruction or _DEFAULT_HARNESS_INSTRUCTION
 
     if _clawloop_agent_class is None:
-        from tau2.agent.llm_agent import LLMAgent, SYSTEM_PROMPT
+        from tau2.agent.llm_agent import SYSTEM_PROMPT, LLMAgent
 
         class _ClawLoopAgent(LLMAgent):
             @property
@@ -325,6 +319,7 @@ def _register_clawloop_agent(harness_instruction: str) -> None:
         _clawloop_factory = _factory
 
     from tau2.registry import registry
+
     # Write directly to the private dict to support re-registration across
     # learning iterations. tau2's public register_agent_factory() raises
     # ValueError on duplicate names (tau2/registry.py ~L129) with no
@@ -336,6 +331,7 @@ def _register_clawloop_agent(harness_instruction: str) -> None:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _compute_step_boundaries(messages: list[Message]) -> list[int]:
     """Return indices of messages that start a new conversation step.

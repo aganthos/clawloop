@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from clawloop.core.env import EvalResult, Sample, StaticTaskEnvironment, TaskEnvironment
+from clawloop.core.env import EvalResult, Sample, StaticTaskEnvironment
 
 
 class TestSample:

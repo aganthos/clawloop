@@ -21,19 +21,24 @@ Learning strategy combines three mechanisms:
 from __future__ import annotations
 
 import copy
+import logging
 import math
+import re
 import time
 import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
 from clawloop.core.types import (
-    Datum, FBResult, Future, LoadResult, OptimResult,
-    SampleContext, SampleResult, SaveResult,
+    Datum,
+    FBResult,
+    Future,
+    LoadResult,
+    OptimResult,
+    SampleContext,
+    SampleResult,
+    SaveResult,
 )
-
-import logging
-import re
 
 log = logging.getLogger(__name__)
 
@@ -322,9 +327,9 @@ def _dominates(a: PromptCandidate, b: PromptCandidate) -> bool:
     shared = set(a.per_task_scores) & set(b.per_task_scores)
     if not shared:
         return False
-    return all(
-        a.per_task_scores[t] >= b.per_task_scores[t] for t in shared
-    ) and any(a.per_task_scores[t] > b.per_task_scores[t] for t in shared)
+    return all(a.per_task_scores[t] >= b.per_task_scores[t] for t in shared) and any(
+        a.per_task_scores[t] > b.per_task_scores[t] for t in shared
+    )
 
 
 # -- Insight (Reflector output) --
@@ -361,6 +366,7 @@ class Insight:
 @dataclass
 class _HarnessPending:
     """Accumulator for forward_backward signals. Drained by optim_step."""
+
     playbook_signals: dict[str, tuple[int, int]] = field(default_factory=dict)
     insights: list[Insight] = field(default_factory=list)
     candidates: dict[str, list[PromptCandidate]] = field(default_factory=dict)
@@ -507,7 +513,9 @@ class Harness:
         return active, "full"
 
     def _embed_and_find(
-        self, query_text: str, entries: list[PlaybookEntry],
+        self,
+        query_text: str,
+        entries: list[PlaybookEntry],
     ) -> list[PlaybookEntry]:
         """Embed query and find similar entries. Returns [] on any failure."""
         provider = self.embeddings
@@ -593,7 +601,8 @@ class Harness:
                     result = self._curator.curate_insight(insight, self.playbook)
                     log.debug(
                         "Curator: %s (affected=%s)",
-                        result.action, result.entries_affected,
+                        result.action,
+                        result.entries_affected,
                     )
                     if result.action != "skip_redundant":
                         # Stamp generation on newly created entries so the
@@ -654,7 +663,8 @@ class Harness:
             # update/remove require target_entry_id
             if insight.action in ("update", "remove") and not insight.target_entry_id:
                 log.warning(
-                    "Dropping insight — %s requires target_entry_id", insight.action,
+                    "Dropping insight — %s requires target_entry_id",
+                    insight.action,
                 )
                 continue
 
@@ -684,9 +694,7 @@ class Harness:
                     t = re.sub(r"[^a-zA-Z0-9\-_]", "", t)
                     if t:
                         cleaned.append(t)
-                insight = insight.__class__(
-                    **{**insight.__dict__, "tags": cleaned}
-                )
+                insight = insight.__class__(**{**insight.__dict__, "tags": cleaned})
 
             # Content length
             if len(insight.content) > _MAX_INSIGHT_CONTENT_LENGTH:
@@ -707,9 +715,7 @@ class Harness:
             safe.append(insight)
         return safe
 
-    def update_pareto(
-        self, bench: str, candidate: PromptCandidate
-    ) -> None:
+    def update_pareto(self, bench: str, candidate: PromptCandidate) -> None:
         """Add a candidate to the bench's Pareto front."""
         if bench not in self.pareto_fronts:
             self.pareto_fronts[bench] = ParetoFront()
@@ -722,11 +728,13 @@ class Harness:
             if self._curator is not None and self.playbook.entries:
                 try:
                     conflicts = self._curator.check_prompt_playbook_coherence(
-                        best.text, self.playbook,
+                        best.text,
+                        self.playbook,
                     )
                     if conflicts:
                         log.warning(
-                            "GEPA-Playbook conflicts detected: %s", conflicts,
+                            "GEPA-Playbook conflicts detected: %s",
+                            conflicts,
                         )
                 except Exception:
                     log.debug("Coherence check failed", exc_info=True)
@@ -734,14 +742,11 @@ class Harness:
     def to_dict(self) -> dict[str, Any]:
         return {
             "system_prompts": dict(self.system_prompts),
-            "pareto_fronts": {
-                k: v.to_dict() for k, v in self.pareto_fronts.items()
-            },
+            "pareto_fronts": {k: v.to_dict() for k, v in self.pareto_fronts.items()},
             "playbook": self.playbook.to_dict(),
             "tool_configs": [tc.to_dict() for tc in self.tool_configs],
             "validators": {
-                k: getattr(v, "name", v.__class__.__name__)
-                for k, v in self.validators.items()
+                k: getattr(v, "name", v.__class__.__name__) for k, v in self.validators.items()
             },
             "playbook_version": self.playbook_version,
             "playbook_generation": self.playbook_generation,
@@ -772,10 +777,7 @@ class Harness:
 
         # Strategy 1: Tag match
         if ep_tags:
-            tag_matched = [
-                e for e in active
-                if e.tags and ep_tags & set(e.tags)
-            ]
+            tag_matched = [e for e in active if e.tags and ep_tags & set(e.tags)]
             if tag_matched:
                 return tag_matched
 
@@ -783,9 +785,11 @@ class Harness:
         if self._curator is not None:
             try:
                 from clawloop.core.embeddings import cosine_similarity
+
                 # Build a simple text representation of the episode
                 ep_text = " ".join(
-                    m.content for m in episode.messages
+                    m.content
+                    for m in episode.messages
                     if m.role in ("user", "assistant") and m.content
                 )[:500]
                 if ep_text:
@@ -875,9 +879,7 @@ class Harness:
             # Only attribute to relevant entries
             relevant_entries = self._attribute_entries(episode)
             for entry in relevant_entries:
-                prev_h, prev_harm = self._pending.playbook_signals.get(
-                    entry.id, (0, 0)
-                )
+                prev_h, prev_harm = self._pending.playbook_signals.get(entry.id, (0, 0))
                 if reward > 0:
                     self._pending.playbook_signals[entry.id] = (prev_h + 1, prev_harm)
                 else:
@@ -1007,7 +1009,8 @@ class Harness:
             before_prune = len(self.playbook.entries)
             current_gen = self.playbook_generation
             self.playbook.entries = [
-                e for e in self.playbook.entries
+                e
+                for e in self.playbook.entries
                 if e.score() >= _PRUNE_MIN_SCORE
                 or (current_gen - e.generation) < _PRUNE_MIN_GENERATIONS
             ]
@@ -1030,7 +1033,8 @@ class Harness:
                 overflow = len(to_remove)
                 log.info(
                     "Capped playbook at %d active entries (removed %d)",
-                    max_entries, overflow,
+                    max_entries,
+                    overflow,
                 )
                 updates += overflow
                 self.playbook_generation += 1

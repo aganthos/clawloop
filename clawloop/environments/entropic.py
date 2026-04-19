@@ -21,9 +21,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
+from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
 from clawloop.environments._entropic_rewards import DEFAULT_ENTROPIC_WEIGHTS, map_entropic_scores
 from clawloop.environments.base import EnvAdapter
-from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
 
 if TYPE_CHECKING:
     from clawloop.core.loop import AgentState
@@ -77,8 +77,9 @@ async def send_eval_request(green_url, eval_json, timeout=600):
                     if t.artifacts:
                         for a in t.artifacts:
                             for p in a.parts:
-                                (data_parts if isinstance(p.root, DataPart) else text_parts).append(
-                                    p.root.data if isinstance(p.root, DataPart) else p.root.text)
+                                is_data = isinstance(p.root, DataPart)
+                                bucket = data_parts if is_data else text_parts
+                                bucket.append(p.root.data if is_data else p.root.text)
     if data_parts: return data_parts[-1]
     for t in reversed(text_parts):
         try: return json.loads(t)
@@ -92,13 +93,21 @@ def main():
     ap.add_argument("--output", required=True)
     ap.add_argument("--timeout", type=int, default=600)
     args = ap.parse_args()
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
     with open(args.eval_config) as f: eval_config = json.load(f)
     logger.info("Sending EvalRequest to %s", args.green_url)
     results = asyncio.run(send_eval_request(args.green_url, json.dumps(eval_config), args.timeout))
     Path(args.output).write_text(json.dumps(results, indent=2))
     s = results.get("summary", results.get("entropic", {}).get("summary", {}))
-    if s: logger.info("Done: %d tasks, pass_rate=%.1f%%", s.get("total_tasks", 0), s.get("pass_rate", 0)*100)
+    if s:
+        logger.info(
+            "Done: %d tasks, pass_rate=%.1f%%",
+            s.get("total_tasks", 0),
+            s.get("pass_rate", 0) * 100,
+        )
 
 if __name__ == "__main__": main()
 '''
@@ -112,9 +121,7 @@ class EntropicAdapter(EnvAdapter):
         self._bench_path = Path(
             config.get("entropic_bench_path", "benchmarks/a2a/entropic-crmarenapro")
         )
-        self._output_dir = Path(
-            config.get("output", f"./runs/entropic/{int(time.time())}")
-        )
+        self._output_dir = Path(config.get("output", f"./runs/entropic/{int(time.time())}"))
         self._output_dir.mkdir(parents=True, exist_ok=True)
         self._task_categories = config.get("task_categories")
         self._task_limit = config.get("task_limit")
@@ -133,9 +140,7 @@ class EntropicAdapter(EnvAdapter):
         episodes = self.run_batch(agent_state, [task])
         return episodes[0] if episodes else self._make_failed_episode(str(task), "empty")
 
-    def run_batch(
-        self, agent_state: "AgentState", task_ids: list[Any]
-    ) -> list[Episode]:
+    def run_batch(self, agent_state: "AgentState", task_ids: list[Any]) -> list[Episode]:
         """Run a batch of tasks via the entropic green agent.
 
         1. Start the purple agent in a background thread (harness-injected).
@@ -204,7 +209,9 @@ class EntropicAdapter(EnvAdapter):
                     api_key=self._api_key,
                 )
                 _thread, self._purple_port = start_purple_server(
-                    self._purple_agent, host="127.0.0.1", port=purple_port,
+                    self._purple_agent,
+                    host="127.0.0.1",
+                    port=purple_port,
                 )
                 log.info("Purple agent started (port=%d)", self._purple_port)
             else:
@@ -221,12 +228,16 @@ class EntropicAdapter(EnvAdapter):
             # --- Step 1: Start green agent server ---
             green_proc = subprocess.Popen(
                 [
-                    green_python, str(bench_dir / "src" / "server.py"),
-                    "--host", "127.0.0.1",
-                    "--port", str(green_port),
+                    green_python,
+                    str(bench_dir / "src" / "server.py"),
+                    "--host",
+                    "127.0.0.1",
+                    "--port",
+                    str(green_port),
                 ],
                 cwd=str(bench_dir),
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
                 env=env,
             )
             log.info("Green agent started (pid=%d, port=%d)", green_proc.pid, green_port)
@@ -242,9 +253,7 @@ class EntropicAdapter(EnvAdapter):
                     green_proc.kill()
                 stdout = green_proc.stdout.read().decode() if green_proc.stdout else ""
                 stderr = green_proc.stderr.read().decode() if green_proc.stderr else ""
-                (iter_dir / "green_agent.log").write_text(
-                    f"STDOUT:\n{stdout}\nSTDERR:\n{stderr}"
-                )
+                (iter_dir / "green_agent.log").write_text(f"STDOUT:\n{stdout}\nSTDERR:\n{stderr}")
                 green_proc = None  # Already cleaned up
                 log.error("Green agent failed to start. See green_agent.log.")
                 self._iteration_count += 1
@@ -256,14 +265,20 @@ class EntropicAdapter(EnvAdapter):
             try:
                 result = subprocess.run(
                     [
-                        green_python, str(runner),
-                        "--green-url", green_url,
-                        "--eval-config", str(eval_config_path),
-                        "--output", str(results_path),
-                        "--timeout", str(self._green_timeout),
+                        green_python,
+                        str(runner),
+                        "--green-url",
+                        green_url,
+                        "--eval-config",
+                        str(eval_config_path),
+                        "--output",
+                        str(results_path),
+                        "--timeout",
+                        str(self._green_timeout),
                     ],
                     cwd=str(bench_dir),
-                    capture_output=True, text=True,
+                    capture_output=True,
+                    text=True,
                     timeout=self._green_timeout + 30,
                     env=env,
                 )
@@ -304,9 +319,7 @@ class EntropicAdapter(EnvAdapter):
         self._iteration_count += 1
         return episodes
 
-    def _build_eval_config(
-        self, task_ids: list[str], purple_port: int
-    ) -> dict[str, Any]:
+    def _build_eval_config(self, task_ids: list[str], purple_port: int) -> dict[str, Any]:
         """Build the EvalRequest dict for the green agent.
 
         The CLI generates synthetic task IDs (``base_0``, ``base_1``, …) that
@@ -341,9 +354,7 @@ class EntropicAdapter(EnvAdapter):
             "config": cfg,
         }
 
-    def _parse_results(
-        self, results_path: Path, expected_task_ids: list[str]
-    ) -> list[Episode]:
+    def _parse_results(self, results_path: Path, expected_task_ids: list[str]) -> list[Episode]:
         """Parse results JSON into Episodes.
 
         The green agent returns aggregated results with per-task entries in
@@ -354,10 +365,7 @@ class EntropicAdapter(EnvAdapter):
             raw = json.loads(results_path.read_text())
         except (FileNotFoundError, json.JSONDecodeError) as e:
             log.error("Failed to parse entropic results: %s", e)
-            return [
-                self._make_failed_episode(tid, "parse_error")
-                for tid in expected_task_ids
-            ]
+            return [self._make_failed_episode(tid, "parse_error") for tid in expected_task_ids]
 
         # The artifact data may be:
         #   {"results": [{task_idx, ...}, ...]}
@@ -392,6 +400,7 @@ class EntropicAdapter(EnvAdapter):
     def _find_free_ports() -> tuple[int, int]:
         """Find two free TCP ports."""
         import socket
+
         socks = []
         ports = []
         for _ in range(2):
@@ -415,6 +424,7 @@ class EntropicAdapter(EnvAdapter):
     def _wait_for_health(url: str, timeout: int = 30) -> bool:
         """Poll the agent card endpoint until healthy or timeout."""
         import httpx
+
         deadline = time.time() + timeout
         while time.time() < deadline:
             try:
@@ -463,10 +473,14 @@ class EntropicAdapter(EnvAdapter):
             model=self._model,
             messages=messages,
             step_boundaries=[0] if messages else [],
-            steps=[StepMeta(
-                t=0, reward=total_score / 100.0, done=True,
-                timing_ms=timing.get("total_seconds", 0.0) * 1000,
-            )],
+            steps=[
+                StepMeta(
+                    t=0,
+                    reward=total_score / 100.0,
+                    done=True,
+                    timing_ms=timing.get("total_seconds", 0.0) * 1000,
+                )
+            ],
             summary=summary,
             created_at=time.time(),
             metadata={
@@ -481,9 +495,7 @@ class EntropicAdapter(EnvAdapter):
         """Create a failed episode placeholder."""
         from clawloop.core.reward import RewardSignal
 
-        signals = {
-            "outcome": RewardSignal(name="outcome", value=-1.0, confidence=0.5)
-        }
+        signals = {"outcome": RewardSignal(name="outcome", value=-1.0, confidence=0.5)}
         return Episode(
             id=uuid4().hex,
             state_id=getattr(self, "_current_state_id", ""),

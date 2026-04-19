@@ -38,8 +38,8 @@ from clawloop.harness_backends.local import LocalEvolver
 from clawloop.learning_layers.harness import Harness, PlaybookEntry
 from clawloop.llm import LiteLLMClient, MockLLMClient
 
-
 # ── CLI ─────────────────────────────────────────────────────────────────
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -55,6 +55,7 @@ def parse_args() -> argparse.Namespace:
 
 # ── Mock reflector responses for --dry-run ──────────────────────────────
 
+
 def _build_mock_reflector_responses() -> list[str]:
     """Canned reflector outputs that drive the demo without real LLM calls.
 
@@ -63,6 +64,7 @@ def _build_mock_reflector_responses() -> list[str]:
       2. After success episodes  — may produce refinement insights
       3. After another failure   — may produce additional insights
     """
+
     def _insight_json(*insights: dict) -> str:
         return json.dumps(list(insights))
 
@@ -105,6 +107,7 @@ def _build_mock_reflector_responses() -> list[str]:
 
 # ── Helpers ──────────────────────────────────────────────────────────────
 
+
 def banner(text: str) -> None:
     width = 70
     print()
@@ -133,7 +136,9 @@ def show_playbook(harness: Harness, bench: str = "math") -> None:
         if e.anti_patterns:
             print(f"      Anti-pattern: {e.anti_patterns}")
         # Content (wrapped)
-        wrapped = textwrap.fill(e.content, width=64, initial_indent="      ", subsequent_indent="      ")
+        wrapped = textwrap.fill(
+            e.content, width=64, initial_indent="      ", subsequent_indent="      "
+        )
         print(wrapped)
         print()
 
@@ -168,6 +173,7 @@ def make_episode(
 
 
 # ── Main demo ────────────────────────────────────────────────────────────
+
 
 def main() -> None:
     args = parse_args()
@@ -230,6 +236,7 @@ def main() -> None:
     # Step 1: forward_backward — accumulates signals without mutating state
     print("  Running forward_backward (Reflector analyses traces)...")
     from clawloop.core.evolver import EvolverContext
+
     harness.set_evolver_context(EvolverContext())
     datum = Datum(episodes=failures)
     fb_result = harness.forward_backward(datum).result()
@@ -240,7 +247,9 @@ def main() -> None:
     for i, insight in enumerate(harness._pending.insights, 1):
         tags = ", ".join(insight.tags) if insight.tags else "none"
         print(f"    {i}. [{insight.action}] [{tags}]")
-        wrapped = textwrap.fill(insight.content, width=60, initial_indent="       ", subsequent_indent="       ")
+        wrapped = textwrap.fill(
+            insight.content, width=60, initial_indent="       ", subsequent_indent="       "
+        )
         print(wrapped)
     print()
 

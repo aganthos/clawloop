@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 # EmbeddingProvider protocol
 # ---------------------------------------------------------------------------
 
+
 @runtime_checkable
 class EmbeddingProvider(Protocol):
     """Protocol for embedding text into dense vectors."""
@@ -34,15 +35,14 @@ class EmbeddingProvider(Protocol):
 # cosine_similarity — pure math, no numpy
 # ---------------------------------------------------------------------------
 
+
 def cosine_similarity(a: list[float], b: list[float]) -> float:
     """Cosine similarity between two vectors.
 
     Returns 0.0 when either vector has zero magnitude.
     """
     if len(a) != len(b):
-        raise ValueError(
-            f"Vector length mismatch: {len(a)} vs {len(b)}"
-        )
+        raise ValueError(f"Vector length mismatch: {len(a)} vs {len(b)}")
     dot = sum(ai * bi for ai, bi in zip(a, b))
     mag_a = math.sqrt(sum(ai * ai for ai in a))
     mag_b = math.sqrt(sum(bi * bi for bi in b))
@@ -54,6 +54,7 @@ def cosine_similarity(a: list[float], b: list[float]) -> float:
 # ---------------------------------------------------------------------------
 # find_similar — nearest-neighbour lookup over PlaybookEntry objects
 # ---------------------------------------------------------------------------
+
 
 def find_similar(
     query_embedding: list[float],
@@ -117,6 +118,7 @@ class MockEmbedding:
 # ---------------------------------------------------------------------------
 # LiteLLMEmbedding — production provider backed by litellm.embedding()
 # ---------------------------------------------------------------------------
+
 
 class LiteLLMEmbedding:
     """Embedding provider backed by ``litellm.embedding()``.
@@ -184,6 +186,7 @@ class GeminiEmbedding:
         if self._api_key:
             return self._api_key
         import os
+
         key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY", "")
         if not key:
             raise RuntimeError("No Gemini API key: set GOOGLE_API_KEY or pass api_key=")
@@ -200,15 +203,17 @@ class GeminiEmbedding:
 
     def _batch_embed(self, texts: list[str], key: str) -> list[list[float]]:
         url = _GEMINI_BASE.format(model=self.model) + f":batchEmbedContents?key={key}"
-        body = json.dumps({
-            "requests": [
-                {
-                    "model": f"models/{self.model}",
-                    "content": {"parts": [{"text": t}]},
-                }
-                for t in texts
-            ],
-        }).encode()
+        body = json.dumps(
+            {
+                "requests": [
+                    {
+                        "model": f"models/{self.model}",
+                        "content": {"parts": [{"text": t}]},
+                    }
+                    for t in texts
+                ],
+            }
+        ).encode()
         req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
         resp = json.loads(urllib.request.urlopen(req).read())
         return [e["values"] for e in resp["embeddings"]]

@@ -29,15 +29,15 @@ import httpx
 import uvicorn
 from pydantic import SecretStr
 
-from clawloop.environments.base import EnvAdapter
 from clawloop.collector import EpisodeCollector
 from clawloop.core.episode import Episode, EpisodeSummary, Message
 from clawloop.core.reward import RewardPipeline
+from clawloop.environments.base import EnvAdapter
 from clawloop.proxy import ProxyApp
 from clawloop.proxy_config import ProxyConfig
 
 if TYPE_CHECKING:
-    from clawloop.core.loop import AgentState
+    pass
 
 log = logging.getLogger(__name__)
 
@@ -106,15 +106,15 @@ class OpenClawAdapter(EnvAdapter):
 
         # Start on ephemeral port
         self._proxy_port = self._find_free_port()
-        self._proxy_server = uvicorn.Server(uvicorn.Config(
-            self._proxy.asgi_app,
-            host="127.0.0.1",
-            port=self._proxy_port,
-            log_level="warning",
-        ))
-        self._proxy_thread = threading.Thread(
-            target=self._proxy_server.run, daemon=True
+        self._proxy_server = uvicorn.Server(
+            uvicorn.Config(
+                self._proxy.asgi_app,
+                host="127.0.0.1",
+                port=self._proxy_port,
+                log_level="warning",
+            )
         )
+        self._proxy_thread = threading.Thread(target=self._proxy_server.run, daemon=True)
         self._proxy_thread.start()
 
         # Wait for proxy to accept connections
@@ -124,6 +124,7 @@ class OpenClawAdapter(EnvAdapter):
                 break
             except Exception:
                 import time
+
                 time.sleep(0.1)
 
         log.info("Proxy started on port %d → %s", self._proxy_port, upstream_url)
@@ -146,7 +147,8 @@ class OpenClawAdapter(EnvAdapter):
             cmd += [
                 "--base-url",
                 f"http://127.0.0.1:{self._proxy_port}/v1",
-                "--run-id", run_id,
+                "--run-id",
+                run_id,
             ]
 
         try:
@@ -157,9 +159,7 @@ class OpenClawAdapter(EnvAdapter):
                 stderr=subprocess.PIPE,
                 preexec_fn=os.setsid,
             )
-            stdout, stderr = proc.communicate(
-                input=task_json, timeout=self._timeout_s
-            )
+            stdout, stderr = proc.communicate(input=task_json, timeout=self._timeout_s)
         except subprocess.TimeoutExpired:
             try:
                 os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
@@ -176,7 +176,9 @@ class OpenClawAdapter(EnvAdapter):
         if proc.returncode != 0:
             log.error(
                 "Runner exited %d (run_id=%s): %s",
-                proc.returncode, run_id, stderr.decode(errors="replace")[:500],
+                proc.returncode,
+                run_id,
+                stderr.decode(errors="replace")[:500],
             )
             self._episode_events.pop(run_id, None)
             return self._make_failed_episode(task, run_id, "runner_error")
@@ -271,9 +273,7 @@ class OpenClawAdapter(EnvAdapter):
             s.bind(("127.0.0.1", 0))
             return s.getsockname()[1]
 
-    def _make_failed_episode(
-        self, task: Any, run_id: str, reason: str
-    ) -> Episode:
+    def _make_failed_episode(self, task: Any, run_id: str, reason: str) -> Episode:
         task_id = task.get("task_id", run_id) if isinstance(task, dict) else run_id
         instruction = task.get("instruction", "") if isinstance(task, dict) else ""
         return Episode(

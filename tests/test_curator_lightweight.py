@@ -30,7 +30,8 @@ class TestLightweightCurator:
         pb = Playbook()
         for i in range(5):
             curator.curate_insight(
-                Insight(content=f"Strategy {i}"), pb,
+                Insight(content=f"Strategy {i}"),
+                pb,
             )
         assert len(pb.entries) == 5
         assert curator.metrics.insights_processed == 5
@@ -50,10 +51,15 @@ class TestLightweightCurator:
         curator = self._curator(max_playbook_entries=3)
         pb = Playbook()
         for i in range(6):
-            pb.add(PlaybookEntry(
-                id=f"e{i}", content=f"tip {i}", helpful=i, harmful=0,
-            ))
-        report = curator.consolidate(pb)
+            pb.add(
+                PlaybookEntry(
+                    id=f"e{i}",
+                    content=f"tip {i}",
+                    helpful=i,
+                    harmful=0,
+                )
+            )
+        curator.consolidate(pb)
         # Should keep top 3 by effective_score
         active = pb.active_entries()
         assert len(active) <= 3

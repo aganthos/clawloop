@@ -4,13 +4,10 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
-from clawloop.core.evolution import EvolverConfig, PromptEvolver
+from clawloop.core.evolution import PromptEvolver
 from clawloop.learning_layers.harness import PromptCandidate
 from clawloop.llm import MockLLMClient
-
 
 # -- Factories ----------------------------------------------------------------
 
@@ -32,7 +29,8 @@ def _make_episode(task_id: str = "t1", reward: float = 0.2) -> Episode:
 
 
 def _make_parent(
-    text: str = "You are helpful.", generation: int = 0,
+    text: str = "You are helpful.",
+    generation: int = 0,
 ) -> PromptCandidate:
     return PromptCandidate(id="pc-test001", text=text, generation=generation)
 

@@ -1,8 +1,7 @@
 # tests/test_car_purple.py
 """Tests for CAR-bench A2A purple agent."""
 
-import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from clawloop.environments._car_purple import CarPurpleAgent
 from clawloop.learning_layers.harness import Harness
@@ -47,8 +46,11 @@ class TestToolSchemaConversion:
     def test_basic_conversion(self):
         agent = CarPurpleAgent(model="test", harness=_make_harness())
         car_tools = [
-            {"name": "get_location", "description": "Get current location",
-             "parameters": {"type": "object", "properties": {}}}
+            {
+                "name": "get_location",
+                "description": "Get current location",
+                "parameters": {"type": "object", "properties": {}},
+            }
         ]
         result = agent._convert_tools_to_openai(car_tools)
         assert len(result) == 1
@@ -159,8 +161,10 @@ class TestApiBasePassthrough:
 
     def test_api_base_stored(self):
         agent = CarPurpleAgent(
-            model="test", harness=_make_harness(),
-            api_base="http://localhost:9999", api_key="sk-test",
+            model="test",
+            harness=_make_harness(),
+            api_base="http://localhost:9999",
+            api_key="sk-test",
         )
         assert agent.api_base == "http://localhost:9999"
         assert agent.api_key == "sk-test"
@@ -179,9 +183,7 @@ class TestHarnessInjection:
         agent = CarPurpleAgent(model="test", harness=harness)
 
         # Simulate first message handling
-        system, user = agent._parse_first_message(
-            "System: You are a car assistant.\n\nUser: Hi"
-        )
+        system, user = agent._parse_first_message("System: You are a car assistant.\n\nUser: Hi")
         harness_prompt = agent.harness.system_prompt("car")
         combined = f"{harness_prompt}\n\n{system}"
 
@@ -190,9 +192,7 @@ class TestHarnessInjection:
 
     def test_no_harness_no_prefix(self):
         agent = CarPurpleAgent(model="test", harness=_make_harness())
-        system, _ = agent._parse_first_message(
-            "System: Original prompt.\n\nUser: Hi"
-        )
+        system, _ = agent._parse_first_message("System: Original prompt.\n\nUser: Hi")
         harness_prompt = agent.harness.system_prompt("car")
         assert harness_prompt == ""
 
@@ -208,8 +208,11 @@ class TestReconcileToolCallId:
                 "role": "assistant",
                 "content": "",
                 "tool_calls": [
-                    {"id": "llm_call_1", "type": "function",
-                     "function": {"name": "get_location", "arguments": "{}"}},
+                    {
+                        "id": "llm_call_1",
+                        "type": "function",
+                        "function": {"name": "get_location", "arguments": "{}"},
+                    },
                 ],
             },
         ]
@@ -222,8 +225,11 @@ class TestReconcileToolCallId:
                 "role": "assistant",
                 "content": "",
                 "tool_calls": [
-                    {"id": "llm_call_1", "type": "function",
-                     "function": {"name": "other_tool", "arguments": "{}"}},
+                    {
+                        "id": "llm_call_1",
+                        "type": "function",
+                        "function": {"name": "other_tool", "arguments": "{}"},
+                    },
                 ],
             },
         ]
@@ -236,10 +242,16 @@ class TestReconcileToolCallId:
                 "role": "assistant",
                 "content": "",
                 "tool_calls": [
-                    {"id": "llm_a", "type": "function",
-                     "function": {"name": "tool_a", "arguments": "{}"}},
-                    {"id": "llm_b", "type": "function",
-                     "function": {"name": "tool_b", "arguments": "{}"}},
+                    {
+                        "id": "llm_a",
+                        "type": "function",
+                        "function": {"name": "tool_a", "arguments": "{}"},
+                    },
+                    {
+                        "id": "llm_b",
+                        "type": "function",
+                        "function": {"name": "tool_b", "arguments": "{}"},
+                    },
                 ],
             },
         ]
@@ -257,10 +269,16 @@ class TestReconcileToolCallId:
                 "role": "assistant",
                 "content": "",
                 "tool_calls": [
-                    {"id": "llm_1", "type": "function",
-                     "function": {"name": "get_poi", "arguments": '{"q":"a"}'}},
-                    {"id": "llm_2", "type": "function",
-                     "function": {"name": "get_poi", "arguments": '{"q":"b"}'}},
+                    {
+                        "id": "llm_1",
+                        "type": "function",
+                        "function": {"name": "get_poi", "arguments": '{"q":"a"}'},
+                    },
+                    {
+                        "id": "llm_2",
+                        "type": "function",
+                        "function": {"name": "get_poi", "arguments": '{"q":"b"}'},
+                    },
                 ],
             },
         ]

@@ -7,10 +7,10 @@ from unittest.mock import MagicMock, patch
 from clawloop.core.episode import Episode, EpisodeSummary, Message
 from clawloop.core.loop import AgentState
 from clawloop.core.reflector import Reflector, ReflectorConfig
-from clawloop.harness_backends.local import LocalEvolver
 from clawloop.core.types import FBResult, Future, OptimResult
-from clawloop.learning_layers.harness import Harness, Playbook, PlaybookEntry
+from clawloop.harness_backends.local import LocalEvolver
 from clawloop.learner import AsyncLearner
+from clawloop.learning_layers.harness import Harness, Playbook, PlaybookEntry
 
 
 class _MockLLMClient:
@@ -18,15 +18,17 @@ class _MockLLMClient:
 
     def __init__(self, response: str | None = None) -> None:
         self.call_log: list[dict] = []
-        self._response = response or json.dumps([
-            {
-                "action": "add",
-                "content": "Use chain-of-thought for math problems",
-                "target_entry_id": None,
-                "tags": ["strategy"],
-                "source_episode_ids": [],
-            }
-        ])
+        self._response = response or json.dumps(
+            [
+                {
+                    "action": "add",
+                    "content": "Use chain-of-thought for math problems",
+                    "target_entry_id": None,
+                    "tags": ["strategy"],
+                    "source_episode_ids": [],
+                }
+            ]
+        )
 
     def complete(self, messages, **kwargs) -> str:
         self.call_log.append({"messages": messages, **kwargs})
@@ -37,12 +39,16 @@ def _make_episodes(n: int, reward: float = 0.8) -> list[Episode]:
     eps = []
     for i in range(n):
         ep = Episode(
-            id=f"ep-{i}", state_id="s1", task_id=f"t-{i}", bench="live",
+            id=f"ep-{i}",
+            state_id="s1",
+            task_id=f"t-{i}",
+            bench="live",
             messages=[
                 Message(role="user", content=f"q-{i}"),
                 Message(role="assistant", content=f"a-{i}" * 20),
             ],
-            step_boundaries=[0], steps=[],
+            step_boundaries=[0],
+            steps=[],
             summary=EpisodeSummary(total_reward=reward),
         )
         eps.append(ep)
@@ -52,9 +58,11 @@ def _make_episodes(n: int, reward: float = 0.8) -> list[Episode]:
 class TestAsyncLearner:
     def test_on_batch_processes_episodes(self) -> None:
         state = AgentState()
-        state.harness.playbook = Playbook(entries=[
-            PlaybookEntry(id="e1", content="Be helpful"),
-        ])
+        state.harness.playbook = Playbook(
+            entries=[
+                PlaybookEntry(id="e1", content="Be helpful"),
+            ]
+        )
         learner = AsyncLearner(agent_state=state, active_layers=["harness"])
         learner.start()
 
@@ -104,14 +112,21 @@ class TestAsyncLearner:
         state = AgentState()
         learner = AsyncLearner(agent_state=state, active_layers=["harness"])
 
-        with patch.object(
-            state.harness, "forward_backward",
-            return_value=Future.immediate(FBResult(status="error")),
-        ), patch.object(
-            state.harness, "optim_step",
-            return_value=Future.immediate(OptimResult(status="ok")),
-        ) as mock_optim, patch.object(
-            state.harness, "clear_pending_state",
+        with (
+            patch.object(
+                state.harness,
+                "forward_backward",
+                return_value=Future.immediate(FBResult(status="error")),
+            ),
+            patch.object(
+                state.harness,
+                "optim_step",
+                return_value=Future.immediate(OptimResult(status="ok")),
+            ) as mock_optim,
+            patch.object(
+                state.harness,
+                "clear_pending_state",
+            ),
         ):
             learner._learn(_make_episodes(2))
 
@@ -122,14 +137,21 @@ class TestAsyncLearner:
         state = AgentState()
         learner = AsyncLearner(agent_state=state, active_layers=["harness"])
 
-        with patch.object(
-            state.harness, "forward_backward",
-            return_value=Future.immediate(FBResult(status="skipped")),
-        ), patch.object(
-            state.harness, "optim_step",
-            return_value=Future.immediate(OptimResult(status="ok")),
-        ) as mock_optim, patch.object(
-            state.harness, "clear_pending_state",
+        with (
+            patch.object(
+                state.harness,
+                "forward_backward",
+                return_value=Future.immediate(FBResult(status="skipped")),
+            ),
+            patch.object(
+                state.harness,
+                "optim_step",
+                return_value=Future.immediate(OptimResult(status="ok")),
+            ) as mock_optim,
+            patch.object(
+                state.harness,
+                "clear_pending_state",
+            ),
         ):
             learner._learn(_make_episodes(2))
 
@@ -139,7 +161,8 @@ class TestAsyncLearner:
         """All FB calls should happen before any optim calls (two-phase ordering)."""
         state = AgentState()
         learner = AsyncLearner(
-            agent_state=state, active_layers=["harness", "router"],
+            agent_state=state,
+            active_layers=["harness", "router"],
         )
 
         call_order: list[str] = []
@@ -160,10 +183,12 @@ class TestAsyncLearner:
             call_order.append("router_optim")
             return Future.immediate(OptimResult(status="ok"))
 
-        with patch.object(state.harness, "forward_backward", side_effect=harness_fb), \
-             patch.object(state.router, "forward_backward", side_effect=router_fb), \
-             patch.object(state.harness, "optim_step", side_effect=harness_optim), \
-             patch.object(state.router, "optim_step", side_effect=router_optim):
+        with (
+            patch.object(state.harness, "forward_backward", side_effect=harness_fb),
+            patch.object(state.router, "forward_backward", side_effect=router_fb),
+            patch.object(state.harness, "optim_step", side_effect=harness_optim),
+            patch.object(state.router, "optim_step", side_effect=router_optim),
+        ):
             learner._learn(_make_episodes(2))
 
         # All FB calls must come before any optim calls
@@ -171,39 +196,55 @@ class TestAsyncLearner:
         optim_indices = [i for i, c in enumerate(call_order) if c.endswith("_optim")]
         assert fb_indices, "No FB calls recorded"
         assert optim_indices, "No optim calls recorded"
-        assert max(fb_indices) < min(optim_indices), (
-            f"FB and optim calls interleaved: {call_order}"
-        )
+        assert max(fb_indices) < min(
+            optim_indices
+        ), f"FB and optim calls interleaved: {call_order}"
 
     def test_optim_error_status_triggers_rollback(self) -> None:
         """Router optim returning status='error' should trigger rollback of harness."""
         state = AgentState()
-        state.harness.playbook = Playbook(entries=[
-            PlaybookEntry(id="e1", content="Be helpful"),
-        ])
+        state.harness.playbook = Playbook(
+            entries=[
+                PlaybookEntry(id="e1", content="Be helpful"),
+            ]
+        )
         learner = AsyncLearner(
-            agent_state=state, active_layers=["harness", "router"],
+            agent_state=state,
+            active_layers=["harness", "router"],
         )
 
-        with patch.object(
-            state.harness, "forward_backward",
-            return_value=Future.immediate(FBResult(status="ok")),
-        ), patch.object(
-            state.router, "forward_backward",
-            return_value=Future.immediate(FBResult(status="ok")),
-        ), patch.object(
-            state.harness, "optim_step",
-            return_value=Future.immediate(OptimResult(status="ok")),
-        ), patch.object(
-            state.router, "optim_step",
-            return_value=Future.immediate(OptimResult(status="error")),
-        ), patch.object(
-            state.harness, "load_state",
-            return_value=Future.immediate(MagicMock(status="ok")),
-        ) as mock_load_harness, patch.object(
-            state.router, "load_state",
-            return_value=Future.immediate(MagicMock(status="ok")),
-        ) as mock_load_router:
+        with (
+            patch.object(
+                state.harness,
+                "forward_backward",
+                return_value=Future.immediate(FBResult(status="ok")),
+            ),
+            patch.object(
+                state.router,
+                "forward_backward",
+                return_value=Future.immediate(FBResult(status="ok")),
+            ),
+            patch.object(
+                state.harness,
+                "optim_step",
+                return_value=Future.immediate(OptimResult(status="ok")),
+            ),
+            patch.object(
+                state.router,
+                "optim_step",
+                return_value=Future.immediate(OptimResult(status="error")),
+            ),
+            patch.object(
+                state.harness,
+                "load_state",
+                return_value=Future.immediate(MagicMock(status="ok")),
+            ) as mock_load_harness,
+            patch.object(
+                state.router,
+                "load_state",
+                return_value=Future.immediate(MagicMock(status="ok")),
+            ) as mock_load_router,
+        ):
             learner._learn(_make_episodes(2))
 
         # Both layers should have been rolled back
@@ -216,12 +257,17 @@ class TestAsyncLearner:
         state = AgentState()
         learner = AsyncLearner(agent_state=state, active_layers=["harness"])
 
-        with patch.object(
-            state.harness, "forward_backward",
-            return_value=Future.immediate(FBResult(status="error")),
-        ), patch.object(
-            state.harness, "clear_pending_state",
-        ) as mock_clear:
+        with (
+            patch.object(
+                state.harness,
+                "forward_backward",
+                return_value=Future.immediate(FBResult(status="error")),
+            ),
+            patch.object(
+                state.harness,
+                "clear_pending_state",
+            ) as mock_clear,
+        ):
             learner._learn(_make_episodes(2))
 
         mock_clear.assert_called_once()
@@ -230,19 +276,29 @@ class TestAsyncLearner:
         """When all FB return error/skipped, batches_failed should stay 0."""
         state = AgentState()
         learner = AsyncLearner(
-            agent_state=state, active_layers=["harness", "router"],
+            agent_state=state,
+            active_layers=["harness", "router"],
         )
 
-        with patch.object(
-            state.harness, "forward_backward",
-            return_value=Future.immediate(FBResult(status="error")),
-        ), patch.object(
-            state.router, "forward_backward",
-            return_value=Future.immediate(FBResult(status="skipped")),
-        ), patch.object(
-            state.harness, "clear_pending_state",
-        ), patch.object(
-            state.router, "clear_pending_state",
+        with (
+            patch.object(
+                state.harness,
+                "forward_backward",
+                return_value=Future.immediate(FBResult(status="error")),
+            ),
+            patch.object(
+                state.router,
+                "forward_backward",
+                return_value=Future.immediate(FBResult(status="skipped")),
+            ),
+            patch.object(
+                state.harness,
+                "clear_pending_state",
+            ),
+            patch.object(
+                state.router,
+                "clear_pending_state",
+            ),
         ):
             learner._learn(_make_episodes(2))
 
@@ -254,12 +310,17 @@ class TestAsyncLearner:
         state = AgentState()
         learner = AsyncLearner(agent_state=state, active_layers=["harness"])
 
-        with patch.object(
-            state.harness, "forward_backward",
-            return_value=Future.immediate(FBResult(status="skipped")),
-        ), patch.object(
-            state.harness, "clear_pending_state",
-        ) as mock_clear:
+        with (
+            patch.object(
+                state.harness,
+                "forward_backward",
+                return_value=Future.immediate(FBResult(status="skipped")),
+            ),
+            patch.object(
+                state.harness,
+                "clear_pending_state",
+            ) as mock_clear,
+        ):
             learner._learn(_make_episodes(2))
 
         mock_clear.assert_called_once()
@@ -274,28 +335,42 @@ class TestAsyncLearner:
         )
         state = AgentState(harness=harness)
         learner = AsyncLearner(
-            agent_state=state, active_layers=["harness", "router"],
+            agent_state=state,
+            active_layers=["harness", "router"],
         )
 
-        with patch.object(
-            state.harness, "forward_backward",
-            return_value=Future.immediate(FBResult(status="ok")),
-        ), patch.object(
-            state.router, "forward_backward",
-            return_value=Future.immediate(FBResult(status="ok")),
-        ), patch.object(
-            state.harness, "optim_step",
-            return_value=Future.immediate(OptimResult(status="ok")),
-        ), patch.object(
-            state.router, "optim_step",
-            side_effect=RuntimeError("optim exploded"),
-        ), patch.object(
-            state.harness, "load_state",
-            return_value=Future.immediate(MagicMock(status="ok")),
-        ) as mock_load_harness, patch.object(
-            state.router, "load_state",
-            return_value=Future.immediate(MagicMock(status="ok")),
-        ) as mock_load_router:
+        with (
+            patch.object(
+                state.harness,
+                "forward_backward",
+                return_value=Future.immediate(FBResult(status="ok")),
+            ),
+            patch.object(
+                state.router,
+                "forward_backward",
+                return_value=Future.immediate(FBResult(status="ok")),
+            ),
+            patch.object(
+                state.harness,
+                "optim_step",
+                return_value=Future.immediate(OptimResult(status="ok")),
+            ),
+            patch.object(
+                state.router,
+                "optim_step",
+                side_effect=RuntimeError("optim exploded"),
+            ),
+            patch.object(
+                state.harness,
+                "load_state",
+                return_value=Future.immediate(MagicMock(status="ok")),
+            ) as mock_load_harness,
+            patch.object(
+                state.router,
+                "load_state",
+                return_value=Future.immediate(MagicMock(status="ok")),
+            ) as mock_load_router,
+        ):
             learner._learn(_make_episodes(2))
 
         # Both layers should have been rolled back

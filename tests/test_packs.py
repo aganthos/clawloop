@@ -12,8 +12,7 @@ from clawloop.learning_layers.harness import (
     ToolConfig,
 )
 from clawloop.learning_layers.router import QueryFeatures, Router, Tier
-from clawloop.learning_layers.weights import GRPOConfig, Weights
-
+from clawloop.learning_layers.weights import Weights
 
 # -- ToolConfig --
 
@@ -106,12 +105,8 @@ class TestParetoFront:
     def test_prune_dominated(self) -> None:
         front = ParetoFront()
         # c1 dominates c2 on all shared tasks
-        c1 = PromptCandidate(
-            id="c1", text="A", per_task_scores={"t1": 0.9, "t2": 0.8}
-        )
-        c2 = PromptCandidate(
-            id="c2", text="B", per_task_scores={"t1": 0.5, "t2": 0.4}
-        )
+        c1 = PromptCandidate(id="c1", text="A", per_task_scores={"t1": 0.9, "t2": 0.8})
+        c2 = PromptCandidate(id="c2", text="B", per_task_scores={"t1": 0.5, "t2": 0.4})
         front.add(c1)
         front.add(c2)
         # c2 should be pruned
@@ -121,12 +116,8 @@ class TestParetoFront:
     def test_non_dominated_preserved(self) -> None:
         front = ParetoFront()
         # c1 better on t1, c2 better on t2 -> both non-dominated
-        c1 = PromptCandidate(
-            id="c1", text="A", per_task_scores={"t1": 0.9, "t2": 0.4}
-        )
-        c2 = PromptCandidate(
-            id="c2", text="B", per_task_scores={"t1": 0.5, "t2": 0.9}
-        )
+        c1 = PromptCandidate(id="c1", text="A", per_task_scores={"t1": 0.9, "t2": 0.4})
+        c2 = PromptCandidate(id="c2", text="B", per_task_scores={"t1": 0.5, "t2": 0.9})
         front.add(c1)
         front.add(c2)
         assert len(front.candidates) == 2
@@ -145,9 +136,7 @@ class TestHarness:
 
     def test_system_prompt_with_playbook(self) -> None:
         h = Harness(system_prompts={"test": "You are helpful."})
-        h.playbook.add(
-            PlaybookEntry(id="s-1", content="Always be concise", helpful=3)
-        )
+        h.playbook.add(PlaybookEntry(id="s-1", content="Always be concise", helpful=3))
         prompt = h.system_prompt("test")
         assert "You are helpful." in prompt
         assert "Always be concise" in prompt
@@ -165,9 +154,7 @@ class TestHarness:
     def test_apply_insights_update(self) -> None:
         h = Harness()
         h.playbook.add(PlaybookEntry(id="s-1", content="old", helpful=1))
-        insights = [
-            Insight(content="updated", action="update", target_entry_id="s-1")
-        ]
+        insights = [Insight(content="updated", action="update", target_entry_id="s-1")]
         h.apply_insights(insights)
         assert h.playbook.lookup("s-1").content == "updated"
         assert h.playbook.lookup("s-1").helpful == 2
@@ -181,18 +168,14 @@ class TestHarness:
 
     def test_update_pareto_promotes_best(self) -> None:
         h = Harness()
-        c = PromptCandidate(
-            id="c1", text="optimized prompt", per_task_scores={"t1": 0.9}
-        )
+        c = PromptCandidate(id="c1", text="optimized prompt", per_task_scores={"t1": 0.9})
         h.update_pareto("bench1", c)
         assert h.system_prompts["bench1"] == "optimized prompt"
 
     def test_to_dict(self) -> None:
         h = Harness(
             system_prompts={"test": "prompt"},
-            tool_configs=[
-                ToolConfig(name="t", schema={}, owner="harness", mutable=True)
-            ],
+            tool_configs=[ToolConfig(name="t", schema={}, owner="harness", mutable=True)],
         )
         d = h.to_dict()
         assert "system_prompts" in d
@@ -229,12 +212,14 @@ class TestRouter:
         assert tier == Tier.LIGHT
 
     def test_route_with_models(self) -> None:
-        r = Router(tier_models={
-            Tier.LIGHT: "haiku",
-            Tier.MEDIUM: "sonnet",
-            Tier.HEAVY: "opus",
-            Tier.REASONING: "opus",
-        })
+        r = Router(
+            tier_models={
+                Tier.LIGHT: "haiku",
+                Tier.MEDIUM: "sonnet",
+                Tier.HEAVY: "opus",
+                Tier.REASONING: "opus",
+            }
+        )
         features = QueryFeatures(token_count=10)
         model = r.route(features)
         assert model in ("haiku", "sonnet", "opus")
@@ -250,9 +235,7 @@ class TestRouter:
     def test_record_and_update(self) -> None:
         r = Router()
         for _ in range(5):
-            r.record_outcome(
-                QueryFeatures(token_count=10), "haiku", cost=1.0, reward=0.9
-            )
+            r.record_outcome(QueryFeatures(token_count=10), "haiku", cost=1.0, reward=0.9)
             r.record_outcome(
                 QueryFeatures(token_count=500, reasoning_markers=3),
                 "opus",

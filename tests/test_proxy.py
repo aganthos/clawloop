@@ -1,13 +1,12 @@
 """Tests for clawloop.proxy — ProxyApp with real mock upstream server."""
+
 from __future__ import annotations
 
-import json
 import socket
 import threading
 import time
 from typing import Any
 
-import httpx
 import pytest
 import uvicorn
 from pydantic import SecretStr
@@ -166,9 +165,7 @@ class TestProxyNonStreaming:
 class TestProxyAuth:
     def test_live_mode_rejects_without_auth(self, mock_upstream: str) -> None:
         """bench_mode=False, no Authorization -> 401."""
-        config = _make_proxy_config(
-            mock_upstream, bench_mode=False, proxy_key="secret-key"
-        )
+        config = _make_proxy_config(mock_upstream, bench_mode=False, proxy_key="secret-key")
         proxy = ProxyApp(config=config)
         with TestClient(proxy.asgi_app) as client:
             resp = client.post(
@@ -179,9 +176,7 @@ class TestProxyAuth:
 
     def test_live_mode_accepts_with_auth(self, mock_upstream: str) -> None:
         """bench_mode=False, correct Bearer token -> 200."""
-        config = _make_proxy_config(
-            mock_upstream, bench_mode=False, proxy_key="secret-key"
-        )
+        config = _make_proxy_config(mock_upstream, bench_mode=False, proxy_key="secret-key")
         proxy = ProxyApp(config=config)
         with TestClient(proxy.asgi_app) as client:
             resp = client.post(
@@ -255,7 +250,4 @@ class TestPostProcessing:
         assert resp.status_code == 200
         # The upstream should have seen the upstream_api_key
         assert "authorization" in _last_upstream_request.get("headers", {})
-        assert (
-            _last_upstream_request["headers"]["authorization"]
-            == "Bearer sk-upstream-test"
-        )
+        assert _last_upstream_request["headers"]["authorization"] == "Bearer sk-upstream-test"

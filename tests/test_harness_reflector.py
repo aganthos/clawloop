@@ -12,7 +12,10 @@ from clawloop.llm import MockLLMClient
 
 def _make_episode(reward: float = 0.3) -> Episode:
     return Episode(
-        id="ep-test", state_id="s1", task_id="t1", bench="math",
+        id="ep-test",
+        state_id="s1",
+        task_id="t1",
+        bench="math",
         messages=[
             Message(role="system", content="Solve math."),
             Message(role="user", content="2+2?"),
@@ -26,15 +29,17 @@ def _make_episode(reward: float = 0.3) -> Episode:
 
 def _valid_insight_json() -> str:
     """JSON the mock LLM returns — one 'add' insight."""
-    return json.dumps([
-        {
-            "action": "add",
-            "content": "Always verify input format before processing.",
-            "target_entry_id": None,
-            "tags": ["validation", "robustness"],
-            "source_episode_ids": ["ep-test"],
-        }
-    ])
+    return json.dumps(
+        [
+            {
+                "action": "add",
+                "content": "Always verify input format before processing.",
+                "target_entry_id": None,
+                "tags": ["validation", "robustness"],
+                "source_episode_ids": ["ep-test"],
+            }
+        ]
+    )
 
 
 class TestHarnessReflector:
@@ -137,6 +142,7 @@ class TestHarnessReflector:
 def test_harness_reflector_setattr_raises():
     """Harness.__setattr__ guard must catch the old dead-slot pattern."""
     import pytest
+
     h = Harness()
     with pytest.raises(AttributeError, match="reflector.*removed"):
         h.reflector = object()

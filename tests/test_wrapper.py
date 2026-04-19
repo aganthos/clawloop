@@ -1,7 +1,6 @@
 """Tests for clawloop.wrap() — SDK wrapper for live mode."""
 
 import time
-import uuid
 
 from clawloop.collector import EpisodeCollector
 from clawloop.core.loop import AgentState
@@ -60,10 +59,12 @@ class TestWrapTaskIdAndSessionId:
         collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
         # Patch ingest to capture episodes
         orig_ingest = collector.ingest
+
         def capturing_ingest(messages, *, task_id="", session_id="", **kwargs):
             ep = orig_ingest(messages, task_id=task_id, session_id=session_id, **kwargs)
             captured.append(ep)
             return ep
+
         collector.ingest = capturing_ingest
 
         wrapped = wrap(client, collector=collector)
@@ -81,10 +82,12 @@ class TestWrapTaskIdAndSessionId:
         client = MockLLMClient(responses=["ok"])
         collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
         orig_ingest = collector.ingest
+
         def capturing_ingest(messages, *, task_id="", session_id="", **kwargs):
             ep = orig_ingest(messages, task_id=task_id, session_id=session_id, **kwargs)
             captured.append(ep)
             return ep
+
         collector.ingest = capturing_ingest
 
         wrapped = wrap(client, collector=collector)
@@ -98,47 +101,59 @@ class TestCollectorStateIdProvider:
     def test_default_state_id(self) -> None:
         collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
         from clawloop.core.episode import Message
+
         ep = collector.ingest(
             [Message(role="user", content="hi")],
-            task_id="t1", session_id="s1",
+            task_id="t1",
+            session_id="s1",
         )
         assert ep.state_id == "live"
 
     def test_string_state_id(self) -> None:
         collector = EpisodeCollector(
-            pipeline=RewardPipeline([]), batch_size=100, state_id="custom-v1",
+            pipeline=RewardPipeline([]),
+            batch_size=100,
+            state_id="custom-v1",
         )
         from clawloop.core.episode import Message
+
         ep = collector.ingest(
             [Message(role="user", content="hi")],
-            task_id="t1", session_id="s1",
+            task_id="t1",
+            session_id="s1",
         )
         assert ep.state_id == "custom-v1"
 
     def test_callable_state_id(self) -> None:
         counter = [0]
+
         def state_provider() -> str:
             counter[0] += 1
             return f"state-{counter[0]}"
 
         collector = EpisodeCollector(
-            pipeline=RewardPipeline([]), batch_size=100, state_id=state_provider,
+            pipeline=RewardPipeline([]),
+            batch_size=100,
+            state_id=state_provider,
         )
         from clawloop.core.episode import Message
+
         ep1 = collector.ingest(
             [Message(role="user", content="hi")],
-            task_id="t1", session_id="s1",
+            task_id="t1",
+            session_id="s1",
         )
         ep2 = collector.ingest(
             [Message(role="user", content="bye")],
-            task_id="t2", session_id="s1",
+            task_id="t2",
+            session_id="s1",
         )
         assert ep1.state_id == "state-1"
         assert ep2.state_id == "state-2"
 
 
 from clawloop.completion import CompletionResult
-from clawloop.core.episode import TokenLogProb, TokenUsage, ToolCall
+from clawloop.core.episode import TokenLogProb, ToolCall
 
 
 class TestRichWrapperCapture:
@@ -193,6 +208,7 @@ class TestRichWrapperCapture:
 
     def test_captures_created_at(self) -> None:
         import time as _time
+
         client = MockLLMClient(responses=["ok"])
         collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
         wrapped = wrap(client, collector=collector)
@@ -207,21 +223,23 @@ class TestRichWrapperCapture:
         client = MockLLMClient(responses=["done"])
         collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
         wrapped = wrap(client, collector=collector)
-        wrapped.complete([
-            {"role": "user", "content": "search for x"},
-            {
-                "role": "assistant",
-                "content": "",
-                "tool_calls": [
-                    {
-                        "id": "tc-1",
-                        "type": "function",
-                        "function": {"name": "search", "arguments": '{"q":"x"}'},
-                    }
-                ],
-            },
-            {"role": "tool", "content": "found x", "tool_call_id": "tc-1", "name": "search"},
-        ])
+        wrapped.complete(
+            [
+                {"role": "user", "content": "search for x"},
+                {
+                    "role": "assistant",
+                    "content": "",
+                    "tool_calls": [
+                        {
+                            "id": "tc-1",
+                            "type": "function",
+                            "function": {"name": "search", "arguments": '{"q":"x"}'},
+                        }
+                    ],
+                },
+                {"role": "tool", "content": "found x", "tool_call_id": "tc-1", "name": "search"},
+            ]
+        )
         ep = list(collector._episode_index.values())[0]
         asst_msgs = [m for m in ep.messages if m.role == "assistant"]
         assert asst_msgs[0].tool_calls is not None
@@ -302,6 +320,7 @@ class TestWrapWithTracer:
         wrapped = wrap(FailingClient(), collector=collector, tracer=tracer)
 
         import pytest as _pytest
+
         with _pytest.raises(RuntimeError, match="boom"):
             wrapped.complete([{"role": "user", "content": "hi"}])
 
