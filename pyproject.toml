@@ -84,7 +84,6 @@ packages = ["clawloop"]
 
 [tool.uv]
 python-preference = "only-managed"
-exclude-newer = "3 days"
 constraint-dependencies = [
   "litellm!=1.82.7,!=1.82.8",
 ]
