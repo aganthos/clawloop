@@ -12,7 +12,7 @@ from clawloop.collector import EpisodeCollector
 from clawloop.completion import CompletionResult
 from clawloop.core.episode import Message
 from clawloop.core.intensity import AdaptiveIntensity
-from clawloop.core.parse import parse_tool_calls, resolve_oi_span_kind, _safe_session_hash
+from clawloop.core.parse import _safe_session_hash, parse_tool_calls, resolve_oi_span_kind
 
 log = logging.getLogger(__name__)
 
@@ -57,9 +57,7 @@ class WrappedClient:
         if tracer:
             self._llm_kind_attr, self._llm_kind_value = resolve_oi_span_kind()
 
-    def complete(
-        self, messages: list[dict[str, str]], **kwargs: Any
-    ) -> CompletionResult:
+    def complete(self, messages: list[dict[str, str]], **kwargs: Any) -> CompletionResult:
         # Record user activity for intensity gating
         if self._intensity is not None:
             self._intensity.record_user_activity()
@@ -156,9 +154,7 @@ class WrappedClient:
                 model=result.model,
                 tool_calls=result.tool_calls,
                 logprobs=result.logprobs,
-                token_count=(
-                    result.usage.completion_tokens if result.usage else None
-                ),
+                token_count=(result.usage.completion_tokens if result.usage else None),
                 timestamp=time.time(),
             )
         )

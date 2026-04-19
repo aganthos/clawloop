@@ -26,10 +26,10 @@ from clawloop.core.types import (
     SaveResult,
 )
 
-
 # ---------------------------------------------------------------------------
 # BackendError
 # ---------------------------------------------------------------------------
+
 
 @dataclass(frozen=True)
 class BackendError:
@@ -85,6 +85,7 @@ class BackendError:
 # SkyRLBackendInitError
 # ---------------------------------------------------------------------------
 
+
 class SkyRLBackendInitError(Exception):
     """Raised when a SkyRL backend cannot be initialised.
 
@@ -99,6 +100,7 @@ class SkyRLBackendInitError(Exception):
 # ---------------------------------------------------------------------------
 # ClawLoopBackend protocol
 # ---------------------------------------------------------------------------
+
 
 @runtime_checkable
 class ClawLoopBackend(Protocol):

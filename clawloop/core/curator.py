@@ -18,7 +18,7 @@ from __future__ import annotations
 import json
 import logging
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from clawloop.core.embeddings import EmbeddingProvider, cosine_similarity, find_similar
@@ -150,9 +150,7 @@ class PlaybookCurator:
     # Public API
     # ------------------------------------------------------------------
 
-    def curate_insight(
-        self, insight: Insight, playbook: Playbook
-    ) -> CurationResult:
+    def curate_insight(self, insight: Insight, playbook: Playbook) -> CurationResult:
         """Run the retrieve-classify-revise pipeline for a single insight.
 
         Falls back to a direct add if embedding or LLM calls fail.
@@ -230,9 +228,7 @@ class PlaybookCurator:
             conflicts_resolved=conflicts_resolved,
         )
 
-    def check_prompt_playbook_coherence(
-        self, prompt_text: str, playbook: Playbook
-    ) -> list[str]:
+    def check_prompt_playbook_coherence(self, prompt_text: str, playbook: Playbook) -> list[str]:
         """Check for conflicts between a GEPA prompt and playbook entries.
 
         Returns a list of human-readable conflict descriptions (empty if
@@ -249,9 +245,7 @@ class PlaybookCurator:
             return []
 
         # Build a prompt for the LLM to find conflicts
-        entries_text = "\n".join(
-            f"- [{e.id}] {e.content}" for e in active
-        )
+        entries_text = "\n".join(f"- [{e.id}] {e.content}" for e in active)
 
         messages = [
             {
@@ -293,9 +287,7 @@ class PlaybookCurator:
     # Internal pipeline
     # ------------------------------------------------------------------
 
-    def _curate_insight_inner(
-        self, insight: Insight, playbook: Playbook
-    ) -> CurationResult:
+    def _curate_insight_inner(self, insight: Insight, playbook: Playbook) -> CurationResult:
         """Core retrieve-classify-revise logic (may raise)."""
         insight_text = insight.content
 
@@ -322,9 +314,7 @@ class PlaybookCurator:
         top_entry, top_sim = similar[0]
 
         # Try heuristic classification first
-        classification = self._classify_heuristic(
-            insight_text, top_entry, top_sim
-        )
+        classification = self._classify_heuristic(insight_text, top_entry, top_sim)
 
         # If heuristic is ambiguous, use LLM (if available)
         if classification is None:
@@ -382,18 +372,12 @@ class PlaybookCurator:
             # Count contradiction keywords present in the insight but not
             # the entry (or vice versa) — asymmetric presence suggests
             # the insight is negating/contradicting the existing entry.
-            insight_has = sum(
-                1 for kw in CONTRADICTION_KEYWORDS if kw in insight_lower
-            )
-            entry_has = sum(
-                1 for kw in CONTRADICTION_KEYWORDS if kw in entry_lower
-            )
+            insight_has = sum(1 for kw in CONTRADICTION_KEYWORDS if kw in insight_lower)
+            entry_has = sum(1 for kw in CONTRADICTION_KEYWORDS if kw in entry_lower)
             # If one side has notably more contradiction markers, it likely
             # contradicts the other.  Also flag if both have high counts
             # (both are negative instructions that may conflict).
-            if abs(insight_has - entry_has) >= 2 or (
-                insight_has >= 2 and entry_has >= 2
-            ):
+            if abs(insight_has - entry_has) >= 2 or (insight_has >= 2 and entry_has >= 2):
                 return "conflicting"
 
         # Ambiguous — needs LLM
@@ -556,12 +540,15 @@ class PlaybookCurator:
 
         resolved_text = str(self._llm.complete(messages)).strip()
         new_entry = self._create_merged_entry(
-            resolved_text, conflicting_entries,
+            resolved_text,
+            conflicting_entries,
             extra_source_ids=list(insight.source_episode_ids),
             extra_tags=list(insight.tags),
             harmful=0,
         )
-        return self._supersede_and_add(new_entry, conflicting_entries, playbook, "conflict_resolved")
+        return self._supersede_and_add(
+            new_entry, conflicting_entries, playbook, "conflict_resolved"
+        )
 
     def _merge(
         self,
@@ -596,7 +583,8 @@ class PlaybookCurator:
 
         merged_text = str(self._llm.complete(messages)).strip()
         new_entry = self._create_merged_entry(
-            merged_text, merge_candidates,
+            merged_text,
+            merge_candidates,
             extra_source_ids=list(insight.source_episode_ids),
             extra_tags=list(insight.tags),
             harmful=sum(e.harmful for e in merge_candidates),
@@ -607,9 +595,7 @@ class PlaybookCurator:
     # Consolidation helpers
     # ------------------------------------------------------------------
 
-    def _cluster_entries(
-        self, entries: list[PlaybookEntry]
-    ) -> list[list[PlaybookEntry]]:
+    def _cluster_entries(self, entries: list[PlaybookEntry]) -> list[list[PlaybookEntry]]:
         """Simple agglomerative clustering by embedding similarity.
 
         Uses single-linkage: two clusters merge if ANY pair of entries
@@ -670,8 +656,7 @@ class PlaybookCurator:
         Raises on LLM failure — caller handles the exception.
         """
         entries_text = "\n".join(
-            f"- [{e.id}] (score={e.effective_score():.1f}) {e.content}"
-            for e in cluster
+            f"- [{e.id}] (score={e.effective_score():.1f}) {e.content}" for e in cluster
         )
 
         messages = [
@@ -686,16 +671,14 @@ class PlaybookCurator:
             },
             {
                 "role": "user",
-                "content": (
-                    f"ENTRIES TO MERGE:\n{entries_text}\n\n"
-                    "Merged entry:"
-                ),
+                "content": (f"ENTRIES TO MERGE:\n{entries_text}\n\n" "Merged entry:"),
             },
         ]
 
         merged_text = str(self._llm.complete(messages)).strip()
         return self._create_merged_entry(
-            merged_text, cluster,
+            merged_text,
+            cluster,
             helpful=sum(e.helpful for e in cluster),
             harmful=sum(e.harmful for e in cluster),
             prefix="con",
@@ -735,7 +718,8 @@ class PlaybookCurator:
         """
         current_model_id = getattr(self._embeddings, "model", None)
         needs_embed: list[PlaybookEntry] = [
-            e for e in playbook.entries
+            e
+            for e in playbook.entries
             if e.embedding is None
             or (current_model_id is not None and e.needs_reembed(current_model_id))
         ]
@@ -747,7 +731,8 @@ class PlaybookCurator:
             embeddings = self._embeddings.embed(texts)
         except Exception:
             log.warning(
-                "Batch embedding failed for %d entries", len(needs_embed),
+                "Batch embedding failed for %d entries",
+                len(needs_embed),
                 exc_info=True,
             )
             return

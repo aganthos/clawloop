@@ -18,6 +18,7 @@ Weight mode (GPU, real Tinker):
 Harness mode (no GPU, prompt optimization):
     python examples/recipes/arithmetic.py --mode harness_learning
 """
+
 from __future__ import annotations
 
 import argparse
@@ -35,6 +36,7 @@ log = logging.getLogger("clawloop.recipe.arithmetic")
 # ---------------------------------------------------------------------------
 # Harness learning path — ClawLoop learning loop
 # ---------------------------------------------------------------------------
+
 
 def run_harness_learning(args):
     """Prompt optimization via reflector LLM. No GPU needed."""
@@ -55,7 +57,9 @@ def run_harness_learning(args):
         },
         evolver=build_local_evolver(args.reflector_model, args.api_key, args.api_base),
     )
-    task_client = LiteLLMClient(model=args.task_model, api_key=args.api_key, api_base=args.api_base)
+    task_client = LiteLLMClient(
+        model=args.task_model, api_key=args.api_key, api_base=args.api_base
+    )
 
     problems = [(random.randint(1, 100), random.randint(1, 100)) for _ in range(200)]
 
@@ -64,40 +68,71 @@ def run_harness_learning(args):
             a, b = task
             expected = a + b
             try:
-                prompt = agent_state.harness.sample(SampleContext(bench="arithmetic")).result().output
+                prompt = (
+                    agent_state.harness.sample(SampleContext(bench="arithmetic")).result().output
+                )
             except Exception:
                 prompt = "Solve and put your answer in \\boxed{}."
             try:
-                response = str(task_client.complete([
-                    {"role": "system", "content": prompt or "Solve and put your answer in \\boxed{}."},
-                    {"role": "user", "content": f"What is {a} + {b}?"},
-                ]))
+                response = str(
+                    task_client.complete(
+                        [
+                            {
+                                "role": "system",
+                                "content": prompt or "Solve and put your answer in \\boxed{}.",
+                            },
+                            {"role": "user", "content": f"What is {a} + {b}?"},
+                        ]
+                    )
+                )
             except Exception as e:
                 log.warning("LLM failed: %s", e)
-                return Episode(id=Episode.new_id(), state_id="", task_id=f"{a}+{b}",
-                    bench="arithmetic", messages=[], step_boundaries=[], steps=[],
-                    summary=EpisodeSummary(filtered=True), metadata={"error": str(e)})
+                return Episode(
+                    id=Episode.new_id(),
+                    state_id="",
+                    task_id=f"{a}+{b}",
+                    bench="arithmetic",
+                    messages=[],
+                    step_boundaries=[],
+                    steps=[],
+                    summary=EpisodeSummary(filtered=True),
+                    metadata={"error": str(e)},
+                )
 
             m = re.search(r"\\boxed\{(\-?\d+)\}", response)
             answer = int(m.group(1)) if m else None
             reward = 1.0 if answer == expected else 0.0
             summary = EpisodeSummary(total_reward=reward)
-            summary.signals["outcome"] = RewardSignal(name="outcome", value=reward * 2 - 1, confidence=1.0)
+            summary.signals["outcome"] = RewardSignal(
+                name="outcome", value=reward * 2 - 1, confidence=1.0
+            )
             sid = ""
-            try: sid = agent_state.state_id().combined_hash
-            except Exception: pass
-            return Episode(id=Episode.new_id(), state_id=sid, task_id=f"{a}+{b}",
+            try:
+                sid = agent_state.state_id().combined_hash
+            except Exception:
+                pass
+            return Episode(
+                id=Episode.new_id(),
+                state_id=sid,
+                task_id=f"{a}+{b}",
                 bench="arithmetic",
-                messages=[Message(role="system", content=prompt or ""),
-                          Message(role="user", content=f"What is {a} + {b}?"),
-                          Message(role="assistant", content=response)],
+                messages=[
+                    Message(role="system", content=prompt or ""),
+                    Message(role="user", content=f"What is {a} + {b}?"),
+                    Message(role="assistant", content=response),
+                ],
                 step_boundaries=[0],
                 steps=[StepMeta(t=0, reward=reward, done=True, timing_ms=0.0)],
-                summary=summary, metadata={"expected": expected, "correct": answer == expected})
+                summary=summary,
+                metadata={"expected": expected, "correct": answer == expected},
+            )
 
     state, sid = learning_loop(
-        adapter=Adapter(), agent_state=AgentState(harness=harness, router=Router(), weights=Weights()),
-        tasks=problems, n_episodes=args.episodes, n_iterations=args.iterations,
+        adapter=Adapter(),
+        agent_state=AgentState(harness=harness, router=Router(), weights=Weights()),
+        tasks=problems,
+        n_episodes=args.episodes,
+        n_iterations=args.iterations,
         active_layers=["harness", "router"],
         intensity=AdaptiveIntensity(),
     )
@@ -111,6 +146,7 @@ def run_harness_learning(args):
 # ---------------------------------------------------------------------------
 # Weight training path — real Tinker via SkyRL
 # ---------------------------------------------------------------------------
+
 
 def run_weight_training(args):
     """GRPO weight training via SkyRL. Model generates its own rollouts."""
@@ -186,6 +222,7 @@ def run_weight_training(args):
 # CLI
 # ---------------------------------------------------------------------------
 
+
 def main():
     p = argparse.ArgumentParser(description="ClawLoop Arithmetic RL — Tinker-compatible")
     p.add_argument("--mode", choices=["weight", "harness_learning"], required=True)
@@ -194,13 +231,17 @@ def main():
     p.add_argument("--episodes", type=int, default=5)
     p.add_argument("--lora-rank", type=int, default=32)
     p.add_argument("--data-dir", default="~/data/arithmetic")
-    p.add_argument("--api-base", default=os.environ.get("CLAWLOOP_API_BASE", "http://localhost:11434/v1"))
+    p.add_argument(
+        "--api-base", default=os.environ.get("CLAWLOOP_API_BASE", "http://localhost:11434/v1")
+    )
     p.add_argument("--api-key", default=os.environ.get("CLAWLOOP_API_KEY", ""))
     p.add_argument("--task-model", default="openai/claude-haiku-4-5-20251001")
     p.add_argument("--reflector-model", default="openai/claude-sonnet-4-5-20250929")
     args = p.parse_args()
 
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+    )
     log.info("mode=%s model=%s", args.mode, args.model)
 
     if args.mode == "weight":

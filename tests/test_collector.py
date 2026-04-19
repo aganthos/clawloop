@@ -10,6 +10,7 @@ from clawloop.reward_extractors.formatting import FormattingFilter
 
 class _TrackingCallback:
     """Records batches passed to on_batch."""
+
     def __init__(self):
         self.batches = []
 
@@ -139,7 +140,7 @@ class TestEpisodeCollector:
         assert m["feedback_missed"] == 1
 
 
-from clawloop.core.episode import TokenUsage, Timing, TokenLogProb, ToolCall
+from clawloop.core.episode import TokenUsage
 
 
 class TestCollectorRichMetadata:
@@ -175,6 +176,7 @@ class TestCollectorRichMetadata:
 
     def test_ingest_sets_created_at(self) -> None:
         import time
+
         collector = EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
         msgs = [
             Message(role="user", content="hello"),
@@ -315,6 +317,7 @@ class TestIngestExternal:
 
     def test_external_episodes_get_reward_pipeline(self) -> None:
         from clawloop.reward_extractors.execution import ExecutionExtractor
+
         collector = EpisodeCollector(
             pipeline=RewardPipeline([ExecutionExtractor()]),
             batch_size=100,
@@ -338,81 +341,109 @@ class TestReasoningContentIngestion:
         return EpisodeCollector(pipeline=RewardPipeline([]), batch_size=100)
 
     def test_preserves_canonical_reasoning_content_key(self):
-        ep = self._collector().ingest_external([
-            {"role": "user", "content": "hi"},
-            {"role": "assistant", "content": "final",
-             "reasoning_content": "step-by-step thinking"},
-        ])
+        ep = self._collector().ingest_external(
+            [
+                {"role": "user", "content": "hi"},
+                {
+                    "role": "assistant",
+                    "content": "final",
+                    "reasoning_content": "step-by-step thinking",
+                },
+            ]
+        )
         asst = ep.messages[-1]
         assert asst.content == "final"
         assert asst.reasoning_content == "step-by-step thinking"
 
     def test_normalizes_legacy_reasoning_key(self):
-        ep = self._collector().ingest_external([
-            {"role": "user", "content": "hi"},
-            {"role": "assistant", "content": "final", "reasoning": "legacy"},
-        ])
+        ep = self._collector().ingest_external(
+            [
+                {"role": "user", "content": "hi"},
+                {"role": "assistant", "content": "final", "reasoning": "legacy"},
+            ]
+        )
         assert ep.messages[-1].reasoning_content == "legacy"
 
     def test_empty_content_falls_back_to_reasoning_for_compat(self):
-        ep = self._collector().ingest_external([
-            {"role": "user", "content": "hi"},
-            {"role": "assistant", "content": None, "reasoning_content": "T"},
-        ])
+        ep = self._collector().ingest_external(
+            [
+                {"role": "user", "content": "hi"},
+                {"role": "assistant", "content": None, "reasoning_content": "T"},
+            ]
+        )
         asst = ep.messages[-1]
         assert asst.content == "T"
         assert asst.reasoning_content == "T"
 
     def test_both_content_and_reasoning_preserved_independently(self):
-        ep = self._collector().ingest_external([
-            {"role": "user", "content": "hi"},
-            {"role": "assistant", "content": "final",
-             "reasoning_content": "thinking"},
-        ])
+        ep = self._collector().ingest_external(
+            [
+                {"role": "user", "content": "hi"},
+                {"role": "assistant", "content": "final", "reasoning_content": "thinking"},
+            ]
+        )
         asst = ep.messages[-1]
         assert asst.content == "final"
         assert asst.reasoning_content == "thinking"
 
     def test_empty_string_reasoning_preserved_not_coerced(self):
-        ep = self._collector().ingest_external([
-            {"role": "user", "content": "hi"},
-            {"role": "assistant", "content": "x", "reasoning_content": ""},
-        ])
+        ep = self._collector().ingest_external(
+            [
+                {"role": "user", "content": "hi"},
+                {"role": "assistant", "content": "x", "reasoning_content": ""},
+            ]
+        )
         assert ep.messages[-1].reasoning_content == ""
 
     def test_canonical_key_wins_over_legacy_when_both_present(self):
-        ep = self._collector().ingest_external([
-            {"role": "user", "content": "hi"},
-            {"role": "assistant", "content": "x",
-             "reasoning_content": "canonical", "reasoning": "legacy"},
-        ])
+        ep = self._collector().ingest_external(
+            [
+                {"role": "user", "content": "hi"},
+                {
+                    "role": "assistant",
+                    "content": "x",
+                    "reasoning_content": "canonical",
+                    "reasoning": "legacy",
+                },
+            ]
+        )
         assert ep.messages[-1].reasoning_content == "canonical"
 
     def test_no_reasoning_keys_leaves_field_none(self):
-        ep = self._collector().ingest_external([
-            {"role": "user", "content": "hi"},
-            {"role": "assistant", "content": "x"},
-        ])
+        ep = self._collector().ingest_external(
+            [
+                {"role": "user", "content": "hi"},
+                {"role": "assistant", "content": "x"},
+            ]
+        )
         assert ep.messages[-1].reasoning_content is None
 
     def test_canonical_none_falls_back_to_legacy(self):
         """When reasoning_content is explicitly None, fall back to the
         legacy reasoning key if it has a non-None value."""
-        ep = self._collector().ingest_external([
-            {"role": "user", "content": "hi"},
-            {"role": "assistant", "content": "x",
-             "reasoning_content": None, "reasoning": "from-legacy"},
-        ])
+        ep = self._collector().ingest_external(
+            [
+                {"role": "user", "content": "hi"},
+                {
+                    "role": "assistant",
+                    "content": "x",
+                    "reasoning_content": None,
+                    "reasoning": "from-legacy",
+                },
+            ]
+        )
         assert ep.messages[-1].reasoning_content == "from-legacy"
 
     def test_content_fallback_only_for_assistant_role(self):
         """Reasoning-into-content fallback is assistant-only. A malformed
         non-assistant message with content=None doesn't get reasoning
         injected into content."""
-        ep = self._collector().ingest_external([
-            {"role": "user", "content": None, "reasoning": "leak"},
-            {"role": "assistant", "content": "ok"},
-        ])
+        ep = self._collector().ingest_external(
+            [
+                {"role": "user", "content": None, "reasoning": "leak"},
+                {"role": "assistant", "content": "ok"},
+            ]
+        )
         assert ep.messages[0].content == ""
         assert ep.messages[0].reasoning_content == "leak"
 
@@ -433,16 +464,18 @@ class TestReasoningContentE2E:
             b'data: {"choices":[{"delta":{"reasoning_content":"let me think"}}]}\n\n'
             b'data: {"choices":[{"delta":{"reasoning_content":" carefully"}}]}\n\n'
             b'data: {"choices":[{"delta":{"content":"42"}}]}\n\n'
-            b'data: [DONE]\n\n'
+            b"data: [DONE]\n\n"
         )
         msg, _usage, complete = parse_sse_bytes(sse)
         assert complete
         assert msg is not None
 
-        ep = self._collector().ingest_external([
-            {"role": "user", "content": "q"},
-            msg,
-        ])
+        ep = self._collector().ingest_external(
+            [
+                {"role": "user", "content": "q"},
+                msg,
+            ]
+        )
         asst = ep.messages[-1]
         assert asst.content == "42"
         assert asst.reasoning_content == "let me think carefully"
@@ -455,15 +488,17 @@ class TestReasoningContentE2E:
             b'data: {"choices":[{"delta":{"role":"assistant"}}]}\n\n'
             b'data: {"choices":[{"delta":{"reasoning":"ollama thinking"}}]}\n\n'
             b'data: {"choices":[{"delta":{"content":"ans"}}]}\n\n'
-            b'data: [DONE]\n\n'
+            b"data: [DONE]\n\n"
         )
         msg, _usage, _ = parse_sse_bytes(sse)
         assert msg is not None
 
-        ep = self._collector().ingest_external([
-            {"role": "user", "content": "q"},
-            msg,
-        ])
+        ep = self._collector().ingest_external(
+            [
+                {"role": "user", "content": "q"},
+                msg,
+            ]
+        )
         asst = ep.messages[-1]
         assert asst.content == "ans"
         assert asst.reasoning_content == "ollama thinking"
@@ -477,17 +512,19 @@ class TestReasoningContentE2E:
         sse = (
             b'data: {"choices":[{"delta":{"role":"assistant"}}]}\n\n'
             b'data: {"choices":[{"delta":{"reasoning_content":"deep thought"}}]}\n\n'
-            b'data: [DONE]\n\n'
+            b"data: [DONE]\n\n"
         )
         msg, _, _ = parse_sse_bytes(sse)
         assert msg is not None
         # Parser inlines reasoning into content when content is empty
         assert msg["content"] == "deep thought"
 
-        ep = self._collector().ingest_external([
-            {"role": "user", "content": "q"},
-            msg,
-        ])
+        ep = self._collector().ingest_external(
+            [
+                {"role": "user", "content": "q"},
+                msg,
+            ]
+        )
         asst = ep.messages[-1]
         assert asst.content == "deep thought"
         assert asst.reasoning_content == "deep thought"

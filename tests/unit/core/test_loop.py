@@ -3,6 +3,7 @@
 
 def test_agent_state_has_sampling_client_field_default_none():
     from clawloop.core.loop import AgentState
+
     state = AgentState()
     assert hasattr(state, "sampling_client")
     assert state.sampling_client is None
@@ -10,6 +11,7 @@ def test_agent_state_has_sampling_client_field_default_none():
 
 def test_agent_state_has_renderer_and_tokenizer_fields_default_none():
     from clawloop.core.loop import AgentState
+
     state = AgentState()
     assert hasattr(state, "renderer") and state.renderer is None
     assert hasattr(state, "tokenizer") and state.tokenizer is None

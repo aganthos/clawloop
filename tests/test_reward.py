@@ -5,7 +5,6 @@ import pytest
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
 from clawloop.core.reward import RewardExtractor, RewardPipeline, RewardSignal
 
-
 # ── RewardSignal tests ──────────────────────────────────────────────────
 
 
@@ -314,6 +313,7 @@ class TestRewardPipeline:
 
         class _CountingExtractor:
             name = "judge"
+
             def extract(self, episode):
                 nonlocal call_count
                 call_count += 1

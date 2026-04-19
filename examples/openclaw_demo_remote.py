@@ -110,13 +110,13 @@ ADAPTING TO YOUR SETUP
       Saves the playbook as an OpenClaw skill so your WhatsApp/Telegram
       assistant uses it permanently.
 """
+
 from __future__ import annotations
 
 import argparse
 import ipaddress
 import json
 import os
-import re
 import shlex
 import socket
 import subprocess
@@ -131,7 +131,7 @@ import uvicorn
 from pydantic import SecretStr
 
 from clawloop.collector import EpisodeCollector
-from clawloop.core.episode import Episode, EpisodeSummary, StepMeta
+from clawloop.core.episode import Episode, StepMeta
 from clawloop.core.evolver import EvolverContext
 from clawloop.core.reflector import Reflector, ReflectorConfig
 from clawloop.core.reward import RewardPipeline
@@ -141,7 +141,6 @@ from clawloop.learning_layers.harness import Harness
 from clawloop.llm import LiteLLMClient
 from clawloop.proxy import ProxyApp
 from clawloop.proxy_config import ProxyConfig
-
 
 # ── Constants ────────────────────────────────────────────────────────────
 
@@ -201,6 +200,7 @@ DEFAULT_BRIDGE_IP = "172.18.0.1"
 
 # ── Display helpers ──────────────────────────────────────────────────────
 
+
 def banner(text: str) -> None:
     print(f"\n{'═' * 64}\n  {text}\n{'═' * 64}")
 
@@ -212,16 +212,21 @@ def status(msg: str, ok: bool = True) -> None:
 
 # ── SSH transport layer ──────────────────────────────────────────────────
 
-def ssh_exec(host: str, user: str, cmd: str, *, timeout: int = 30,
-             input_data: bytes | None = None) -> subprocess.CompletedProcess:
+
+def ssh_exec(
+    host: str, user: str, cmd: str, *, timeout: int = 30, input_data: bytes | None = None
+) -> subprocess.CompletedProcess:
     """Run a command on the remote host via SSH.
 
     Returns the CompletedProcess. Raises subprocess.CalledProcessError on
     non-zero exit, subprocess.TimeoutExpired on timeout.
     """
     ssh_cmd = [
-        "ssh", "-o", "StrictHostKeyChecking=accept-new",
-        "-o", "BatchMode=yes",
+        "ssh",
+        "-o",
+        "StrictHostKeyChecking=accept-new",
+        "-o",
+        "BatchMode=yes",
         f"{user}@{host}",
         cmd,
     ]
@@ -234,7 +239,9 @@ def ssh_exec(host: str, user: str, cmd: str, *, timeout: int = 30,
 
 
 def open_tunnel(
-    host: str, user: str, port: int,
+    host: str,
+    user: str,
+    port: int,
     forward_spec: str | None = None,
 ) -> subprocess.Popen:
     """Open SSH tunnels for the demo.
@@ -249,11 +256,16 @@ def open_tunnel(
     Returns the Popen handle.
     """
     cmd = [
-        "ssh", "-o", "StrictHostKeyChecking=accept-new",
-        "-o", "BatchMode=yes",
-        "-o", "ExitOnForwardFailure=yes",
+        "ssh",
+        "-o",
+        "StrictHostKeyChecking=accept-new",
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "ExitOnForwardFailure=yes",
         "-N",  # no remote command
-        "-R", f"0.0.0.0:{port}:127.0.0.1:{port}",
+        "-R",
+        f"0.0.0.0:{port}:127.0.0.1:{port}",
     ]
     if forward_spec:
         cmd += ["-L", forward_spec]
@@ -301,17 +313,22 @@ def detect_bridge_ip(host: str, user: str, container: str) -> str:
 
 # ── Runner deployment ────────────────────────────────────────────────────
 
+
 def deploy_runner(host: str, user: str, container: str) -> None:
     """Deploy the lightweight Python runner into the container.
 
     Uses only Python stdlib (urllib) — no npm install needed.
     """
-    ssh_exec(host, user,
-             f"docker exec {shlex.quote(container)} mkdir -p {REMOTE_RUNNER_DIR}",
-             timeout=10)
+    ssh_exec(
+        host,
+        user,
+        f"docker exec {shlex.quote(container)} mkdir -p {REMOTE_RUNNER_DIR}",
+        timeout=10,
+    )
 
     ssh_exec(
-        host, user,
+        host,
+        user,
         f"docker exec -i {shlex.quote(container)} "
         f"tee {REMOTE_RUNNER_DIR}/runner.py > /dev/null",
         input_data=RUNNER_PY.encode("utf-8"),
@@ -322,13 +339,15 @@ def deploy_runner(host: str, user: str, container: str) -> None:
 def cleanup_runner(host: str, user: str, container: str) -> None:
     """Remove the runner directory from the container."""
     ssh_exec(
-        host, user,
+        host,
+        user,
         f"docker exec {shlex.quote(container)} rm -rf {REMOTE_RUNNER_DIR}",
         timeout=10,
     )
 
 
 # ── Proxy setup ──────────────────────────────────────────────────────────
+
 
 def start_proxy(
     upstream_url: str,
@@ -355,7 +374,10 @@ def start_proxy(
     proxy = ProxyApp(config, collector=collector, harness=harness)
 
     uconfig = uvicorn.Config(
-        proxy.asgi_app, host="127.0.0.1", port=port, log_level="warning",
+        proxy.asgi_app,
+        host="127.0.0.1",
+        port=port,
+        log_level="warning",
     )
     server = uvicorn.Server(uconfig)
     threading.Thread(target=server.run, daemon=True).start()
@@ -382,6 +404,7 @@ def stop_proxy(server: uvicorn.Server) -> None:
 
 # ── Task loading ─────────────────────────────────────────────────────────
 
+
 def load_tasks(path: str | Path) -> list[dict]:
     """Load tasks from a JSONL file."""
     tasks = []
@@ -394,6 +417,7 @@ def load_tasks(path: str | Path) -> list[dict]:
 
 
 # ── Task execution ───────────────────────────────────────────────────────
+
 
 def run_task(
     task: dict,
@@ -470,16 +494,17 @@ def run_round(
     and episodes is the list captured by the proxy's EpisodeCollector.
     """
     banner(label)
-    episodes: list[Episode] = []
     results: list[dict] = []
 
     # Set up episode capture
     captured: list[Episode] = []
     original_on_batch = collector.on_batch
+
     def capture_batch(eps: list[Episode]) -> None:
         captured.extend(eps)
         if original_on_batch:
             original_on_batch(eps)
+
     collector.on_batch = capture_batch
 
     for i, task in enumerate(tasks, 1):
@@ -487,7 +512,14 @@ def run_round(
         print(f"  [{i}/{len(tasks)}] {task['task_id']}", end="", flush=True)
 
         result = run_task(
-            task, host, user, container, bridge_ip, port, model, run_id,
+            task,
+            host,
+            user,
+            container,
+            bridge_ip,
+            port,
+            model,
+            run_id,
             no_think=no_think,
         )
         results.append(result)
@@ -495,7 +527,7 @@ def run_round(
         if result["status"] == "error":
             print(f" ✗ {result['output'][:80]}")
         else:
-            print(f" ✓")
+            print(" ✓")
 
     # Flush any remaining episodes in the collector buffer
     collector.flush_buffer()
@@ -513,6 +545,7 @@ def run_round(
 
 
 # ── Learning phase ───────────────────────────────────────────────────────
+
 
 def show_playbook(harness: Harness) -> None:
     """Display the current playbook entries."""
@@ -576,6 +609,7 @@ def learn_from_episodes(harness: Harness, episodes: list[Episode]) -> None:
 
 
 # ── LLM Judge ────────────────────────────────────────────────────────────
+
 
 def judge_response(
     task: dict,
@@ -650,6 +684,7 @@ def judge_round(
 
 # ── Skill deployment (optional) ──────────────────────────────────────────
 
+
 def deploy_skill(
     harness: Harness,
     host: str,
@@ -675,7 +710,8 @@ def deploy_skill(
     skill_path = "/app/workspace/SKILL.md"  # OpenClaw workspace
 
     result = ssh_exec(
-        host, user,
+        host,
+        user,
         f"docker exec -i {shlex.quote(container)} tee {skill_path} > /dev/null",
         input_data=skill_content.encode("utf-8"),
         timeout=10,
@@ -688,6 +724,7 @@ def deploy_skill(
 
 # ── Report ───────────────────────────────────────────────────────────────
 
+
 def print_report(
     tasks: list[dict],
     verdicts_r1: list[dict],
@@ -696,7 +733,7 @@ def print_report(
     model: str,
 ) -> dict:
     """Print the comparison table and return the full results dict."""
-    banner(f"RESULTS")
+    banner("RESULTS")
     print(f"  Host: {host}  Model: {model}  Tasks: {len(tasks)}")
     print()
 
@@ -725,20 +762,24 @@ def print_report(
         total_r1 += s1
         total_r2 += s2
         total_max += m1
-        rows.append({
-            "task_id": tid,
-            "r1_score": s1,
-            "r2_score": s2,
-            "max": m1,
-            "delta": delta,
-            "r1_scores": v1["scores"],
-            "r2_scores": v2["scores"],
-        })
+        rows.append(
+            {
+                "task_id": tid,
+                "r1_score": s1,
+                "r2_score": s2,
+                "max": m1,
+                "delta": delta,
+                "r1_scores": v1["scores"],
+                "r2_scores": v2["scores"],
+            }
+        )
 
     print(sep)
     total_delta = total_r2 - total_r1
     delta_str = f"+{total_delta}" if total_delta > 0 else str(total_delta)
-    print(f"  {'TOTAL':<{col_task}}│{total_r1:>3}/{total_max} │{total_r2:>3}/{total_max} │{delta_str}")
+    print(
+        f"  {'TOTAL':<{col_task}}│{total_r1:>3}/{total_max} │{total_r2:>3}/{total_max} │{delta_str}"
+    )
     print()
     print("  observe → learn → inject → improve")
     print(f"{'═' * 64}\n")
@@ -757,6 +798,7 @@ def print_report(
 
 # ── CLI ──────────────────────────────────────────────────────────────────
 
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         description="OpenClaw + ClawLoop Remote Demo — improve a remote agent through learning",
@@ -764,30 +806,49 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--host", required=True, help="OpenClaw host IP or hostname")
     p.add_argument("--ssh-user", default="root", help="SSH user (default: root)")
-    p.add_argument("--container", default="openclaw-openclaw-gateway-1",
-                    help="Docker container name (default: openclaw-openclaw-gateway-1)")
-    p.add_argument("--upstream-url", default=None,
-                    help="LLM API base URL (default: env UPSTREAM_URL or https://api.openai.com/v1)")
+    p.add_argument(
+        "--container",
+        default="openclaw-openclaw-gateway-1",
+        help="Docker container name (default: openclaw-openclaw-gateway-1)",
+    )
+    p.add_argument(
+        "--upstream-url",
+        default=None,
+        help="LLM API base URL (default: env UPSTREAM_URL or https://api.openai.com/v1)",
+    )
     p.add_argument("--model", default="gpt-4o-mini", help="Model name (default: gpt-4o-mini)")
-    p.add_argument("--local-model", default=None, metavar="HOST:PORT",
-                    help="Use a local model on the OpenClaw server (e.g. localhost:11434 for Ollama). "
-                         "Opens a forward SSH tunnel so the proxy can reach it. "
-                         "Sets --upstream-url and --model automatically if not specified.")
-    p.add_argument("--reflector-model", default=None,
-                    help="Model for ClawLoop reflector (default: same as --model via litellm)")
-    p.add_argument("--tasks", default=None,
-                    help=f"JSONL task file (default: {DEFAULT_TASKS})")
-    p.add_argument("--proxy-port", type=int, default=8400,
-                    help="Local proxy port, tunneled to remote (default: 8400)")
+    p.add_argument(
+        "--local-model",
+        default=None,
+        metavar="HOST:PORT",
+        help="Use a local model on the OpenClaw server (e.g. localhost:11434 for Ollama). "
+        "Opens a forward SSH tunnel so the proxy can reach it. "
+        "Sets --upstream-url and --model automatically if not specified.",
+    )
+    p.add_argument(
+        "--reflector-model",
+        default=None,
+        help="Model for ClawLoop reflector (default: same as --model via litellm)",
+    )
+    p.add_argument("--tasks", default=None, help=f"JSONL task file (default: {DEFAULT_TASKS})")
+    p.add_argument(
+        "--proxy-port",
+        type=int,
+        default=8400,
+        help="Local proxy port, tunneled to remote (default: 8400)",
+    )
     p.add_argument("--output", default=None, help="Save full results JSON to this path")
-    p.add_argument("--deploy-skill", action="store_true",
-                    help="Persist playbook as OpenClaw skill after demo")
-    p.add_argument("--docker-bridge-ip", default=None,
-                    help="Docker bridge gateway IP (default: auto-detect)")
+    p.add_argument(
+        "--deploy-skill", action="store_true", help="Persist playbook as OpenClaw skill after demo"
+    )
+    p.add_argument(
+        "--docker-bridge-ip", default=None, help="Docker bridge gateway IP (default: auto-detect)"
+    )
     return p
 
 
 # ── Main ─────────────────────────────────────────────────────────────────
+
 
 def main() -> None:
     args = build_parser().parse_args()
@@ -809,7 +870,9 @@ def main() -> None:
             # Auto-detect: try to read model list from Ollama
             print("  Hint: Set --model to match your local model name (e.g. llama3.1, qwen2.5)")
     else:
-        upstream_url = args.upstream_url or os.environ.get("UPSTREAM_URL", "https://api.openai.com/v1")
+        upstream_url = args.upstream_url or os.environ.get(
+            "UPSTREAM_URL", "https://api.openai.com/v1"
+        )
         upstream_key = os.environ.get("UPSTREAM_KEY", "")
         if not upstream_key:
             print("Error: Set UPSTREAM_KEY environment variable to your LLM API key.")
@@ -840,7 +903,7 @@ def main() -> None:
         print(f"Error: No tasks in {task_path}")
         sys.exit(1)
 
-    banner(f"OpenClaw + ClawLoop Demo")
+    banner("OpenClaw + ClawLoop Demo")
     print(f"  Host: {host}  Model: {model}  Tasks: {len(tasks)}")
 
     # ── Setup ────────────────────────────────────────────────────────
@@ -857,12 +920,24 @@ def main() -> None:
     status(f"SSH connection to {user}@{host}")
 
     # 2. Container check
-    container_result = ssh_exec(host, user, f"docker ps --filter name={shlex.quote(container)} --format '{{{{.Names}}}}'", timeout=10)
-    if container_result.returncode != 0 or container.strip() not in container_result.stdout.decode():
+    container_result = ssh_exec(
+        host,
+        user,
+        f"docker ps --filter name={shlex.quote(container)} --format '{{{{.Names}}}}'",
+        timeout=10,
+    )
+    if (
+        container_result.returncode != 0
+        or container.strip() not in container_result.stdout.decode()
+    ):
         stderr = container_result.stderr.decode(errors="replace")
         # List running containers to help user
         all_containers = ssh_exec(host, user, "docker ps --format '{{.Names}}'", timeout=10)
-        running = all_containers.stdout.decode().strip() if all_containers.returncode == 0 else "(could not list)"
+        running = (
+            all_containers.stdout.decode().strip()
+            if all_containers.returncode == 0
+            else "(could not list)"
+        )
         print(f"  ✗ Container '{container}' not found. Running containers: {running}")
         sys.exit(1)
     status(f"Container {container} running")
@@ -881,7 +956,9 @@ def main() -> None:
 
     # Reflector LLM — uses the reflector model with the same upstream config
     reflector_llm = LiteLLMClient(
-        model=reflector_model, api_base=upstream_url, api_key=upstream_key,
+        model=reflector_model,
+        api_base=upstream_url,
+        api_key=upstream_key,
     )
     reflector = Reflector(client=reflector_llm, config=ReflectorConfig())
     evolver = LocalEvolver(reflector=reflector)
@@ -892,7 +969,9 @@ def main() -> None:
 
     # Judge LLM — same config as reflector
     judge_llm = LiteLLMClient(
-        model=reflector_model, api_base=upstream_url, api_key=upstream_key,
+        model=reflector_model,
+        api_base=upstream_url,
+        api_key=upstream_key,
     )
 
     # Track cleanup items
@@ -908,7 +987,12 @@ def main() -> None:
             batch_size=1,
         )
         proxy_server = start_proxy(
-            upstream_url, upstream_key, harness, collector_r1, bench, port,
+            upstream_url,
+            upstream_key,
+            harness,
+            collector_r1,
+            bench,
+            port,
         )
         status(f"ClawLoop proxy on :{port}")
 
@@ -916,12 +1000,13 @@ def main() -> None:
         tunnel_proc = open_tunnel(host, user, port, forward_spec=forward_spec)
         tunnel_desc = "SSH tunnel open"
         if forward_spec:
-            tunnel_desc += f" (+ forward tunnel for local model)"
+            tunnel_desc += " (+ forward tunnel for local model)"
         status(tunnel_desc)
 
         # 6. Verify tunnel from container
         verify_result = ssh_exec(
-            host, user,
+            host,
+            user,
             f"docker exec {shlex.quote(container)} "
             f"curl -sf -o /dev/null -w '%{{http_code}}' http://{bridge_ip}:{port}/ || echo 'fail'",
             timeout=15,
@@ -942,7 +1027,14 @@ def main() -> None:
         is_local = forward_spec is not None
         results_r1, episodes_r1_captured = run_round(
             "ROUND 1: Baseline (no playbook)",
-            tasks, host, user, container, bridge_ip, port, model, collector_r1,
+            tasks,
+            host,
+            user,
+            container,
+            bridge_ip,
+            port,
+            model,
+            collector_r1,
             no_think=is_local,
         )
 
@@ -970,7 +1062,12 @@ def main() -> None:
             batch_size=1,
         )
         proxy_server = start_proxy(
-            upstream_url, upstream_key, harness, collector_r2, bench, port,
+            upstream_url,
+            upstream_key,
+            harness,
+            collector_r2,
+            bench,
+            port,
         )
 
         n_skills = len(harness.playbook.active_entries())
@@ -978,7 +1075,14 @@ def main() -> None:
 
         results_r2, episodes_r2_captured = run_round(
             "ROUND 2: With playbook ({} skills injected)".format(n_skills),
-            tasks, host, user, container, bridge_ip, port, model, collector_r2,
+            tasks,
+            host,
+            user,
+            container,
+            bridge_ip,
+            port,
+            model,
+            collector_r2,
             no_think=is_local,
         )
 

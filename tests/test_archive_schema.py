@@ -131,9 +131,18 @@ class TestRunRecord:
         rec = _sample_run()
         d = rec.to_dict()
         expected_keys = {
-            "run_id", "bench", "domain_tags", "agent_config", "config_hash",
-            "n_iterations", "best_reward", "improvement_delta",
-            "total_cost_tokens", "parent_run_id", "created_at", "completed_at",
+            "run_id",
+            "bench",
+            "domain_tags",
+            "agent_config",
+            "config_hash",
+            "n_iterations",
+            "best_reward",
+            "improvement_delta",
+            "total_cost_tokens",
+            "parent_run_id",
+            "created_at",
+            "completed_at",
         }
         assert set(d.keys()) == expected_keys
 

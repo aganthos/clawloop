@@ -68,14 +68,16 @@ class EntropicPurpleAgent:
             if t.get("type") == "function" and "function" in t:
                 result.append(t)
             else:
-                result.append({
-                    "type": "function",
-                    "function": {
-                        "name": t["name"],
-                        "description": t.get("description", ""),
-                        "parameters": t.get("parameters", {}),
-                    },
-                })
+                result.append(
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": t["name"],
+                            "description": t.get("description", ""),
+                            "parameters": t.get("parameters", {}),
+                        },
+                    }
+                )
         return result
 
     @staticmethod
@@ -115,9 +117,7 @@ class EntropicPurpleAgent:
                     except json.JSONDecodeError:
                         log.warning("Malformed tool args for %s", tc.function.name)
                         args = {"raw": args}
-                tool_calls.append(
-                    {"tool_name": tc.function.name, "arguments": args}
-                )
+                tool_calls.append({"tool_name": tc.function.name, "arguments": args})
             parts.append({"kind": "data", "data": {"tool_calls": tool_calls}})
 
         # Return Message directly (not wrapped) — a2a-sdk expects result=Message
@@ -139,6 +139,7 @@ class EntropicPurpleAgent:
         If the text isn't valid JSON, return it unchanged.
         """
         import json as _json
+
         try:
             ctx = _json.loads(raw_text)
         except (ValueError, TypeError):
@@ -162,7 +163,8 @@ class EntropicPurpleAgent:
         entropy = ctx.get("entropy")
         if entropy:
             parts.append(
-                f"\nNote: Column names may have been modified (drift_level={entropy.get('drift_level','?')}). "
+                f"\nNote: Column names may have been modified "
+                f"(drift_level={entropy.get('drift_level', '?')}). "
                 "Adapt to any schema changes in the context."
             )
 
@@ -177,6 +179,7 @@ class EntropicPurpleAgent:
     def _extract_task_tags(raw_text: str) -> set[str] | None:
         """Extract task category from CRM task JSON for selective playbook retrieval."""
         import json as _json
+
         try:
             ctx = _json.loads(raw_text)
         except (ValueError, TypeError):
@@ -223,9 +226,7 @@ class EntropicPurpleAgent:
             # Cache tools if provided
             for d in data_parts:
                 if "tools" in d:
-                    self._tool_cache[context_id] = self._convert_tools_to_openai(
-                        d["tools"]
-                    )
+                    self._tool_cache[context_id] = self._convert_tools_to_openai(d["tools"])
         else:
             # Subsequent turns — tool results and/or user text
             for d in data_parts:
@@ -234,11 +235,13 @@ class EntropicPurpleAgent:
                         green_id = tr["tool_call_id"]
                         tool_name = tr.get("tool_name", "")
                         self._reconcile_tool_call_id(messages, tool_name, green_id)
-                        messages.append({
-                            "role": "tool",
-                            "tool_call_id": green_id,
-                            "content": tr["content"],
-                        })
+                        messages.append(
+                            {
+                                "role": "tool",
+                                "tool_call_id": green_id,
+                                "content": tr["content"],
+                            }
+                        )
             for text in text_parts:
                 if text.strip():
                     messages.append({"role": "user", "content": text})
@@ -266,23 +269,16 @@ class EntropicPurpleAgent:
         return self._format_a2a_response(assistant_msg)
 
     @staticmethod
-    def _reconcile_tool_call_id(
-        messages: list[dict], tool_name: str, green_id: str
-    ) -> None:
+    def _reconcile_tool_call_id(messages: list[dict], tool_name: str, green_id: str) -> None:
         """Rewrite last assistant tool_call id to match green's id."""
         used_green_ids = {
-            m["tool_call_id"]
-            for m in messages
-            if m.get("role") == "tool" and "tool_call_id" in m
+            m["tool_call_id"] for m in messages if m.get("role") == "tool" and "tool_call_id" in m
         }
         for msg in reversed(messages):
             if msg.get("role") != "assistant" or "tool_calls" not in msg:
                 continue
             for tc in msg["tool_calls"]:
-                if (
-                    tc["function"]["name"] == tool_name
-                    and tc["id"] not in used_green_ids
-                ):
+                if tc["function"]["name"] == tool_name and tc["id"] not in used_green_ids:
                     tc["id"] = green_id
                     return
             return
@@ -292,45 +288,51 @@ def create_app(agent: EntropicPurpleAgent, port: int = 0) -> Starlette:
     """Create the A2A Starlette app for the entropic purple agent."""
 
     async def agent_card(request: Request) -> JSONResponse:
-        return JSONResponse({
-            "name": "clawloop-entropic-purple-agent",
-            "description": "ClawLoop harness-optimized CRM agent under test",
-            "url": f"http://127.0.0.1:{port}/",
-            "version": "0.1.0",
-            "protocol_version": "0.3.0",
-            "preferred_transport": "JSONRPC",
-            "default_input_modes": ["text/plain"],
-            "default_output_modes": ["text/plain"],
-            "capabilities": {"streaming": False, "push_notifications": False},
-            "skills": [
-                {
-                    "id": "crm_assistant",
-                    "name": "CRM Assistant",
-                    "description": "Agent under test for Entropic CRMArenaPro evaluation",
-                    "tags": ["benchmark", "entropic", "crmarena"],
-                }
-            ],
-        })
+        return JSONResponse(
+            {
+                "name": "clawloop-entropic-purple-agent",
+                "description": "ClawLoop harness-optimized CRM agent under test",
+                "url": f"http://127.0.0.1:{port}/",
+                "version": "0.1.0",
+                "protocol_version": "0.3.0",
+                "preferred_transport": "JSONRPC",
+                "default_input_modes": ["text/plain"],
+                "default_output_modes": ["text/plain"],
+                "capabilities": {"streaming": False, "push_notifications": False},
+                "skills": [
+                    {
+                        "id": "crm_assistant",
+                        "name": "CRM Assistant",
+                        "description": "Agent under test for Entropic CRMArenaPro evaluation",
+                        "tags": ["benchmark", "entropic", "crmarena"],
+                    }
+                ],
+            }
+        )
 
     async def handle_jsonrpc(request: Request) -> JSONResponse:
         body = await request.json()
         if body.get("jsonrpc") != "2.0" or "id" not in body:
             return JSONResponse(
-                {"jsonrpc": "2.0", "id": None,
-                 "error": {"code": -32600, "message": "Invalid Request"}}
+                {
+                    "jsonrpc": "2.0",
+                    "id": None,
+                    "error": {"code": -32600, "message": "Invalid Request"},
+                }
             )
 
         method = body.get("method")
         if method != "message/send":
             return JSONResponse(
-                {"jsonrpc": "2.0", "id": body["id"],
-                 "error": {"code": -32601, "message": f"Method not found: {method}"}}
+                {
+                    "jsonrpc": "2.0",
+                    "id": body["id"],
+                    "error": {"code": -32601, "message": f"Method not found: {method}"},
+                }
             )
 
         loop = asyncio.get_running_loop()
-        result = await loop.run_in_executor(
-            None, agent.handle_message_sync, body
-        )
+        result = await loop.run_in_executor(None, agent.handle_message_sync, body)
 
         return JSONResponse({"jsonrpc": "2.0", "id": body["id"], "result": result})
 
@@ -359,12 +361,11 @@ def start_purple_server(
     config = uvicorn.Config(app, host=host, port=actual_port, log_level="warning")
     server = uvicorn.Server(config)
 
-    thread = threading.Thread(
-        target=server.run, kwargs={"sockets": [sock]}, daemon=True
-    )
+    thread = threading.Thread(target=server.run, kwargs={"sockets": [sock]}, daemon=True)
     thread.start()
 
     import httpx
+
     for _ in range(50):
         try:
             r = httpx.get(f"http://{host}:{actual_port}/.well-known/agent-card.json", timeout=0.5)

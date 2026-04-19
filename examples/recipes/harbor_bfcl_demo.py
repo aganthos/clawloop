@@ -9,6 +9,7 @@ Usage:
 
 Opens the live viewer automatically in your browser.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -33,23 +34,34 @@ log = logging.getLogger("clawloop.demo.bfcl")
 # Real BFCL task names from Harbor registry
 # 5 live-simple (easy baseline — flash lite gets most right)
 BFCL_SIMPLE = [
-    "bfcl-live-simple-0-0-0", "bfcl-live-simple-1-1-0", "bfcl-live-simple-10-3-6",
-    "bfcl-live-simple-100-59-1", "bfcl-live-simple-101-60-0",
+    "bfcl-live-simple-0-0-0",
+    "bfcl-live-simple-1-1-0",
+    "bfcl-live-simple-10-3-6",
+    "bfcl-live-simple-100-59-1",
+    "bfcl-live-simple-101-60-0",
 ]
 
 # 10 live-multiple (harder — multiple function calls needed)
 BFCL_MULTIPLE = [
-    "bfcl-live-multiple-0-0-0", "bfcl-live-multiple-1-0-1", "bfcl-live-multiple-10-4-2",
-    "bfcl-live-multiple-100-42-4", "bfcl-live-multiple-1000-231-0",
-    "bfcl-live-multiple-101-42-5", "bfcl-live-multiple-102-43-0",
-    "bfcl-live-multiple-103-43-1", "bfcl-live-multiple-104-43-2",
+    "bfcl-live-multiple-0-0-0",
+    "bfcl-live-multiple-1-0-1",
+    "bfcl-live-multiple-10-4-2",
+    "bfcl-live-multiple-100-42-4",
+    "bfcl-live-multiple-1000-231-0",
+    "bfcl-live-multiple-101-42-5",
+    "bfcl-live-multiple-102-43-0",
+    "bfcl-live-multiple-103-43-1",
+    "bfcl-live-multiple-104-43-2",
     "bfcl-live-multiple-105-43-3",
 ]
 
 # 5 live-parallel (parallel calls — even harder)
 BFCL_PARALLEL = [
-    "bfcl-live-parallel-0-0-0", "bfcl-live-parallel-1-0-1", "bfcl-live-parallel-10-6-0",
-    "bfcl-live-parallel-11-7-0", "bfcl-live-parallel-12-8-0",
+    "bfcl-live-parallel-0-0-0",
+    "bfcl-live-parallel-1-0-1",
+    "bfcl-live-parallel-10-6-0",
+    "bfcl-live-parallel-11-7-0",
+    "bfcl-live-parallel-12-8-0",
 ]
 
 ALL_TASK_NAMES = BFCL_SIMPLE + BFCL_MULTIPLE + BFCL_PARALLEL
@@ -60,6 +72,7 @@ BFCL_GIT_COMMIT = "6bedd7878dc5d6f3456b4d80b781eb3c2d84f262"
 # ---------------------------------------------------------------------------
 # Download tasks
 # ---------------------------------------------------------------------------
+
 
 def download_tasks(output_dir: Path) -> list[Path]:
     """Download BFCL tasks via Harbor's TaskClient."""
@@ -92,6 +105,7 @@ def download_tasks(output_dir: Path) -> list[Path]:
 # Eval logger
 # ---------------------------------------------------------------------------
 
+
 class EvalLog:
     """Logs eval results to eval.jsonl for the viewer."""
 
@@ -122,7 +136,10 @@ class EvalLog:
             f.flush()
         log.info(
             "  [eval] iter=%d avg=%.4f min=%.4f max=%.4f",
-            iteration, entry["avg_reward"], entry["min_reward"], entry["max_reward"],
+            iteration,
+            entry["avg_reward"],
+            entry["min_reward"],
+            entry["max_reward"],
         )
 
 
@@ -130,15 +147,20 @@ class EvalLog:
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main():
     p = argparse.ArgumentParser(description="ClawLoop BFCL Demo — live harness learning")
     p.add_argument("--output-dir", default="runs/bfcl-demo", help="Output directory for logs")
     p.add_argument("--iterations", type=int, default=10, help="Number of learning iterations")
     p.add_argument("--episodes", type=int, default=3, help="Episodes per iteration (train)")
-    p.add_argument("--task-model", default="gemini/gemini-2.0-flash-lite",
-                    help="Model for Harbor agent (terminus-2)")
-    p.add_argument("--reflector-model", default="gemini/gemini-2.5-flash-lite",
-                    help="Model for reflector")
+    p.add_argument(
+        "--task-model",
+        default="gemini/gemini-2.0-flash-lite",
+        help="Model for Harbor agent (terminus-2)",
+    )
+    p.add_argument(
+        "--reflector-model", default="gemini/gemini-2.5-flash-lite", help="Model for reflector"
+    )
     p.add_argument("--n-train", type=int, default=15, help="Number of train tasks")
     p.add_argument("--n-eval", type=int, default=5, help="Number of eval tasks")
     p.add_argument("--no-viewer", action="store_true", help="Don't open viewer in browser")
@@ -164,12 +186,16 @@ def main():
     simple_paths = [p for p in task_paths if "simple" in p.name]
     random.seed(42)
     random.shuffle(hard_paths)
-    eval_paths = hard_paths[:args.n_eval]
-    train_paths = hard_paths[args.n_eval:] + simple_paths
+    eval_paths = hard_paths[: args.n_eval]
+    train_paths = hard_paths[args.n_eval :] + simple_paths
     random.shuffle(train_paths)
-    log.info("Train: %d tasks (%d hard, %d simple), Eval: %d tasks (all hard)",
-             len(train_paths), len([p for p in train_paths if "simple" not in p.name]),
-             len(simple_paths), len(eval_paths))
+    log.info(
+        "Train: %d tasks (%d hard, %d simple), Eval: %d tasks (all hard)",
+        len(train_paths),
+        len([p for p in train_paths if "simple" not in p.name]),
+        len(simple_paths),
+        len(eval_paths),
+    )
 
     # -- Build environments --
     from clawloop.core.loop import AgentState, learning_loop
@@ -192,13 +218,9 @@ def main():
     }
 
     train_envs = [
-        HarborTaskEnvironment(task_dir=p, trial_config=trial_config)
-        for p in train_paths
+        HarborTaskEnvironment(task_dir=p, trial_config=trial_config) for p in train_paths
     ]
-    eval_envs = [
-        HarborTaskEnvironment(task_dir=p, trial_config=trial_config)
-        for p in eval_paths
-    ]
+    eval_envs = [HarborTaskEnvironment(task_dir=p, trial_config=trial_config) for p in eval_paths]
     train_adapter = HarborAdapter(train_envs)
     eval_adapter = HarborAdapter(eval_envs)
     train_task_ids = [e.task_id for e in train_envs]
@@ -250,7 +272,12 @@ def main():
 
     # -- Open viewer --
     if not args.no_viewer:
-        viewer_path = Path(__file__).resolve().parent.parent.parent / "clawloop" / "static" / "learning_viewer.html"
+        viewer_path = (
+            Path(__file__).resolve().parent.parent.parent
+            / "clawloop"
+            / "static"
+            / "learning_viewer.html"
+        )
         if viewer_path.exists():
             url = f"file://{viewer_path}?dir={output_dir.resolve()}"
             log.info("Opening viewer: %s", url)
@@ -261,7 +288,10 @@ def main():
     # -- Run learning loop --
     log.info(
         "Starting: %d iterations, %d episodes/iter, %d train tasks, %d eval tasks",
-        args.iterations, args.episodes, len(train_task_ids), len(eval_task_ids),
+        args.iterations,
+        args.episodes,
+        len(train_task_ids),
+        len(eval_task_ids),
     )
 
     agent_state, state_id = learning_loop(

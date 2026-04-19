@@ -1,6 +1,6 @@
 """Tests for PlaybookCurator.check_prompt_playbook_coherence()."""
 
-from clawloop.core.curator import CuratorConfig, PlaybookCurator
+from clawloop.core.curator import PlaybookCurator
 from clawloop.core.embeddings import MockEmbedding
 from clawloop.learning_layers.harness import Playbook, PlaybookEntry
 from clawloop.llm import MockLLMClient
@@ -28,12 +28,15 @@ class TestCoherence:
         llm = MockLLMClient(responses=[f'["{conflict_desc}"]'])
         curator = PlaybookCurator(embeddings, llm)
 
-        playbook = Playbook(entries=[
-            PlaybookEntry(id="e1", content="Always provide verbose explanations"),
-        ])
+        playbook = Playbook(
+            entries=[
+                PlaybookEntry(id="e1", content="Always provide verbose explanations"),
+            ]
+        )
 
         result = curator.check_prompt_playbook_coherence(
-            "You are a concise assistant. Keep answers short.", playbook,
+            "You are a concise assistant. Keep answers short.",
+            playbook,
         )
 
         assert len(result) == 1
@@ -49,12 +52,15 @@ class TestCoherence:
         embeddings = MockEmbedding()
         curator = PlaybookCurator(embeddings, _FailingLLM())  # type: ignore[arg-type]
 
-        playbook = Playbook(entries=[
-            PlaybookEntry(id="e1", content="some entry"),
-        ])
+        playbook = Playbook(
+            entries=[
+                PlaybookEntry(id="e1", content="some entry"),
+            ]
+        )
 
         result = curator.check_prompt_playbook_coherence(
-            "You are a helpful assistant.", playbook,
+            "You are a helpful assistant.",
+            playbook,
         )
 
         assert result == []

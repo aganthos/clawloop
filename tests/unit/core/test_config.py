@@ -1,15 +1,14 @@
 """Unit tests for clawloop.config.load_env."""
+
 from __future__ import annotations
 
 import importlib
 import os
-from pathlib import Path
-
-import pytest
 
 
 def _reload_module():
     import clawloop.config as m
+
     importlib.reload(m)
     return m
 

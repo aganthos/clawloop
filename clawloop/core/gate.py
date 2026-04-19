@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+
 from clawloop.core.episode import Episode
 from clawloop.core.state import StateID
 
@@ -95,8 +96,12 @@ def gate_for_deploy(
             )
             all_passed = False
         else:
-            cand_mean = sum(e.summary.total_reward for e in cand_eps) / len(cand_eps) if cand_eps else 0.0
-            prod_mean = sum(e.summary.total_reward for e in prod_eps) / len(prod_eps) if prod_eps else 0.0
+            cand_mean = (
+                sum(e.summary.total_reward for e in cand_eps) / len(cand_eps) if cand_eps else 0.0
+            )
+            prod_mean = (
+                sum(e.summary.total_reward for e in prod_eps) / len(prod_eps) if prod_eps else 0.0
+            )
             delta = cand_mean - prod_mean
             passed = delta >= regression_threshold
             if not passed:

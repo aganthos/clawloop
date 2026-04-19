@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import pytest
 
-from clawloop.weight_backends import BackendError, ClawLoopBackend, SkyRLBackendInitError
-from clawloop.learning_layers import HarnessLearningBackend, HarnessLearningConfig
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
 from clawloop.core.types import Datum, SampleContext
+from clawloop.learning_layers import HarnessLearningBackend, HarnessLearningConfig
 from clawloop.learning_layers.harness import Harness
+from clawloop.weight_backends import BackendError, ClawLoopBackend, SkyRLBackendInitError
 
 
 def _make_episode(reward: float = 0.8) -> Episode:
@@ -32,6 +32,7 @@ def _make_episode(reward: float = 0.8) -> Episode:
 # BackendError — creation and frozen immutability
 # ---------------------------------------------------------------------------
 
+
 class TestBackendError:
     def test_creation(self) -> None:
         err = BackendError(code="gpu_oom", message="Out of memory", recoverable=True)
@@ -52,6 +53,7 @@ class TestBackendError:
 # ---------------------------------------------------------------------------
 # BackendError.from_exception — known type mappings
 # ---------------------------------------------------------------------------
+
 
 class TestBackendErrorFromException:
     def test_memory_error_maps_to_gpu_oom(self) -> None:
@@ -94,6 +96,7 @@ class TestBackendErrorFromException:
 # BackendError.from_exception — string-based checks
 # ---------------------------------------------------------------------------
 
+
 class TestBackendErrorStringChecks:
     def test_nan_in_message_maps_to_training_diverged(self) -> None:
         err = BackendError.from_exception(RuntimeError("loss is nan, aborting"))
@@ -130,6 +133,7 @@ class TestBackendErrorStringChecks:
 # SkyRLBackendInitError — wraps BackendError correctly
 # ---------------------------------------------------------------------------
 
+
 class TestSkyRLBackendInitError:
     def test_is_exception(self) -> None:
         be = BackendError(code="import_error", message="No vllm", recoverable=False)
@@ -158,6 +162,7 @@ class TestSkyRLBackendInitError:
 # ClawLoopBackend protocol — Harness satisfies it
 # ---------------------------------------------------------------------------
 
+
 class TestClawLoopBackendProtocol:
     def test_harness_satisfies_clawloop_backend(self) -> None:
         harness = Harness()
@@ -179,6 +184,7 @@ class TestClawLoopBackendProtocol:
 # ---------------------------------------------------------------------------
 # HarnessLearningBackend — delegation and config
 # ---------------------------------------------------------------------------
+
 
 class TestHarnessLearningBackend:
     def _backend(self) -> HarnessLearningBackend:

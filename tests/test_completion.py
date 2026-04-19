@@ -1,7 +1,5 @@
 """Tests for CompletionResult — rich LLM response type."""
 
-import pytest
-
 from clawloop.completion import CompletionResult
 from clawloop.core.episode import TokenLogProb, TokenUsage, ToolCall
 

@@ -1,7 +1,5 @@
 """Tests for entry-level attribution in Harness.forward_backward."""
 
-import copy
-
 from clawloop.core.episode import Episode, EpisodeSummary, Message
 from clawloop.core.reward import RewardSignal
 from clawloop.core.types import Datum
@@ -21,12 +19,16 @@ def _ep_with_signal(
     if scored_at_generation is not None:
         summary.scored_at_generation = scored_at_generation
     return Episode(
-        id=ep_id, state_id="s1", task_id="t1", bench=bench,
+        id=ep_id,
+        state_id="s1",
+        task_id="t1",
+        bench=bench,
         messages=[
             Message(role="user", content="q"),
             Message(role="assistant", content="a" * 20),
         ],
-        step_boundaries=[0], steps=[],
+        step_boundaries=[0],
+        steps=[],
         summary=summary,
     )
 

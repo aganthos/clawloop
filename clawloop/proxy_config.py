@@ -8,6 +8,7 @@ bench_mode:
     - True (default): local benchmark/training mode. Requires `X-ClawLoop-Run-Id`.
     - False: live/deployed mode. Requires `proxy_key` and enforces Authorization.
 """
+
 from __future__ import annotations
 
 from typing import Any, Callable, ClassVar
@@ -21,9 +22,7 @@ class ProxyConfig(BaseModel):
 
     model_config = {"arbitrary_types_allowed": True}
 
-    FORWARD_HEADERS: ClassVar[frozenset[str]] = frozenset(
-        {"content-type", "accept", "user-agent"}
-    )
+    FORWARD_HEADERS: ClassVar[frozenset[str]] = frozenset({"content-type", "accept", "user-agent"})
 
     upstream_url: str
     upstream_api_key: SecretStr
@@ -46,18 +45,13 @@ class ProxyConfig(BaseModel):
             hostname = parsed.hostname or ""
             if hostname not in ("localhost", "127.0.0.1", "::1"):
                 raise ValueError(
-                    "upstream_url must use https for remote hosts "
-                    f"(got http://{hostname})"
+                    "upstream_url must use https for remote hosts " f"(got http://{hostname})"
                 )
         elif parsed.scheme != "https":
-            raise ValueError(
-                f"upstream_url must use https (got {parsed.scheme}://)"
-            )
+            raise ValueError(f"upstream_url must use https (got {parsed.scheme}://)")
 
         # Live mode requires proxy_key
         if not self.bench_mode and not self.proxy_key:
-            raise ValueError(
-                "proxy_key is required when bench_mode=False (live mode)"
-            )
+            raise ValueError("proxy_key is required when bench_mode=False (live mode)")
 
         return self

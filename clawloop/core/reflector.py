@@ -69,7 +69,9 @@ def _sanitize_obj(obj: Any) -> Any:
     if isinstance(obj, str):
         return _sanitize_str(obj)
     if isinstance(obj, dict):
-        return {_sanitize_str(k) if isinstance(k, str) else k: _sanitize_obj(v) for k, v in obj.items()}
+        return {
+            _sanitize_str(k) if isinstance(k, str) else k: _sanitize_obj(v) for k, v in obj.items()
+        }
     if isinstance(obj, list):
         return [_sanitize_obj(item) for item in obj]
     return obj
@@ -159,7 +161,8 @@ class Reflector:
         pb_text = playbook.render()
         if pb_text:
             sections.append(
-                f"## CURRENT PLAYBOOK (dynamic, appended per-query — do NOT duplicate the system prompt above)\n"
+                "## CURRENT PLAYBOOK (dynamic, appended per-query — do NOT "
+                "duplicate the system prompt above)\n"
                 f"{_sanitize_str(pb_text)}"
             )
         else:
@@ -173,17 +176,23 @@ class Reflector:
                 content = _sanitize_str(msg.content)
                 if len(content) > _MSG_TRUNCATE_LEN:
                     content = content[:_MSG_TRUNCATE_LEN] + "..."
-                trace_messages.append({
-                    "role": _sanitize_str(msg.role),
-                    "content": content,
-                })
-            trace_objects.append(_sanitize_obj({
-                "id": ep.id,
-                "task_id": ep.task_id,
-                "bench": ep.bench,
-                "reward": ep.summary.total_reward,
-                "messages": trace_messages,
-            }))
+                trace_messages.append(
+                    {
+                        "role": _sanitize_str(msg.role),
+                        "content": content,
+                    }
+                )
+            trace_objects.append(
+                _sanitize_obj(
+                    {
+                        "id": ep.id,
+                        "task_id": ep.task_id,
+                        "bench": ep.bench,
+                        "reward": ep.summary.total_reward,
+                        "messages": trace_messages,
+                    }
+                )
+            )
 
         trace_json = json.dumps(trace_objects, indent=2)
         sections.append(f"## EPISODE TRACES\n```json\n{trace_json}\n```")
@@ -225,7 +234,10 @@ class Reflector:
 
         for item in data:
             if not isinstance(item, dict):
-                log.warning("Reflector: skipping non-dict item in response array, got %s", type(item).__name__)
+                log.warning(
+                    "Reflector: skipping non-dict item in response array, got %s",
+                    type(item).__name__,
+                )
                 continue
             try:
                 insight = Insight(

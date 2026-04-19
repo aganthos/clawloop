@@ -23,7 +23,7 @@ from typing import Any
 
 from clawloop.collector import EpisodeCollector
 from clawloop.core.episode import Message, TokenLogProb, TokenUsage, ToolCall, cap_logprobs
-from clawloop.core.parse import parse_tool_calls, resolve_oi_span_kind, _safe_session_hash
+from clawloop.core.parse import _safe_session_hash, parse_tool_calls, resolve_oi_span_kind
 
 log = logging.getLogger(__name__)
 
@@ -95,7 +95,11 @@ class ClawLoopCallback:
     ) -> None:
         """Async variant — delegates to sync."""
         self.log_failure_event(
-            kwargs, response_obj, start_time, end_time, exception,
+            kwargs,
+            response_obj,
+            start_time,
+            end_time,
+            exception,
         )
 
     def _process(
@@ -151,14 +155,16 @@ class ClawLoopCallback:
         logprobs = None
         raw_logprobs = getattr(choice, "logprobs", None)
         if raw_logprobs and hasattr(raw_logprobs, "content") and raw_logprobs.content:
-            logprobs = cap_logprobs([
-                TokenLogProb(
-                    token=lp.token,
-                    token_id=getattr(lp, "token_id", None),
-                    logprob=lp.logprob,
-                )
-                for lp in raw_logprobs.content
-            ])
+            logprobs = cap_logprobs(
+                [
+                    TokenLogProb(
+                        token=lp.token,
+                        token_id=getattr(lp, "token_id", None),
+                        logprob=lp.logprob,
+                    )
+                    for lp in raw_logprobs.content
+                ]
+            )
 
         # Build assistant message
         ep_messages.append(

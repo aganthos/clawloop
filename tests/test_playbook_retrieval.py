@@ -6,20 +6,28 @@ from clawloop.learning_layers.harness import Harness, Playbook, PlaybookEntry
 
 def _make_playbook() -> Playbook:
     """Playbook with 3 entries across different domains."""
-    return Playbook(entries=[
-        PlaybookEntry(
-            id="e-math", content="Show step-by-step work for arithmetic problems",
-            tags=["math"], helpful=3,
-        ),
-        PlaybookEntry(
-            id="e-code", content="Always validate input types before processing",
-            tags=["coding"], helpful=2,
-        ),
-        PlaybookEntry(
-            id="e-write", content="Use active voice and short sentences for clarity",
-            tags=["writing"], helpful=1,
-        ),
-    ])
+    return Playbook(
+        entries=[
+            PlaybookEntry(
+                id="e-math",
+                content="Show step-by-step work for arithmetic problems",
+                tags=["math"],
+                helpful=3,
+            ),
+            PlaybookEntry(
+                id="e-code",
+                content="Always validate input types before processing",
+                tags=["coding"],
+                helpful=2,
+            ),
+            PlaybookEntry(
+                id="e-write",
+                content="Use active voice and short sentences for clarity",
+                tags=["writing"],
+                helpful=1,
+            ),
+        ]
+    )
 
 
 class TestSystemPromptBackwardCompat:
@@ -202,10 +210,7 @@ class TestMaxRetrievalEntries:
             _max_retrieval_entries=2,
         )
         # Create 5 entries
-        entries = [
-            PlaybookEntry(id=f"e-{i}", content=f"Entry {i}", helpful=i)
-            for i in range(5)
-        ]
+        entries = [PlaybookEntry(id=f"e-{i}", content=f"Entry {i}", helpful=i) for i in range(5)]
         h.playbook = Playbook(entries=entries)
 
         entries_out, reason = h._retrieve_entries(None, "query")
@@ -236,11 +241,15 @@ class TestRenderEntries:
         assert "## PLAYBOOK" in text
 
     def test_structured_entry_renders_as_skill(self):
-        entries = [PlaybookEntry(
-            id="s1", content="Break into sub-problems.",
-            name="Divide and Conquer", description="Complex problems",
-            anti_patterns="One-step solutions",
-        )]
+        entries = [
+            PlaybookEntry(
+                id="s1",
+                content="Break into sub-problems.",
+                name="Divide and Conquer",
+                description="Complex problems",
+                anti_patterns="One-step solutions",
+            )
+        ]
         text = Harness._render_entries(entries, "embedding")
         assert "### Divide and Conquer" in text
         assert "**When**: Complex problems" in text

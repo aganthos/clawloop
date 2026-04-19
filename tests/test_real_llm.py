@@ -11,21 +11,20 @@ Skipped automatically if the key is not set.
 from __future__ import annotations
 
 import hashlib
-import json
 import logging
 import os
 from typing import Any
 
 import pytest
 
-from clawloop.core.env import Sample, TaskEnvironment
+from clawloop.core.env import Sample
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
 from clawloop.core.evolution import EvolverConfig, PromptEvolver
 from clawloop.core.intensity import AdaptiveIntensity
 from clawloop.core.loop import AgentState, learning_loop
 from clawloop.core.reflector import Reflector, ReflectorConfig
 from clawloop.harness_backends.local import LocalEvolver
-from clawloop.learning_layers.harness import Harness, PromptCandidate, ParetoFront
+from clawloop.learning_layers.harness import Harness, ParetoFront, PromptCandidate
 from clawloop.llm import LiteLLMClient
 
 log = logging.getLogger(__name__)
@@ -40,7 +39,10 @@ skip_no_key = pytest.mark.skipif(
 
 def _make_episode(task_id: str, reward: float, question: str, answer: str) -> Episode:
     return Episode(
-        id=Episode.new_id(), state_id="real-llm-test", task_id=task_id, bench="math",
+        id=Episode.new_id(),
+        state_id="real-llm-test",
+        task_id=task_id,
+        bench="math",
         messages=[
             Message(role="system", content="You are a math problem solver."),
             Message(role="user", content=question),
@@ -54,6 +56,7 @@ def _make_episode(task_id: str, reward: float, question: str, answer: str) -> Ep
 
 class _FixedAdapter:
     """Adapter that returns pre-built episodes."""
+
     def __init__(self, episodes: list[Episode]) -> None:
         self._episodes = episodes
         self._idx = 0
@@ -80,9 +83,15 @@ class TestRealLLMEndToEnd:
         state = AgentState(harness=harness)
 
         episodes = [
-            _make_episode("q1", reward=0.1, question="What is 17 + 28?", answer="The answer is 43"),
-            _make_episode("q2", reward=0.1, question="What is 15 * 13?", answer="The answer is 165"),
-            _make_episode("q3", reward=0.0, question="What is 144 / 12?", answer="The answer is 14"),
+            _make_episode(
+                "q1", reward=0.1, question="What is 17 + 28?", answer="The answer is 43"
+            ),
+            _make_episode(
+                "q2", reward=0.1, question="What is 15 * 13?", answer="The answer is 165"
+            ),
+            _make_episode(
+                "q3", reward=0.0, question="What is 144 / 12?", answer="The answer is 14"
+            ),
         ]
         adapter = _FixedAdapter(episodes)
 
@@ -100,14 +109,14 @@ class TestRealLLMEndToEnd:
         for e in entries:
             log.info("  - %s: %s", e.id, e.content[:80])
 
-        assert len(entries) >= 1, (
-            "Real LLM reflector should produce at least one insight from failure episodes"
-        )
+        assert (
+            len(entries) >= 1
+        ), "Real LLM reflector should produce at least one insight from failure episodes"
 
         prompt = state.harness.system_prompt("math")
-        assert len(prompt) > len("You are a math problem solver."), (
-            "System prompt should be enriched with playbook entries"
-        )
+        assert len(prompt) > len(
+            "You are a math problem solver."
+        ), "System prompt should be enriched with playbook entries"
 
     def test_real_evolver_mutates_prompt(self) -> None:
         """Real LLM evolver reads failing episodes and produces a mutated
@@ -170,10 +179,13 @@ class TestRealLLMEndToEnd:
         llm = LiteLLMClient(model=_MODEL)
         reflector = Reflector(client=llm, config=ReflectorConfig())
 
-        evolver = PromptEvolver(llm=llm, config=EvolverConfig(
-            max_mutations_per_step=1,
-            max_crossovers_per_step=0,
-        ))
+        evolver = PromptEvolver(
+            llm=llm,
+            config=EvolverConfig(
+                max_mutations_per_step=1,
+                max_crossovers_per_step=0,
+            ),
+        )
 
         harness = Harness(
             system_prompts={"math": "You are a math problem solver."},
@@ -210,9 +222,9 @@ class TestRealLLMEndToEnd:
 
         final_entries = len(state.harness.playbook.entries)
         log.info("Playbook: %d -> %d entries", initial_entries, final_entries)
-        assert final_entries > initial_entries, (
-            "Real reflector should produce insights from failures"
-        )
+        assert (
+            final_entries > initial_entries
+        ), "Real reflector should produce insights from failures"
 
         front = state.harness.pareto_fronts["math"]
         log.info("Pareto front: %d -> %d candidates", initial_candidates, len(front.candidates))
@@ -258,9 +270,9 @@ class TestFullyRealE2E:
 
         prompt_after = agent.get_system_prompt()
         if results["n_entries"] > 0:
-            assert len(prompt_after) > len(prompt_before), (
-                "System prompt should grow when playbook entries are added"
-            )
+            assert len(prompt_after) > len(
+                prompt_before
+            ), "System prompt should grow when playbook entries are added"
             log.info("Agent learned %d strategies from real math episodes", results["n_entries"])
         else:
             log.info("Agent aced all problems — no reflection needed (valid but rare)")
@@ -287,9 +299,7 @@ class _RealMathAdapter:
         response_text = response.text if hasattr(response, "text") else str(response)
         eval_result = self._env.evaluate(task, response_text)
 
-        task_id = hashlib.sha256(
-            f"{self._bench}:{task.question}".encode()
-        ).hexdigest()[:16]
+        task_id = hashlib.sha256(f"{self._bench}:{task.question}".encode()).hexdigest()[:16]
 
         ep_messages = [
             Message(role="system", content=system_prompt),
@@ -324,10 +334,13 @@ class TestFullPipelineRealLLM:
 
         reflector = Reflector(client=llm, config=ReflectorConfig())
 
-        evolver = PromptEvolver(llm=llm, config=EvolverConfig(
-            max_mutations_per_step=1,
-            max_crossovers_per_step=0,
-        ))
+        evolver = PromptEvolver(
+            llm=llm,
+            config=EvolverConfig(
+                max_mutations_per_step=1,
+                max_crossovers_per_step=0,
+            ),
+        )
 
         harness = Harness(
             system_prompts={"math": "You are a math problem solver. Answer with just the number."},
@@ -376,10 +389,12 @@ class TestFullPipelineRealLLM:
 
         log.info(
             "Results: entries=%d->%d, weights_steps=%d, pareto=%d",
-            initial_entries, final_entries,
-            weights_history, len(front.candidates),
+            initial_entries,
+            final_entries,
+            weights_history,
+            len(front.candidates),
         )
 
-        assert final_entries > initial_entries or weights_history > 0, (
-            "Either harness should learn from failures or weights from successes"
-        )
+        assert (
+            final_entries > initial_entries or weights_history > 0
+        ), "Either harness should learn from failures or weights from successes"

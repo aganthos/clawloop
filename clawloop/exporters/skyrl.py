@@ -93,7 +93,9 @@ class SkyRLExporter(TraceExporter):
             "loss_masks": loss_masks,
             "stop_reasons": None,
             "rollout_metrics": None,
-            "rollout_logprobs": rollout_logprobs if any(lp is not None for lp in rollout_logprobs) else None,
+            "rollout_logprobs": rollout_logprobs
+            if any(lp is not None for lp in rollout_logprobs)
+            else None,
             "trajectory_ids": trajectory_ids,
             "is_last_step": is_last_step,
         }

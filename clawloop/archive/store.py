@@ -24,7 +24,10 @@ class ArchiveStore(Protocol):
     def log_variant(self, variant: AgentVariant) -> None: ...
 
     def log_run_complete(
-        self, run_id: str, best_reward: float, improvement_delta: float,
+        self,
+        run_id: str,
+        best_reward: float,
+        improvement_delta: float,
         total_cost_tokens: int = 0,
     ) -> None: ...
 

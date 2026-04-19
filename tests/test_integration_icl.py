@@ -3,26 +3,28 @@
 import json
 
 from clawloop.agent import ClawLoopAgent
+from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
 from clawloop.environments.math import MathEnvironment
 from clawloop.llm import MockLLMClient
-from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _insight_response(content: str) -> str:
     """Build a JSON reflector response that adds a single insight."""
-    return json.dumps([
-        {
-            "action": "add",
-            "content": content,
-            "target_entry_id": None,
-            "tags": ["strategy"],
-            "source_episode_ids": [],
-        }
-    ])
+    return json.dumps(
+        [
+            {
+                "action": "add",
+                "content": content,
+                "target_entry_id": None,
+                "tags": ["strategy"],
+                "source_episode_ids": [],
+            }
+        ]
+    )
 
 
 def _empty_insight_response() -> str:
@@ -33,6 +35,7 @@ def _empty_insight_response() -> str:
 # ---------------------------------------------------------------------------
 # Test 1
 # ---------------------------------------------------------------------------
+
 
 class TestMathLearningLoopEndToEnd:
     """Full loop: run math tasks, reflect, improve playbook."""
@@ -52,12 +55,12 @@ class TestMathLearningLoopEndToEnd:
         # We cycle through 6 responses: some correct answers for likely-sampled
         # problems, some intentionally wrong.
         task_responses = [
-            "The answer is 45",   # correct for "What is 17 + 28?"
-            "The answer is 99",   # wrong for most problems
-            "The answer is 12",   # correct for "What is 144 / 12?" or GCD(36,48)
-            "The answer is 0",    # wrong for most problems
-            "The answer is 5",    # correct for "Solve for x: 3x + 7 = 22."
-            "The answer is 77",   # wrong for most problems
+            "The answer is 45",  # correct for "What is 17 + 28?"
+            "The answer is 99",  # wrong for most problems
+            "The answer is 12",  # correct for "What is 144 / 12?" or GCD(36,48)
+            "The answer is 0",  # wrong for most problems
+            "The answer is 5",  # correct for "Solve for x: 3x + 7 = 22."
+            "The answer is 77",  # wrong for most problems
         ]
         task_client = MockLLMClient(responses=task_responses)
 
@@ -80,36 +83,39 @@ class TestMathLearningLoopEndToEnd:
         results = agent.learn(env, iterations=2, episodes_per_iter=2)
 
         # Assert: rewards list has 2 entries (one per iteration)
-        assert len(results["rewards"]) == 2, (
-            f"Expected 2 reward entries, got {len(results['rewards'])}"
-        )
+        assert (
+            len(results["rewards"]) == 2
+        ), f"Expected 2 reward entries, got {len(results['rewards'])}"
         for r in results["rewards"]:
             assert isinstance(r, float)
 
         # Assert: at least 1 playbook entry from the reflector insight
-        assert results["n_entries"] >= 1, (
-            f"Expected at least 1 playbook entry, got {results['n_entries']}"
-        )
+        assert (
+            results["n_entries"] >= 1
+        ), f"Expected at least 1 playbook entry, got {results['n_entries']}"
 
         # Assert: system prompt contains the learned strategy
         prompt = agent.get_system_prompt()
-        assert "n(n+1)/2" in prompt, (
-            f"Expected learned strategy 'n(n+1)/2' in system prompt, got:\n{prompt}"
-        )
+        assert (
+            "n(n+1)/2" in prompt
+        ), f"Expected learned strategy 'n(n+1)/2' in system prompt, got:\n{prompt}"
 
 
 # ---------------------------------------------------------------------------
 # Test 2
 # ---------------------------------------------------------------------------
 
+
 class TestSaveLoadPreservesLearning:
     """Run 1 iteration to generate a playbook entry. Save and reload."""
 
     def test_save_load_preserves_learning(self, tmp_path) -> None:
         task_client = MockLLMClient(responses=["The answer is 45"])
-        reflector_client = MockLLMClient(responses=[
-            _insight_response("For summation problems, use n(n+1)/2"),
-        ])
+        reflector_client = MockLLMClient(
+            responses=[
+                _insight_response("For summation problems, use n(n+1)/2"),
+            ]
+        )
 
         agent = ClawLoopAgent(
             task_client=task_client,
@@ -144,14 +150,15 @@ class TestSaveLoadPreservesLearning:
 
         # After loading, the learned strategy should be in the system prompt
         prompt_after = agent2.get_system_prompt()
-        assert "n(n+1)/2" in prompt_after, (
-            f"Expected 'n(n+1)/2' in loaded agent's system prompt, got:\n{prompt_after}"
-        )
+        assert (
+            "n(n+1)/2" in prompt_after
+        ), f"Expected 'n(n+1)/2' in loaded agent's system prompt, got:\n{prompt_after}"
 
 
 # ---------------------------------------------------------------------------
 # Test 3
 # ---------------------------------------------------------------------------
+
 
 class TestIngestExternalEpisodes:
     """Create an Episode manually and ingest it via agent.ingest()."""
@@ -174,9 +181,11 @@ class TestIngestExternalEpisodes:
         )
 
         # Reflector returns an "add" insight: "Show work"
-        reflector_client = MockLLMClient(responses=[
-            _insight_response("Show work"),
-        ])
+        reflector_client = MockLLMClient(
+            responses=[
+                _insight_response("Show work"),
+            ]
+        )
 
         agent = ClawLoopAgent(
             task_client=MockLLMClient(),
@@ -189,6 +198,6 @@ class TestIngestExternalEpisodes:
 
         # Assert "Show work" appears in the system prompt via the playbook
         prompt = agent.get_system_prompt()
-        assert "Show work" in prompt, (
-            f"Expected 'Show work' in system prompt after ingest, got:\n{prompt}"
-        )
+        assert (
+            "Show work" in prompt
+        ), f"Expected 'Show work' in system prompt after ingest, got:\n{prompt}"

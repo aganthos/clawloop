@@ -10,8 +10,8 @@ import os
 
 import pytest
 
+from clawloop.core.curator import PlaybookCurator
 from clawloop.core.embeddings import GeminiEmbedding, cosine_similarity, find_similar
-from clawloop.core.curator import PlaybookCurator, CuratorConfig
 from clawloop.learning_layers.harness import Insight, Playbook, PlaybookEntry
 from clawloop.llm import MockLLMClient
 
@@ -50,28 +50,34 @@ class TestGeminiEmbedding:
 
     def test_similar_texts_high_similarity(self) -> None:
         emb = self._emb()
-        vecs = emb.embed([
-            "Always validate user inputs before processing",
-            "Make sure to check user inputs for correctness",
-        ])
+        vecs = emb.embed(
+            [
+                "Always validate user inputs before processing",
+                "Make sure to check user inputs for correctness",
+            ]
+        )
         sim = cosine_similarity(vecs[0], vecs[1])
         assert sim > 0.7, f"Similar texts should have high similarity, got {sim}"
 
     def test_dissimilar_texts_low_similarity(self) -> None:
         emb = self._emb()
-        vecs = emb.embed([
-            "Always validate user inputs before processing",
-            "The weather in Paris is sunny today",
-        ])
+        vecs = emb.embed(
+            [
+                "Always validate user inputs before processing",
+                "The weather in Paris is sunny today",
+            ]
+        )
         sim = cosine_similarity(vecs[0], vecs[1])
         assert sim < 0.5, f"Dissimilar texts should have low similarity, got {sim}"
 
     def test_identical_texts_near_one(self) -> None:
         emb = self._emb()
-        vecs = emb.embed([
-            "Use chain of thought for math problems",
-            "Use chain of thought for math problems",
-        ])
+        vecs = emb.embed(
+            [
+                "Use chain of thought for math problems",
+                "Use chain of thought for math problems",
+            ]
+        )
         sim = cosine_similarity(vecs[0], vecs[1])
         assert sim > 0.99, f"Identical texts should have sim ~1.0, got {sim}"
 

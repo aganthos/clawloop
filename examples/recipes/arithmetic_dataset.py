@@ -1,4 +1,5 @@
 """Generate arithmetic training data in SkyRL parquet format."""
+
 from __future__ import annotations
 
 import argparse
@@ -23,16 +24,21 @@ def main():
         rows = []
         for i in range(n):
             a, b = random.randint(1, args.max_val), random.randint(1, args.max_val)
-            rows.append({
-                "data_source": "synthetic_arithmetic",
-                "prompt": [
-                    {"role": "system", "content": "Solve arithmetic problems. Put your answer in \\boxed{} format."},
-                    {"role": "user", "content": f"What is {a} + {b}?"},
-                ],
-                "env_class": "arithmetic",
-                "reward_spec": {"method": "rule", "ground_truth": str(a + b)},
-                "extra_info": {"split": split, "index": i, "a": a, "b": b},
-            })
+            rows.append(
+                {
+                    "data_source": "synthetic_arithmetic",
+                    "prompt": [
+                        {
+                            "role": "system",
+                            "content": "Solve arithmetic problems. Put your answer in \\boxed{} format.",
+                        },
+                        {"role": "user", "content": f"What is {a} + {b}?"},
+                    ],
+                    "env_class": "arithmetic",
+                    "reward_spec": {"method": "rule", "ground_truth": str(a + b)},
+                    "extra_info": {"split": split, "index": i, "a": a, "b": b},
+                }
+            )
         return datasets.Dataset.from_list(rows)
 
     train = make_examples(args.train_size, "train")

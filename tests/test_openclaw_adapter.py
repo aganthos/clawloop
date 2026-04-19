@@ -6,10 +6,8 @@ import sys
 import textwrap
 from pathlib import Path
 
-import pytest
-
-from clawloop.environments.openclaw import OpenClawAdapter
 from clawloop.core.loop import AgentState
+from clawloop.environments.openclaw import OpenClawAdapter
 
 
 class TestListTasks:
@@ -49,7 +47,8 @@ class TestRunEpisode:
     def _make_runner_script(self, tmp_path: Path) -> Path:
         """Create a mock runner script that reads stdin JSON, writes stdout JSON."""
         script = tmp_path / "mock_runner.py"
-        script.write_text(textwrap.dedent("""\
+        script.write_text(
+            textwrap.dedent("""\
             import json, sys
             task = json.loads(sys.stdin.read())
             result = {
@@ -58,29 +57,34 @@ class TestRunEpisode:
                 "output": f"Completed: {task.get('instruction', '')}",
             }
             print(json.dumps(result))
-        """))
+        """)
+        )
         return script
 
     def _make_timeout_script(self, tmp_path: Path) -> Path:
         """Create a script that sleeps forever (for timeout testing)."""
         script = tmp_path / "slow_runner.py"
-        script.write_text(textwrap.dedent("""\
+        script.write_text(
+            textwrap.dedent("""\
             import time, sys
             sys.stdin.read()
             time.sleep(999)
-        """))
+        """)
+        )
         return script
 
     def test_runs_subprocess_and_returns_episode(self, tmp_path):
         runner = self._make_runner_script(tmp_path)
 
         adapter = OpenClawAdapter()
-        adapter.setup({
-            "runner_script": str(runner),
-            "node_bin": sys.executable,
-            "timeout_s": 10,
-            "_skip_proxy": True,
-        })
+        adapter.setup(
+            {
+                "runner_script": str(runner),
+                "node_bin": sys.executable,
+                "timeout_s": 10,
+                "_skip_proxy": True,
+            }
+        )
 
         task = {"task_id": "abc", "instruction": "Say hello"}
         episode = adapter.run_episode(task, AgentState())
@@ -99,12 +103,14 @@ class TestRunEpisode:
         runner = self._make_timeout_script(tmp_path)
 
         adapter = OpenClawAdapter()
-        adapter.setup({
-            "runner_script": str(runner),
-            "node_bin": sys.executable,
-            "timeout_s": 1,
-            "_skip_proxy": True,
-        })
+        adapter.setup(
+            {
+                "runner_script": str(runner),
+                "node_bin": sys.executable,
+                "timeout_s": 1,
+                "_skip_proxy": True,
+            }
+        )
 
         task = {"task_id": "slow", "instruction": "Wait forever"}
         # Should not hang — timeout kills the process

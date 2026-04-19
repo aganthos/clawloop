@@ -2,16 +2,8 @@
 """Integration tests for CARAdapter with mock agentbeats-run."""
 
 import json
-import os
-import stat
-import textwrap
-from pathlib import Path
-from unittest.mock import patch
-
-import pytest
 
 from clawloop.environments.car import CARAdapter
-from clawloop.core.loop import AgentState
 
 
 class TestCARAdapterResultsParsing:
@@ -31,20 +23,24 @@ class TestCARAdapterResultsParsing:
         iter_dir = tmp_path / "output" / "iter_0"
         iter_dir.mkdir(parents=True)
         results_path = iter_dir / "results.json"
-        results_path.write_text(json.dumps({
-            "detailed_results_by_split": {
-                "base": [
-                    {
-                        "task_id": "base_0",
-                        "reward": 1.0,
-                        "reward_info": {"r_actions_final": 1.0},
-                        "trajectory": [{"role": "user", "content": "Hi"}],
-                        "total_agent_cost": 0.01,
-                        "total_llm_latency_ms": 500.0,
+        results_path.write_text(
+            json.dumps(
+                {
+                    "detailed_results_by_split": {
+                        "base": [
+                            {
+                                "task_id": "base_0",
+                                "reward": 1.0,
+                                "reward_info": {"r_actions_final": 1.0},
+                                "trajectory": [{"role": "user", "content": "Hi"}],
+                                "total_agent_cost": 0.01,
+                                "total_llm_latency_ms": 500.0,
+                            }
+                        ]
                     }
-                ]
-            }
-        }))
+                }
+            )
+        )
 
         episodes = adapter._parse_results(results_path, ["base_0"])
         assert len(episodes) == 1
@@ -59,22 +55,30 @@ class TestCARAdapterResultsParsing:
         adapter._output_dir = tmp_path
 
         results_path = tmp_path / "results.json"
-        results_path.write_text(json.dumps({
-            "participants": {},
-            "results": [{
-                "score": 1.0,
-                "detailed_results_by_split": {
-                    "base": [{
-                        "task_id": "base_0",
-                        "reward": 1.0,
-                        "reward_info": {"r_actions_final": 1.0},
-                        "trajectory": [{"role": "user", "content": "Hi"}],
-                        "total_agent_cost": 0.01,
-                        "total_llm_latency_ms": 500.0,
-                    }]
+        results_path.write_text(
+            json.dumps(
+                {
+                    "participants": {},
+                    "results": [
+                        {
+                            "score": 1.0,
+                            "detailed_results_by_split": {
+                                "base": [
+                                    {
+                                        "task_id": "base_0",
+                                        "reward": 1.0,
+                                        "reward_info": {"r_actions_final": 1.0},
+                                        "trajectory": [{"role": "user", "content": "Hi"}],
+                                        "total_agent_cost": 0.01,
+                                        "total_llm_latency_ms": 500.0,
+                                    }
+                                ]
+                            },
+                        }
+                    ],
                 }
-            }]
-        }))
+            )
+        )
 
         episodes = adapter._parse_results(results_path, ["base_0"])
         assert len(episodes) == 1
@@ -90,9 +94,7 @@ class TestCARAdapterResultsParsing:
         iter_dir = tmp_path / "iter_0"
         iter_dir.mkdir(parents=True)
         results_path = iter_dir / "results.json"
-        results_path.write_text(json.dumps({
-            "detailed_results_by_split": {"base": []}
-        }))
+        results_path.write_text(json.dumps({"detailed_results_by_split": {"base": []}}))
 
         episodes = adapter._parse_results(results_path, ["base_0", "base_1"])
         # Should have 2 failed episodes for missing tasks
@@ -112,8 +114,10 @@ class TestScenarioGeneration:
 
         harness_file = str(tmp_path / "harness.json")
         scenario = adapter._generate_scenario(
-            ["base_0", "base_2"], harness_file,
-            green_port=8081, purple_port=9999,
+            ["base_0", "base_2"],
+            harness_file,
+            green_port=8081,
+            purple_port=9999,
         )
         assert "task_split" in scenario
         assert '"test"' in scenario
@@ -133,8 +137,10 @@ class TestScenarioGeneration:
 
         harness_file = str(tmp_path / "harness.json")
         scenario = adapter._generate_scenario(
-            ["base_0", "hallucination_1"], harness_file,
-            green_port=8081, purple_port=9999,
+            ["base_0", "hallucination_1"],
+            harness_file,
+            green_port=8081,
+            purple_port=9999,
         )
         assert "base_0" in scenario
         assert "hallucination_1" in scenario

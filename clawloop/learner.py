@@ -52,7 +52,9 @@ class AsyncLearner:
             return
         self._stop_event.clear()
         self._worker = threading.Thread(
-            target=self._run, daemon=True, name="clawloop-learner",
+            target=self._run,
+            daemon=True,
+            name="clawloop-learner",
         )
         self._worker.start()
 
@@ -119,7 +121,9 @@ class AsyncLearner:
 
             log.info(
                 "Batch %s: %d episodes, avg_reward=%.3f",
-                batch_id, len(episodes), avg_reward,
+                batch_id,
+                len(episodes),
+                avg_reward,
             )
 
             # NOTE: Support-query split disabled — see loop.py.
@@ -152,7 +156,9 @@ class AsyncLearner:
                 except Exception as exc:
                     log.error(
                         "forward_backward failed for %s on batch %s: %s",
-                        name, batch_id, exc,
+                        name,
+                        batch_id,
+                        exc,
                     )
                     fb_results[name] = FBResult(status="error")
                     should_clear = True
@@ -162,12 +168,14 @@ class AsyncLearner:
                         layer.clear_pending_state()
                     except Exception:
                         log.exception(
-                            "Failed to clear pending state for %s", name,
+                            "Failed to clear pending state for %s",
+                            name,
                         )
 
             # Phase 2: optim_step with cross-layer rollback
             layers_to_optim = [
-                (name, layer) for name, layer in layers
+                (name, layer)
+                for name, layer in layers
                 if fb_results.get(name, FBResult(status="error")).status
                 not in ("error", "skipped")
             ]
@@ -200,14 +208,17 @@ class AsyncLearner:
                     if result.status == "error":
                         log.error(
                             "optim_step returned error for %s on batch %s",
-                            name, batch_id,
+                            name,
+                            batch_id,
                         )
                         optim_failed = True
                         break
                 except Exception as exc:
                     log.error(
                         "optim_step failed for %s on batch %s: %s",
-                        name, batch_id, exc,
+                        name,
+                        batch_id,
+                        exc,
                     )
                     optim_failed = True
                     break
@@ -223,7 +234,9 @@ class AsyncLearner:
                             lr = layer.load_state(snapshots[name]).result()
                             if lr.status != "ok":
                                 log.error(
-                                    "Rollback returned %s for %s", lr.status, name,
+                                    "Rollback returned %s for %s",
+                                    lr.status,
+                                    name,
                                 )
                         except Exception:
                             log.exception("Rollback failed for %s", name)
@@ -243,7 +256,9 @@ class AsyncLearner:
                         weights.clear_pending_state()
                         log.info(
                             "Generation %d->%d: flushed %d stale episodes from weights buffer",
-                            prev_gen, current_gen, stale,
+                            prev_gen,
+                            current_gen,
+                            stale,
                         )
                 self._prev_playbook_generation = current_gen
 
@@ -259,7 +274,9 @@ class AsyncLearner:
             if self.on_learn_complete is not None:
                 try:
                     self.on_learn_complete(
-                        episodes, success=success, error=error_msg,
+                        episodes,
+                        success=success,
+                        error=error_msg,
                     )
                 except Exception:
                     log.exception("on_learn_complete callback failed")

@@ -35,7 +35,7 @@ def parse_sse_bytes(
         line = line.strip()
         if not line.startswith("data:"):
             continue
-        payload = line[len("data:"):].strip()
+        payload = line[len("data:") :].strip()
         if payload == "[DONE]":
             is_complete = True
             continue
@@ -124,9 +124,7 @@ def parse_sse_bytes(
         msg["reasoning"] = reasoning
 
     if tool_calls_by_index:
-        msg["tool_calls"] = [
-            tool_calls_by_index[i] for i in sorted(tool_calls_by_index)
-        ]
+        msg["tool_calls"] = [tool_calls_by_index[i] for i in sorted(tool_calls_by_index)]
 
     if model:
         msg["model"] = model

@@ -15,8 +15,10 @@ def pytest_collection_modifyitems(session, config, items):
         except Exception:
             continue
         for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom) and node.module and (
-                node.module.startswith("private_")
+            if (
+                isinstance(node, ast.ImportFrom)
+                and node.module
+                and (node.module.startswith("private_"))
             ):
                 raise ValueError(
                     f"BOUNDARY VIOLATION: {fpath} imports from private code "

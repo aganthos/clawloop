@@ -14,9 +14,7 @@ from clawloop.core.episode import TokenLogProb, TokenUsage, ToolCall, cap_logpro
 class LLMClient(Protocol):
     """Protocol for LLM completion clients."""
 
-    def complete(
-        self, messages: list[dict[str, str]], **kwargs: Any
-    ) -> CompletionResult:
+    def complete(self, messages: list[dict[str, str]], **kwargs: Any) -> CompletionResult:
         """Send messages to an LLM and return a rich completion result."""
         ...
 
@@ -47,9 +45,7 @@ class LiteLLMClient:
         self.api_base = api_base
         self.default_kwargs = kwargs
 
-    def complete(
-        self, messages: list[dict[str, str]], **kwargs: Any
-    ) -> CompletionResult:
+    def complete(self, messages: list[dict[str, str]], **kwargs: Any) -> CompletionResult:
         """Call litellm.completion() and return a CompletionResult."""
         import litellm
 
@@ -61,9 +57,7 @@ class LiteLLMClient:
         if self.api_base is not None:
             merged["api_base"] = self.api_base
 
-        response = litellm.completion(
-            model=self.model, messages=messages, **merged
-        )
+        response = litellm.completion(model=self.model, messages=messages, **merged)
         elapsed_ms = (time.monotonic() - start) * 1000
 
         choice = response.choices[0]
@@ -133,14 +127,10 @@ class MockLLMClient:
     model: str | None = field(default=None)
     tool_calls: list[list[ToolCall] | None] | None = field(default=None)
     logprobs: list[list[TokenLogProb] | None] | None = field(default=None)
-    call_log: list[tuple[list[dict[str, str]], dict[str, Any]]] = field(
-        default_factory=list
-    )
+    call_log: list[tuple[list[dict[str, str]], dict[str, Any]]] = field(default_factory=list)
     _call_idx: int = 0
 
-    def complete(
-        self, messages: list[dict[str, str]], **kwargs: Any
-    ) -> CompletionResult:
+    def complete(self, messages: list[dict[str, str]], **kwargs: Any) -> CompletionResult:
         """Return the next canned response and log the call."""
         self.call_log.append((messages, kwargs))
         idx = self._call_idx % len(self.responses)

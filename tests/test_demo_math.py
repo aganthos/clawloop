@@ -22,6 +22,7 @@ REPO_ROOT = Path(__file__).parent.parent
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _run(
     *args: str,
     cwd: Path = REPO_ROOT,
@@ -56,6 +57,7 @@ def _real_llm_env() -> dict[str, str] | None:
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
 
 class TestDemoMathModule:
     """clawloop.demo_math imported directly."""

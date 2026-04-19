@@ -13,6 +13,7 @@ Tinker-compatible: weight mode uses SkyRL's training infrastructure
 under the hood. ClawLoop wraps it with a unified API that lets you switch
 between prompt learning and weight training by changing one field.
 """
+
 from __future__ import annotations
 
 import json
@@ -41,7 +42,9 @@ def main():
 
     logging.getLogger("clawloop").info(
         "mode=%s env=%s layers=%s",
-        config.mode, config.env_type, MODE_LAYERS[config.mode],
+        config.mode,
+        config.env_type,
+        MODE_LAYERS[config.mode],
     )
 
     agent_state, state_id = train(config)

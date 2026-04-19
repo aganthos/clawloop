@@ -10,12 +10,16 @@ def _ep_positive() -> Episode:
     summary = EpisodeSummary()
     summary.signals["outcome"] = RewardSignal("outcome", 1.0, 1.0)
     return Episode(
-        id="ep-1", state_id="s1", task_id="t1", bench="test",
+        id="ep-1",
+        state_id="s1",
+        task_id="t1",
+        bench="test",
         messages=[
             Message(role="user", content="q"),
             Message(role="assistant", content="a" * 20),
         ],
-        step_boundaries=[0], steps=[],
+        step_boundaries=[0],
+        steps=[],
         summary=summary,
     )
 

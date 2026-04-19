@@ -1,16 +1,18 @@
 """Unit tests for TauBenchAdapter — tau2 library is mocked throughout."""
+
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
+
 import pytest
 
 from clawloop.core.episode import Message
 from clawloop.environments.taubench import TauBenchAdapter, _compute_step_boundaries
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_tau2_message(role: str, content: str):
     m = MagicMock()
@@ -59,6 +61,7 @@ def _make_agent_state(harness_prompt: str = "You are helpful."):
 # _compute_step_boundaries
 # ---------------------------------------------------------------------------
 
+
 class TestComputeStepBoundaries:
     def test_empty_returns_empty(self):
         assert _compute_step_boundaries([]) == []
@@ -92,6 +95,7 @@ class TestComputeStepBoundaries:
 # ---------------------------------------------------------------------------
 # TauBenchAdapter._map_to_episode
 # ---------------------------------------------------------------------------
+
 
 class TestMapToEpisode:
     def _adapter(self, domain: str = "retail") -> TauBenchAdapter:
@@ -179,6 +183,7 @@ class TestMapToEpisode:
 # TauBenchAdapter._make_failed_episode
 # ---------------------------------------------------------------------------
 
+
 class TestMakeFailedEpisode:
     def test_failed_episode_has_negative_outcome(self):
         adapter = TauBenchAdapter()
@@ -192,6 +197,7 @@ class TestMakeFailedEpisode:
 # ---------------------------------------------------------------------------
 # TauBenchAdapter.list_tasks
 # ---------------------------------------------------------------------------
+
 
 class TestListTasks:
     @patch("clawloop.environments.taubench.get_tasks")
@@ -207,6 +213,7 @@ class TestListTasks:
 # ---------------------------------------------------------------------------
 # TauBenchAdapter.run_batch
 # ---------------------------------------------------------------------------
+
 
 class TestRunBatch:
     @patch("clawloop.environments.taubench.run_single_task")
@@ -260,23 +267,25 @@ class TestRunBatch:
         assert episodes[0].metadata["error"] == "task_not_found"
 
 
-
 # ---------------------------------------------------------------------------
 # TauBenchAdapter.setup
 # ---------------------------------------------------------------------------
 
+
 class TestSetup:
     def test_setup_reads_config(self):
         adapter = TauBenchAdapter()
-        adapter.setup({
-            "domain": "airline",
-            "llm_agent": "openai/gpt-4o",
-            "llm_user": "openai/gpt-4o",
-            "max_steps": 50,
-            "max_concurrency": 4,
-            "task_split": "dev",
-            "num_tasks": 5,
-        })
+        adapter.setup(
+            {
+                "domain": "airline",
+                "llm_agent": "openai/gpt-4o",
+                "llm_user": "openai/gpt-4o",
+                "max_steps": 50,
+                "max_concurrency": 4,
+                "task_split": "dev",
+                "num_tasks": 5,
+            }
+        )
         assert adapter._domain == "airline"
         assert adapter._llm_agent == "openai/gpt-4o"
         assert adapter._max_steps == 50
@@ -289,6 +298,7 @@ class TestSetup:
 # ---------------------------------------------------------------------------
 # Harness prompt passthrough
 # ---------------------------------------------------------------------------
+
 
 class TestHarnessPromptPassthrough:
     @patch("clawloop.environments.taubench.TextRunConfig")

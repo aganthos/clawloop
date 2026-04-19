@@ -62,13 +62,17 @@ class TestLearningLoopArchive:
             assert len(completes) == 1
 
             iterations_file = archive_dir / "iterations.jsonl"
-            iter_lines = [json.loads(ln) for ln in iterations_file.read_text().splitlines() if ln.strip()]
+            iter_lines = [
+                json.loads(ln) for ln in iterations_file.read_text().splitlines() if ln.strip()
+            ]
             assert len(iter_lines) == 2
             assert {r["iteration_num"] for r in iter_lines} == {0, 1}
 
             run_id = starts[0]["run_id"]
             episodes_file = archive_dir / run_id / "episodes.jsonl"
-            ep_lines = [json.loads(ln) for ln in episodes_file.read_text().splitlines() if ln.strip()]
+            ep_lines = [
+                json.loads(ln) for ln in episodes_file.read_text().splitlines() if ln.strip()
+            ]
             assert len(ep_lines) == 4  # 2 iterations * 2 episodes
 
             got = archive.get_run(run_id)

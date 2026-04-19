@@ -10,6 +10,7 @@ from clawloop.exporters.skyrl import SkyRLExporter
 def _skyrl_available() -> bool:
     try:
         import skyrl.tinker.types  # noqa: F401
+
         return True
     except ImportError:
         return False
@@ -19,11 +20,13 @@ def _skyrl_available() -> bool:
 class TestSkyRLCompat:
     def test_tinker_types_importable(self):
         from skyrl.tinker.types import ForwardBackwardInput, OptimStepInput
+
         assert ForwardBackwardInput is not None
         assert OptimStepInput is not None
 
     def test_backend_importable(self):
         from skyrl.backends.backend import AbstractBackend
+
         assert AbstractBackend is not None
 
     def test_full_translation_path(self):
@@ -31,7 +34,10 @@ class TestSkyRLCompat:
         from tests.test_skyrl_export import FakeTokenizer
 
         ep = Episode(
-            id="test-ep", state_id="abc", task_id="t1", bench="test",
+            id="test-ep",
+            state_id="abc",
+            task_id="t1",
+            bench="test",
             messages=[
                 Message(role="system", content="You are helpful."),
                 Message(role="user", content="Hello"),
@@ -59,7 +65,10 @@ class TestSkyRLExporterBasic:
         from tests.test_skyrl_export import FakeTokenizer
 
         ep = Episode(
-            id="test", state_id="abc", task_id="t1", bench="test",
+            id="test",
+            state_id="abc",
+            task_id="t1",
+            bench="test",
             messages=[
                 Message(role="system", content="Hi"),
                 Message(role="user", content="Hello"),
@@ -72,6 +81,12 @@ class TestSkyRLExporterBasic:
         exporter = SkyRLExporter(tokenizer=FakeTokenizer())
         output = exporter.export([ep])
 
-        for key in ("prompt_token_ids", "response_ids", "rewards",
-                     "loss_masks", "trajectory_ids", "is_last_step"):
+        for key in (
+            "prompt_token_ids",
+            "response_ids",
+            "rewards",
+            "loss_masks",
+            "trajectory_ids",
+            "is_last_step",
+        ):
             assert key in output, f"Missing key: {key}"

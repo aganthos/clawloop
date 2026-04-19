@@ -1,7 +1,8 @@
 """Tests for cloud_url, cloud_api_key, and trace_level parameters on wrap()."""
 
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
 
 from clawloop.collector import EpisodeCollector
 from clawloop.core.reward import RewardPipeline

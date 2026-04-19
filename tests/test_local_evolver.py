@@ -4,9 +4,8 @@ from unittest.mock import MagicMock
 
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
 from clawloop.core.evolver import EvolverContext, EvolverResult, HarnessSnapshot
-from clawloop.core.reward import RewardSignal
 from clawloop.harness_backends.local import LocalEvolver
-from clawloop.learning_layers.harness import Insight, Playbook, PromptCandidate
+from clawloop.learning_layers.harness import Insight, PromptCandidate
 
 
 def _make_episode(reward: float = 0.5, bench: str = "test") -> Episode:
@@ -26,7 +25,17 @@ def _make_snapshot() -> HarnessSnapshot:
     return HarnessSnapshot(
         system_prompts={"test": "You are helpful."},
         playbook_entries=[],
-        pareto_fronts={"test": [{"id": "pc-1", "text": "You are helpful.", "per_task_scores": {"t1": 0.8}, "generation": 0, "parent_id": None}]},
+        pareto_fronts={
+            "test": [
+                {
+                    "id": "pc-1",
+                    "text": "You are helpful.",
+                    "per_task_scores": {"t1": 0.8},
+                    "generation": 0,
+                    "parent_id": None,
+                }
+            ]
+        },
         playbook_generation=0,
         playbook_version=0,
     )
@@ -59,7 +68,6 @@ def test_local_evolver_with_reflector():
         Insight(action="add", content="be concise", tags=["test"]),
     ]
 
-    playbook = Playbook()
     evolver = LocalEvolver(reflector=reflector)
     result = evolver.evolve(
         episodes=[_make_episode()],

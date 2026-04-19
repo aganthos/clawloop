@@ -7,7 +7,7 @@ mechanisms. Always returns status="ok" with empty run_id.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from clawloop.core.episode import Episode
@@ -61,7 +61,9 @@ class LocalEvolver:
                 for i in range(0, len(episodes), batch_sz):
                     batch = episodes[i : i + batch_sz]
                     batch_insights = self.reflector.reflect(
-                        batch, playbook, base_prompt=base_prompt,
+                        batch,
+                        playbook,
+                        base_prompt=base_prompt,
                     )
                     # Auto-tag insights with source episode metadata for
                     # cleaner attribution when using per-sample reflection.
@@ -144,18 +146,20 @@ class LocalEvolver:
 
         entries = []
         for e in state.playbook_entries:
-            entries.append(PlaybookEntry(
-                id=e.get("id", ""),
-                content=e.get("content", ""),
-                helpful=e.get("helpful", 0),
-                harmful=e.get("harmful", 0),
-                tags=e.get("tags", []),
-                name=e.get("name", ""),
-                description=e.get("description", ""),
-                anti_patterns=e.get("anti_patterns", ""),
-                category=e.get("category", "general"),
-                superseded_by=e.get("superseded_by"),
-            ))
+            entries.append(
+                PlaybookEntry(
+                    id=e.get("id", ""),
+                    content=e.get("content", ""),
+                    helpful=e.get("helpful", 0),
+                    harmful=e.get("harmful", 0),
+                    tags=e.get("tags", []),
+                    name=e.get("name", ""),
+                    description=e.get("description", ""),
+                    anti_patterns=e.get("anti_patterns", ""),
+                    category=e.get("category", "general"),
+                    superseded_by=e.get("superseded_by"),
+                )
+            )
         return Playbook(entries=entries)
 
     def _run_gepa(
@@ -183,7 +187,8 @@ class LocalEvolver:
             best_dict = max(
                 front_data,
                 key=lambda c: (
-                    sum(c.get("per_task_scores", {}).values()) / max(len(c.get("per_task_scores", {})), 1)
+                    sum(c.get("per_task_scores", {}).values())
+                    / max(len(c.get("per_task_scores", {})), 1)
                 ),
             )
             best = self._candidate_from_dict(best_dict)
@@ -192,8 +197,7 @@ class LocalEvolver:
 
             # Mutation from failure episodes
             bench_failures = [
-                ep for ep in episodes
-                if ep.bench == bench and ep.summary.effective_reward() < 0
+                ep for ep in episodes if ep.bench == bench and ep.summary.effective_reward() < 0
             ]
             if bench_failures:
                 for _ in range(pe.config.max_mutations_per_step):

@@ -27,6 +27,8 @@ _log = logging.getLogger(__name__)
 try:
     from openinference.semconv.trace import (  # type: ignore[import-untyped]
         OpenInferenceSpanKindValues,
+    )
+    from openinference.semconv.trace import (
         SpanAttributes as OISpanAttributes,
     )
 
@@ -259,9 +261,7 @@ class OTelExporter(TraceExporter):
 
         # Token usage
         if summary.token_usage:
-            root_span.set_attribute(
-                "gen_ai.usage.input_tokens", summary.token_usage.prompt_tokens
-            )
+            root_span.set_attribute("gen_ai.usage.input_tokens", summary.token_usage.prompt_tokens)
 
         # Metadata
         harness_version = ep.metadata.get("harness_version")

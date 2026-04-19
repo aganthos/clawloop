@@ -21,6 +21,7 @@ Usage (airline, 5 tasks, 5 iterations):
         --task-ids airline_0 airline_1 airline_2 airline_3 airline_4 \\
         --iterations 5
 """
+
 from __future__ import annotations
 
 import argparse
@@ -49,13 +50,12 @@ _DOMAIN_PROMPTS: dict[str, str] = {
 
 
 def run_harness_learning(args: argparse.Namespace) -> None:
-    from clawloop.environments.taubench import TauBenchAdapter
     from clawloop.core.intensity import AdaptiveIntensity
     from clawloop.core.loop import AgentState, learning_loop
+    from clawloop.environments.taubench import TauBenchAdapter
     from clawloop.learning_layers.harness import Harness
     from clawloop.learning_layers.router import Router
     from clawloop.learning_layers.weights import Weights
-
     from examples.recipes.common import build_local_evolver
 
     starter_prompt = _DOMAIN_PROMPTS.get(args.domain, _RETAIL_SYSTEM_PROMPT)
@@ -93,7 +93,9 @@ def run_harness_learning(args: argparse.Namespace) -> None:
 
     log.info(
         "Starting harness learning: domain=%s tasks=%d iterations=%d",
-        args.domain, len(tasks), args.iterations,
+        args.domain,
+        len(tasks),
+        args.iterations,
     )
 
     agent_state, state_id = learning_loop(
@@ -114,42 +116,73 @@ def run_harness_learning(args: argparse.Namespace) -> None:
         for entry in harness.playbook.entries[:5]:
             print(f"  - {entry.content[:100]}")
     else:
-        print("\nNo playbook entries yet (may need more iterations or failures to trigger learning).")
+        print(
+            "\nNo playbook entries yet (may need more iterations or failures to trigger learning)."
+        )
 
-    print(f"\nFinal system prompt (first 300 chars):")
+    print("\nFinal system prompt (first 300 chars):")
     print(harness.system_prompt("taubench")[:300])
 
 
 def main() -> None:
     p = argparse.ArgumentParser(description="ClawLoop tau-bench 3 harness learning recipe")
-    p.add_argument("--domain", choices=["retail", "airline"], default="retail",
-                   help="tau-bench domain to run")
-    p.add_argument("--task-ids", nargs="*", default=None,
-                   help="Explicit task IDs to run (e.g. retail_0 retail_1). "
-                        "If omitted, auto-discovers from --task-split up to --num-tasks.")
-    p.add_argument("--num-tasks", type=int, default=5,
-                   help="Number of tasks to auto-discover when --task-ids is not set")
-    p.add_argument("--task-split", default="test",
-                   help="tau-bench split to use (test, dev, train)")
-    p.add_argument("--iterations", type=int, default=3,
-                   help="Number of harness learning iterations")
-    p.add_argument("--max-steps", type=int, default=30,
-                   help="Max conversation steps per episode")
-    p.add_argument("--max-concurrency", type=int, default=4,
-                   help="Max parallel episodes per batch")
-    p.add_argument("--task-model", default="gemini/gemini-2.0-flash-lite",
-                   help="Model for agent and user simulator (default: gemini-2.0-flash-lite)")
-    p.add_argument("--reflector-model", default="gemini/gemini-2.5-flash-lite",
-                   help="Model for the ClawLoop reflector — runs once per iteration "
-                        "(default: gemini-2.5-flash-lite)")
-    p.add_argument("--reflect-every", type=int, default=1,
-                   help="Reflect every N iterations (1=every iteration, 3=default adaptive)")
-    p.add_argument("--reflection-batch-size", type=int, default=4,
-                   help="Episodes per Reflector LLM call — higher enables contrastive learning")
-    p.add_argument("--api-base", default=os.environ.get("CLAWLOOP_API_BASE"),
-                   help="API base URL override (e.g. for local proxy)")
-    p.add_argument("--api-key", default=os.environ.get("CLAWLOOP_API_KEY", ""),
-                   help="API key override")
+    p.add_argument(
+        "--domain", choices=["retail", "airline"], default="retail", help="tau-bench domain to run"
+    )
+    p.add_argument(
+        "--task-ids",
+        nargs="*",
+        default=None,
+        help="Explicit task IDs to run (e.g. retail_0 retail_1). "
+        "If omitted, auto-discovers from --task-split up to --num-tasks.",
+    )
+    p.add_argument(
+        "--num-tasks",
+        type=int,
+        default=5,
+        help="Number of tasks to auto-discover when --task-ids is not set",
+    )
+    p.add_argument(
+        "--task-split", default="test", help="tau-bench split to use (test, dev, train)"
+    )
+    p.add_argument(
+        "--iterations", type=int, default=3, help="Number of harness learning iterations"
+    )
+    p.add_argument("--max-steps", type=int, default=30, help="Max conversation steps per episode")
+    p.add_argument(
+        "--max-concurrency", type=int, default=4, help="Max parallel episodes per batch"
+    )
+    p.add_argument(
+        "--task-model",
+        default="gemini/gemini-2.0-flash-lite",
+        help="Model for agent and user simulator (default: gemini-2.0-flash-lite)",
+    )
+    p.add_argument(
+        "--reflector-model",
+        default="gemini/gemini-2.5-flash-lite",
+        help="Model for the ClawLoop reflector — runs once per iteration "
+        "(default: gemini-2.5-flash-lite)",
+    )
+    p.add_argument(
+        "--reflect-every",
+        type=int,
+        default=1,
+        help="Reflect every N iterations (1=every iteration, 3=default adaptive)",
+    )
+    p.add_argument(
+        "--reflection-batch-size",
+        type=int,
+        default=4,
+        help="Episodes per Reflector LLM call — higher enables contrastive learning",
+    )
+    p.add_argument(
+        "--api-base",
+        default=os.environ.get("CLAWLOOP_API_BASE"),
+        help="API base URL override (e.g. for local proxy)",
+    )
+    p.add_argument(
+        "--api-key", default=os.environ.get("CLAWLOOP_API_KEY", ""), help="API key override"
+    )
     args = p.parse_args()
 
     logging.basicConfig(

@@ -167,7 +167,9 @@ class EpisodeSummary:
 
         mapped = float(value) * 2.0 - 1.0
         self.signals["outcome"] = RewardSignal(
-            name="outcome", value=mapped, confidence=1.0,
+            name="outcome",
+            value=mapped,
+            confidence=1.0,
         )
 
     # -- Core reward methods ----------------------------------------------

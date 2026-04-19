@@ -1,7 +1,7 @@
 # tests/test_entropic_rewards.py
 """Tests for Entropic CRMArenaPro reward mapping."""
 
-from clawloop.environments._entropic_rewards import map_entropic_scores, DEFAULT_ENTROPIC_WEIGHTS
+from clawloop.environments._entropic_rewards import DEFAULT_ENTROPIC_WEIGHTS, map_entropic_scores
 
 
 class TestMapEntropicScores:
@@ -65,7 +65,7 @@ class TestMapEntropicScores:
         scores = {"functional": 150.0, "drift_adaptation": -20.0}
         signals, breakdown = map_entropic_scores(scores, task_reward=1.0)
 
-        assert signals["functional"].value == 1.0   # 150→clamped to 100→1.0
+        assert signals["functional"].value == 1.0  # 150→clamped to 100→1.0
         assert signals["drift_adaptation"].value == -1.0  # -20→clamped to 0→-1.0
 
     def test_non_numeric_dimension(self):
@@ -80,9 +80,7 @@ class TestMapEntropicScores:
         """Custom weights override defaults."""
         custom = {"functional": 1.0}
         scores = {"functional": 100.0, "drift_adaptation": 0.0}
-        signals, breakdown = map_entropic_scores(
-            scores, task_reward=1.0, weights=custom
-        )
+        signals, breakdown = map_entropic_scores(scores, task_reward=1.0, weights=custom)
 
         assert "functional" in signals
         assert "drift_adaptation" not in signals

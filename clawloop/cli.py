@@ -19,28 +19,27 @@ def _build_parser() -> argparse.ArgumentParser:
         prog="clawloop",
         description="ClawLoop — Learning from Experience unified learning API",
     )
-    parser.add_argument(
-        "-v", "--verbose", action="store_true", help="Enable debug logging"
-    )
+    parser.add_argument("-v", "--verbose", action="store_true", help="Enable debug logging")
     sub = parser.add_subparsers(dest="command", required=True)
 
     # -- run --
     run_p = sub.add_parser("run", help="Run the learning loop")
     run_p.add_argument("-v", "--verbose", action="store_true", help="Enable debug logging")
     run_p.add_argument("--bench", required=True, help="Benchmark name")
-    run_p.add_argument(
-        "--iterations", type=int, default=1, help="Number of learning iterations"
-    )
-    run_p.add_argument(
-        "--episodes", type=int, default=10, help="Episodes per iteration"
-    )
+    run_p.add_argument("--iterations", type=int, default=1, help="Number of learning iterations")
+    run_p.add_argument("--episodes", type=int, default=10, help="Episodes per iteration")
     run_p.add_argument("--config", type=str, default=None, help="Config JSON file")
     run_p.add_argument("--model", type=str, default=None, help="LLM model (litellm format)")
-    run_p.add_argument("--api-base", type=str, default=None, help="LLM API base URL (OpenAI-compatible endpoint)")
-    run_p.add_argument("--task-type", type=str, default="base",
-                       help="Task type: base, hallucination, disambiguation")
-    run_p.add_argument("--task-split", type=str, default="test",
-                       help="Data split: train, test")
+    run_p.add_argument(
+        "--api-base", type=str, default=None, help="LLM API base URL (OpenAI-compatible endpoint)"
+    )
+    run_p.add_argument(
+        "--task-type",
+        type=str,
+        default="base",
+        help="Task type: base, hallucination, disambiguation",
+    )
+    run_p.add_argument("--task-split", type=str, default="test", help="Data split: train, test")
     run_p.add_argument("--output", type=str, default=None, help="Output directory")
     run_p.add_argument("--seed", type=int, default=None, help="Random seed")
 
@@ -48,9 +47,7 @@ def _build_parser() -> argparse.ArgumentParser:
     eval_p = sub.add_parser("eval", help="Evaluate current state (no learning)")
     eval_p.add_argument("-v", "--verbose", action="store_true", help="Enable debug logging")
     eval_p.add_argument("--bench", required=True, help="Benchmark name")
-    eval_p.add_argument(
-        "--episodes", type=int, default=10, help="Number of episodes"
-    )
+    eval_p.add_argument("--episodes", type=int, default=10, help="Number of episodes")
     eval_p.add_argument("--config", type=str, default=None, help="Config JSON file")
 
     # -- setup-bench --
@@ -64,7 +61,9 @@ def _build_parser() -> argparse.ArgumentParser:
 
     math_p = demo_sub.add_parser("math", help="Math learning loop demo")
     math_p.add_argument("--dry-run", action="store_true", help="Use mock LLMs (no API calls)")
-    math_p.add_argument("--iterations", type=int, default=None, help="Number of learning iterations")
+    math_p.add_argument(
+        "--iterations", type=int, default=None, help="Number of learning iterations"
+    )
     math_p.add_argument("--episodes", type=int, default=None, help="Episodes per iteration")
     math_p.add_argument("--output", type=str, default="playbook.json", help="Playbook output path")
 
@@ -117,7 +116,9 @@ def _build_evolver(config: dict[str, Any]) -> Any | None:
     from clawloop.harness_backends.local import LocalEvolver
     from clawloop.llm import LiteLLMClient
 
-    model = config.get("reflector_model", config.get("model", "anthropic/claude-haiku-4-5-20251001"))
+    model = config.get(
+        "reflector_model", config.get("model", "anthropic/claude-haiku-4-5-20251001")
+    )
     client = LiteLLMClient(
         model=model,
         api_base=api_base,
@@ -132,6 +133,7 @@ def _build_evolver(config: dict[str, Any]) -> Any | None:
 def _ensure_output_dir(config: dict[str, Any], bench: str) -> None:
     """Set output dir if not configured. Convention: runs/<bench>/<timestamp>."""
     import time
+
     if "output" not in config or not config["output"]:
         config["output"] = f"./runs/{bench}/{int(time.time())}"
 
@@ -162,6 +164,7 @@ def cmd_run(args: argparse.Namespace) -> None:
 
     # Wire LocalEvolver (with Reflector) into harness for ICL learning
     from clawloop.learning_layers.harness import Harness
+
     evolver = _build_evolver(config)
     agent_state = AgentState(harness=Harness(evolver=evolver))
 
@@ -226,7 +229,14 @@ BENCH_SETUP: dict[str, dict[str, Any]] = {
     "car": {
         "bench_dir": "benchmarks/a2a/car-bench",
         "data_setup": "scenarios/car-bench/setup.sh",
-        "uv_sync_cmd": ["uv", "sync", "--extra", "car-bench-agent", "--extra", "car-bench-evaluator"],
+        "uv_sync_cmd": [
+            "uv",
+            "sync",
+            "--extra",
+            "car-bench-agent",
+            "--extra",
+            "car-bench-evaluator",
+        ],
     },
     "entropic": {
         "bench_dir": "benchmarks/a2a/entropic-crmarenapro",

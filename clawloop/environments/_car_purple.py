@@ -75,14 +75,16 @@ class CarPurpleAgent:
                 # Already in OpenAI format
                 result.append(t)
             else:
-                result.append({
-                    "type": "function",
-                    "function": {
-                        "name": t["name"],
-                        "description": t.get("description", ""),
-                        "parameters": t.get("parameters", {}),
-                    },
-                })
+                result.append(
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": t["name"],
+                            "description": t.get("description", ""),
+                            "parameters": t.get("parameters", {}),
+                        },
+                    }
+                )
         return result
 
     @staticmethod
@@ -122,9 +124,7 @@ class CarPurpleAgent:
                     except json.JSONDecodeError:
                         log.warning("Malformed tool args for %s", tc.function.name)
                         args = {"raw": args}
-                tool_calls.append(
-                    {"tool_name": tc.function.name, "arguments": args}
-                )
+                tool_calls.append({"tool_name": tc.function.name, "arguments": args})
             parts.append({"kind": "data", "data": {"tool_calls": tool_calls}})
 
         return {
@@ -170,9 +170,7 @@ class CarPurpleAgent:
             # Cache tools
             for d in data_parts:
                 if "tools" in d:
-                    self._tool_cache[context_id] = self._convert_tools_to_openai(
-                        d["tools"]
-                    )
+                    self._tool_cache[context_id] = self._convert_tools_to_openai(d["tools"])
         else:
             # Subsequent: tool results and/or user text
             for d in data_parts:
@@ -184,11 +182,13 @@ class CarPurpleAgent:
                         tool_name = tr.get("tool_name", "")
                         self._reconcile_tool_call_id(messages, tool_name, green_id)
 
-                        messages.append({
-                            "role": "tool",
-                            "tool_call_id": green_id,
-                            "content": tr["content"],
-                        })
+                        messages.append(
+                            {
+                                "role": "tool",
+                                "tool_call_id": green_id,
+                                "content": tr["content"],
+                            }
+                        )
             for text in text_parts:
                 if text.strip():
                     messages.append({"role": "user", "content": text})
@@ -218,9 +218,7 @@ class CarPurpleAgent:
         return self._format_a2a_response(assistant_msg)
 
     @staticmethod
-    def _reconcile_tool_call_id(
-        messages: list[dict], tool_name: str, green_id: str
-    ) -> None:
+    def _reconcile_tool_call_id(messages: list[dict], tool_name: str, green_id: str) -> None:
         """Rewrite last assistant message's tool_call id to match green's id.
 
         Green generates its own tool_call_ids. The LLM needs matching ids between
@@ -232,9 +230,7 @@ class CarPurpleAgent:
         """
         # Collect green IDs already used in existing tool-role messages
         used_green_ids = {
-            m["tool_call_id"]
-            for m in messages
-            if m.get("role") == "tool" and "tool_call_id" in m
+            m["tool_call_id"] for m in messages if m.get("role") == "tool" and "tool_call_id" in m
         }
         # Walk backwards to find the last assistant message with tool_calls
         for msg in reversed(messages):
@@ -242,10 +238,7 @@ class CarPurpleAgent:
                 continue
             for tc in msg["tool_calls"]:
                 # Match by name, skip if already reconciled (id is a known green id)
-                if (
-                    tc["function"]["name"] == tool_name
-                    and tc["id"] not in used_green_ids
-                ):
+                if tc["function"]["name"] == tool_name and tc["id"] not in used_green_ids:
                     tc["id"] = green_id
                     return
             return  # found assistant msg but no matching tool name
@@ -255,46 +248,52 @@ def create_app(agent: CarPurpleAgent, port: int = 0) -> Starlette:
     """Create the A2A Starlette app."""
 
     async def agent_card(request: Request) -> JSONResponse:
-        return JSONResponse({
-            "name": "clawloop-purple-agent",
-            "description": "ClawLoop harness-optimized agent under test",
-            "url": f"http://127.0.0.1:{port}/",
-            "version": "0.1.0",
-            "protocol_version": "0.3.0",
-            "preferred_transport": "JSONRPC",
-            "default_input_modes": ["text/plain"],
-            "default_output_modes": ["text/plain"],
-            "capabilities": {"streaming": False, "push_notifications": False},
-            "skills": [
-                {
-                    "id": "car_assistant",
-                    "name": "In-Car Voice Assistant",
-                    "description": "Agent under test for CAR-bench evaluation",
-                    "tags": ["benchmark", "car-bench"],
-                }
-            ],
-        })
+        return JSONResponse(
+            {
+                "name": "clawloop-purple-agent",
+                "description": "ClawLoop harness-optimized agent under test",
+                "url": f"http://127.0.0.1:{port}/",
+                "version": "0.1.0",
+                "protocol_version": "0.3.0",
+                "preferred_transport": "JSONRPC",
+                "default_input_modes": ["text/plain"],
+                "default_output_modes": ["text/plain"],
+                "capabilities": {"streaming": False, "push_notifications": False},
+                "skills": [
+                    {
+                        "id": "car_assistant",
+                        "name": "In-Car Voice Assistant",
+                        "description": "Agent under test for CAR-bench evaluation",
+                        "tags": ["benchmark", "car-bench"],
+                    }
+                ],
+            }
+        )
 
     async def handle_jsonrpc(request: Request) -> JSONResponse:
         body = await request.json()
         if body.get("jsonrpc") != "2.0" or "id" not in body:
             return JSONResponse(
-                {"jsonrpc": "2.0", "id": None,
-                 "error": {"code": -32600, "message": "Invalid Request"}}
+                {
+                    "jsonrpc": "2.0",
+                    "id": None,
+                    "error": {"code": -32600, "message": "Invalid Request"},
+                }
             )
 
         method = body.get("method")
         if method != "message/send":
             return JSONResponse(
-                {"jsonrpc": "2.0", "id": body["id"],
-                 "error": {"code": -32601, "message": f"Method not found: {method}"}}
+                {
+                    "jsonrpc": "2.0",
+                    "id": body["id"],
+                    "error": {"code": -32601, "message": f"Method not found: {method}"},
+                }
             )
 
         # Run sync litellm call in thread to avoid blocking event loop
         loop = asyncio.get_running_loop()
-        result = await loop.run_in_executor(
-            None, agent.handle_message_sync, body
-        )
+        result = await loop.run_in_executor(None, agent.handle_message_sync, body)
 
         return JSONResponse({"jsonrpc": "2.0", "id": body["id"], "result": result})
 
@@ -324,13 +323,12 @@ def start_purple_server(
     config = uvicorn.Config(app, host=host, port=actual_port, log_level="warning")
     server = uvicorn.Server(config)
 
-    thread = threading.Thread(
-        target=server.run, kwargs={"sockets": [sock]}, daemon=True
-    )
+    thread = threading.Thread(target=server.run, kwargs={"sockets": [sock]}, daemon=True)
     thread.start()
 
     # Poll for readiness
     import httpx
+
     for _ in range(50):
         try:
             r = httpx.get(f"http://{host}:{actual_port}/.well-known/agent-card.json", timeout=0.5)

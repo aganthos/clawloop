@@ -1,20 +1,23 @@
 """Tests for clawloop.train — config validation, mode presets, MathAdapter."""
+
 from __future__ import annotations
 
 import pytest
 from pydantic import SecretStr
 
 from clawloop.train import (
+    MODE_LAYERS,
     HarborConfig,
     LLMClientConfig,
-    MODE_LAYERS,
     TrainConfig,
     validate_config,
 )
 
 
 def _llm(role: str = "reflector") -> dict[str, LLMClientConfig]:
-    return {role: LLMClientConfig(model="test-model", api_base="http://test", api_key=SecretStr("k"))}
+    return {
+        role: LLMClientConfig(model="test-model", api_base="http://test", api_key=SecretStr("k"))
+    }
 
 
 def _skyrl() -> dict:
@@ -28,6 +31,7 @@ def _harbor() -> HarborConfig:
 # ---------------------------------------------------------------------------
 # Mode presets
 # ---------------------------------------------------------------------------
+
 
 class TestModePresets:
     def test_weight_layers(self):
@@ -43,6 +47,7 @@ class TestModePresets:
 # ---------------------------------------------------------------------------
 # Validation: weight mode
 # ---------------------------------------------------------------------------
+
 
 class TestWeightValidation:
     def test_weight_requires_skyrl(self):
@@ -62,6 +67,7 @@ class TestWeightValidation:
 # ---------------------------------------------------------------------------
 # Validation: harness_learning mode
 # ---------------------------------------------------------------------------
+
 
 class TestHarnessLearningValidation:
     def test_requires_reflector(self):
@@ -88,9 +94,12 @@ class TestHarnessLearningValidation:
 # Validation: full mode
 # ---------------------------------------------------------------------------
 
+
 class TestFullValidation:
     def test_full_mode_raises_not_implemented(self):
-        cfg = TrainConfig(mode="full", skyrl=_skyrl(), harbor=_harbor(), llm_clients=_llm("reflector"))
+        cfg = TrainConfig(
+            mode="full", skyrl=_skyrl(), harbor=_harbor(), llm_clients=_llm("reflector")
+        )
         with pytest.raises(NotImplementedError, match="disabled"):
             validate_config(cfg)
 
@@ -98,6 +107,7 @@ class TestFullValidation:
 # ---------------------------------------------------------------------------
 # Validation: env_type
 # ---------------------------------------------------------------------------
+
 
 class TestEnvValidation:
     def test_harbor_requires_task_dirs(self):
@@ -114,6 +124,7 @@ class TestEnvValidation:
 # ---------------------------------------------------------------------------
 # LLMClientConfig
 # ---------------------------------------------------------------------------
+
 
 class TestLLMClientConfig:
     def test_secret_str_hidden(self):
@@ -133,6 +144,7 @@ class TestLLMClientConfig:
 # ---------------------------------------------------------------------------
 # Mode validation via Pydantic Literal
 # ---------------------------------------------------------------------------
+
 
 class TestPydanticModeValidation:
     def test_invalid_mode_rejected(self):
@@ -154,6 +166,7 @@ class TestPydanticModeValidation:
 # ---------------------------------------------------------------------------
 # MathAdapter
 # ---------------------------------------------------------------------------
+
 
 class TestMathAdapter:
     def test_run_episode_produces_episode(self):
@@ -233,6 +246,7 @@ class TestMathAdapter:
 # _make_llm_client
 # ---------------------------------------------------------------------------
 
+
 class TestMakeLLMClient:
     def test_empty_key_becomes_none(self):
         from clawloop.train import LLMClientConfig, _make_llm_client
@@ -245,7 +259,9 @@ class TestMakeLLMClient:
     def test_explicit_key_preserved(self):
         from clawloop.train import LLMClientConfig, _make_llm_client
 
-        cfg = LLMClientConfig(model="test-model", api_key=SecretStr("sk-123"), api_base="http://proxy")
+        cfg = LLMClientConfig(
+            model="test-model", api_key=SecretStr("sk-123"), api_base="http://proxy"
+        )
         client = _make_llm_client(cfg)
         assert client.api_key == "sk-123"
         assert client.api_base == "http://proxy"
@@ -254,6 +270,7 @@ class TestMakeLLMClient:
 # ---------------------------------------------------------------------------
 # train() end-to-end (mocked backends)
 # ---------------------------------------------------------------------------
+
 
 class TestTrainEndToEnd:
     def test_harness_learning_math(self):
@@ -279,10 +296,12 @@ class TestTrainEndToEnd:
         )
 
         with patch("clawloop.train._make_llm_client") as mock_make:
+
             def _pick_client(llm_cfg):
                 if "reflector" in llm_cfg.model:
                     return mock_reflector
                 return mock_task
+
             mock_make.side_effect = _pick_client
 
             agent_state, state_id = train(cfg)

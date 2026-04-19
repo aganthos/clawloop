@@ -7,18 +7,23 @@ from clawloop.learning_layers.harness import Harness, Playbook, PlaybookEntry
 
 
 def _ep_with_generation(
-    reward: float, scored_at_generation: int | None,
+    reward: float,
+    scored_at_generation: int | None,
 ) -> Episode:
     summary = EpisodeSummary()
     summary.signals["outcome"] = RewardSignal("outcome", reward, 1.0)
     summary.scored_at_generation = scored_at_generation
     return Episode(
-        id="ep-1", state_id="s1", task_id="t1", bench="test",
+        id="ep-1",
+        state_id="s1",
+        task_id="t1",
+        bench="test",
         messages=[
             Message(role="user", content="q"),
             Message(role="assistant", content="a" * 20),
         ],
-        step_boundaries=[0], steps=[],
+        step_boundaries=[0],
+        steps=[],
         summary=summary,
     )
 

@@ -26,9 +26,7 @@ class TestResolveSession:
 
     def test_run_id_takes_precedence_over_session_id(self) -> None:
         tracker = SessionTracker()
-        sid, attributed = tracker.resolve_session(
-            run_id="run-123", session_id="sess-456"
-        )
+        sid, attributed = tracker.resolve_session(run_id="run-123", session_id="sess-456")
         assert sid == "run-123"
         assert attributed is True
 

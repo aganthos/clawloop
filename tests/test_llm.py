@@ -69,7 +69,5 @@ class TestLiteLLMClient:
         assert client.api_key == "sk-test"
 
     def test_init_with_kwargs(self) -> None:
-        client = LiteLLMClient(
-            model="gpt-4o", temperature=0.7, max_tokens=100
-        )
+        client = LiteLLMClient(model="gpt-4o", temperature=0.7, max_tokens=100)
         assert client.default_kwargs == {"temperature": 0.7, "max_tokens": 100}

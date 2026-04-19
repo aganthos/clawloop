@@ -4,32 +4,36 @@ import time
 
 from clawloop.collector import EpisodeCollector
 from clawloop.completion import CompletionResult
-from clawloop.core.episode import TokenLogProb, ToolCall, TokenUsage
+from clawloop.core.episode import TokenLogProb, ToolCall
 from clawloop.core.loop import AgentState
 from clawloop.core.reward import RewardPipeline
 from clawloop.exporters.skyrl import SkyRLExporter
+from clawloop.learner import AsyncLearner
+from clawloop.learning_layers.harness import Playbook, PlaybookEntry
+from clawloop.llm import MockLLMClient
 from clawloop.reward_extractors.execution import ExecutionExtractor
 from clawloop.reward_extractors.user_feedback import UserFeedbackExtractor
-from clawloop.learning_layers.harness import Playbook, PlaybookEntry
-from clawloop.learner import AsyncLearner
-from clawloop.llm import MockLLMClient
 from clawloop.wrapper import wrap
 
 
 class TestLiveModeEndToEnd:
     def test_wrap_collect_learn_cycle(self) -> None:
         state = AgentState()
-        state.harness.playbook = Playbook(entries=[
-            PlaybookEntry(id="tip-1", content="Be concise"),
-        ])
+        state.harness.playbook = Playbook(
+            entries=[
+                PlaybookEntry(id="tip-1", content="Be concise"),
+            ]
+        )
 
         learner = AsyncLearner(agent_state=state, active_layers=["harness"])
         learner.start()
 
-        pipeline = RewardPipeline([
-            ExecutionExtractor(),
-            UserFeedbackExtractor(),
-        ])
+        pipeline = RewardPipeline(
+            [
+                ExecutionExtractor(),
+                UserFeedbackExtractor(),
+            ]
+        )
         collector = EpisodeCollector(
             pipeline=pipeline,
             batch_size=3,
@@ -111,6 +115,7 @@ class TestRichPipelineEndToEnd:
 
         # Exporter wires logprobs through
         from tests.test_skyrl_export import FakeTokenizer
+
         exporter = SkyRLExporter(tokenizer=FakeTokenizer())
         exported = exporter.export([ep])
         assert exported["rollout_logprobs"] is not None

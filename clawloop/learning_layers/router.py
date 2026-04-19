@@ -19,10 +19,15 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from clawloop.core.types import (
-    Datum, FBResult, Future, LoadResult, OptimResult,
-    SampleContext, SampleResult, SaveResult,
+    Datum,
+    FBResult,
+    Future,
+    LoadResult,
+    OptimResult,
+    SampleContext,
+    SampleResult,
+    SaveResult,
 )
-
 
 # -- Complexity tiers --
 
@@ -105,6 +110,7 @@ DEFAULT_TIER_THRESHOLDS: dict[str, float] = {
 class _RouterPending:
     """Accumulator for forward_backward signals. Drained by optim_step.
     Stores (QueryFeatures, model_id, cost, reward) tuples."""
+
     samples: list[tuple[QueryFeatures, str, float, float]] = field(default_factory=list)
 
 
@@ -127,17 +133,17 @@ class Router:
     """
 
     # Tier -> model ID mapping
-    tier_models: dict[str, str] = field(default_factory=lambda: {
-        Tier.LIGHT: "",
-        Tier.MEDIUM: "",
-        Tier.HEAVY: "",
-        Tier.REASONING: "",
-    })
+    tier_models: dict[str, str] = field(
+        default_factory=lambda: {
+            Tier.LIGHT: "",
+            Tier.MEDIUM: "",
+            Tier.HEAVY: "",
+            Tier.REASONING: "",
+        }
+    )
 
     # Scoring weights for complexity classification (trainable)
-    score_weights: dict[str, float] = field(
-        default_factory=lambda: dict(DEFAULT_SCORE_WEIGHTS)
-    )
+    score_weights: dict[str, float] = field(default_factory=lambda: dict(DEFAULT_SCORE_WEIGHTS))
 
     # Tier thresholds (trainable)
     tier_thresholds: dict[str, float] = field(
@@ -189,13 +195,15 @@ class Router:
         reward: float,
     ) -> None:
         """Record a routing outcome for future training."""
-        self.training_samples.append({
-            "features": features.to_dict(),
-            "model_id": model_id,
-            "cost": cost,
-            "reward": reward,
-            "tier": self.classify(features),
-        })
+        self.training_samples.append(
+            {
+                "features": features.to_dict(),
+                "model_id": model_id,
+                "cost": cost,
+                "reward": reward,
+                "tier": self.classify(features),
+            }
+        )
 
     def update_weights(self, learning_rate: float = 0.01) -> dict[str, float]:
         """Update score_weights from training samples.
@@ -217,34 +225,26 @@ class Router:
             efficiency = sample["reward"] / cost
             tier_stats.setdefault(tier, []).append(efficiency)
 
-        tier_means = {
-            t: sum(vals) / len(vals) for t, vals in tier_stats.items() if vals
-        }
+        tier_means = {t: sum(vals) / len(vals) for t, vals in tier_stats.items() if vals}
 
         # Adjust weights: if LIGHT tier has good efficiency, reduce weights
         # (lower scores -> more queries routed to LIGHT)
         deltas: dict[str, float] = {}
         light_eff = tier_means.get(Tier.LIGHT, 0.0)
-        heavy_eff = tier_means.get(Tier.HEAVY, 0.0) + tier_means.get(
-            Tier.REASONING, 0.0
-        )
+        heavy_eff = tier_means.get(Tier.HEAVY, 0.0) + tier_means.get(Tier.REASONING, 0.0)
 
         # If cheap models are doing well, nudge weights down
         direction = -1.0 if light_eff >= heavy_eff else 1.0
 
         for key in self.score_weights:
             delta = learning_rate * direction
-            self.score_weights[key] = max(
-                0.01, min(1.0, self.score_weights[key] + delta)
-            )
+            self.score_weights[key] = max(0.01, min(1.0, self.score_weights[key] + delta))
             deltas[key] = delta
 
         # Normalize to sum to 1
         total = sum(self.score_weights.values())
         if total > 0:
-            self.score_weights = {
-                k: v / total for k, v in self.score_weights.items()
-            }
+            self.score_weights = {k: v / total for k, v in self.score_weights.items()}
 
         self.training_samples.clear()
         return deltas
@@ -336,9 +336,7 @@ class Router:
             # Drain pending
             self._pending.samples.clear()
 
-            return Future.immediate(
-                OptimResult(status="ok", updates_applied=len(deltas))
-            )
+            return Future.immediate(OptimResult(status="ok", updates_applied=len(deltas)))
         except Exception:
             # Rollback
             self.training_samples = snapshot_training
@@ -364,9 +362,7 @@ class Router:
 
         model_id = self.route(features)
         tier = self.classify(features)
-        return Future.immediate(
-            SampleResult(output=model_id, metadata={"tier": tier})
-        )
+        return Future.immediate(SampleResult(output=model_id, metadata={"tier": tier}))
 
     def save_state(self, name: str = "") -> Future[SaveResult]:
         """Save current state."""

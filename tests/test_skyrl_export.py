@@ -1,6 +1,13 @@
 """Tests for clawloop.exporters.skyrl — Episode -> GeneratorOutput serialization."""
 
-from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta, TokenLogProb, TokenUsage
+from clawloop.core.episode import (
+    Episode,
+    EpisodeSummary,
+    Message,
+    StepMeta,
+    TokenLogProb,
+    TokenUsage,
+)
 from clawloop.exporters.skyrl import SkyRLExporter, TrajectoryID
 
 

@@ -29,7 +29,6 @@ from clawloop.weight_backends._tinker_exporter import (
     episodes_to_tinker_datums,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helper
 # ---------------------------------------------------------------------------
@@ -60,9 +59,7 @@ def _make_episode(
             info["prompt_tokens"] = list(prompt_tokens)
             info["sampled_tokens"] = list(sampled_tokens)
             info["sampling_logprobs"] = list(sampling_logprobs)
-        steps.append(
-            StepMeta(t=t, reward=0.0, done=False, timing_ms=0.0, info=info)
-        )
+        steps.append(StepMeta(t=t, reward=0.0, done=False, timing_ms=0.0, info=info))
     if steps:
         steps[-1].done = True
         steps[-1].reward = terminal_reward
@@ -86,6 +83,7 @@ def _make_episode(
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
 
 def test_grpo_groups_by_task_id_and_broadcasts_advantage() -> None:
     ep_a = _make_episode(
@@ -201,8 +199,8 @@ def test_empty_completion_is_skipped_but_other_turns_emitted() -> None:
         "t1",
         1.0,
         [
-            ([1, 2], [], []),                  # empty -> skipped
-            ([3, 4], [99], [-0.7]),            # normal
+            ([1, 2], [], []),  # empty -> skipped
+            ([3, 4], [99], [-0.7]),  # normal
         ],
     )
     ep_b = _make_episode(

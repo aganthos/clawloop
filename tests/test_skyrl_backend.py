@@ -11,15 +11,15 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from clawloop.weight_backends.base import BackendError
-from clawloop.weight_backends.skyrl import SkyRLWeightsBackend, SkyRLWeightsConfig
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
 from clawloop.core.types import Datum, Future, SampleContext
-
+from clawloop.weight_backends.base import BackendError
+from clawloop.weight_backends.skyrl import SkyRLWeightsBackend, SkyRLWeightsConfig
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_episode(task_id: str = "t1", reward: float = 0.8) -> Episode:
     return Episode(
@@ -67,6 +67,7 @@ def _skyrl_available() -> bool:
     try:
         sys.path.insert(0, "clawloop/skyrl")
         from skyrl.tinker.types import PreparedModelPassBatch  # noqa: F401
+
         return True
     except ImportError:
         return False
@@ -75,6 +76,7 @@ def _skyrl_available() -> bool:
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
+
 
 class TestSkyRLWeightsConfig:
     def test_config_defaults(self) -> None:
@@ -95,6 +97,7 @@ class TestSkyRLWeightsConfig:
 # ---------------------------------------------------------------------------
 # forward_backward (mocked backend)
 # ---------------------------------------------------------------------------
+
 
 class TestForwardBackwardMocked:
     def test_calls_backend(self) -> None:
@@ -120,6 +123,7 @@ class TestForwardBackwardMocked:
 # forward_backward with REAL SkyRL types (conditional)
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.skipif(not _skyrl_available(), reason="SkyRL submodule not available")
 class TestForwardBackwardRealTypes:
     """Validate _to_prepared_batch constructs a real PreparedModelPassBatch."""
@@ -135,8 +139,10 @@ class TestForwardBackwardRealTypes:
 
     def test_prepared_batch_has_correct_sequence_count(self) -> None:
         backend = _make_backend_with_mocks()
-        episodes = [_make_episode(task_id="t1", reward=0.9),
-                     _make_episode(task_id="t1", reward=0.3)]
+        episodes = [
+            _make_episode(task_id="t1", reward=0.9),
+            _make_episode(task_id="t1", reward=0.3),
+        ]
         gen_output = backend._exporter.export(episodes)
         batch = backend._to_prepared_batch(gen_output)
 
@@ -247,6 +253,7 @@ class TestForwardBackwardRealTypes:
 # optim_step (mocked)
 # ---------------------------------------------------------------------------
 
+
 class TestOptimStep:
     def test_calls_backend(self) -> None:
         from clawloop.core.types import OptimResult
@@ -303,6 +310,7 @@ class TestOptimStepRealTypes:
 # Other protocol methods
 # ---------------------------------------------------------------------------
 
+
 class TestToDict:
     def test_includes_all_config(self) -> None:
         backend = _make_backend_with_mocks()
@@ -335,8 +343,12 @@ class TestSaveLoadState:
     def test_load_empty_adapters_skips_checkpoint(self) -> None:
         backend = _make_backend_with_mocks()
         state = {
-            "model_ref": "m", "backend_type": "jax", "backend_config": {},
-            "lora_config": {}, "training_config": {}, "adapter_refs": [],
+            "model_ref": "m",
+            "backend_type": "jax",
+            "backend_config": {},
+            "lora_config": {},
+            "training_config": {},
+            "adapter_refs": [],
         }
         result = backend.load_state(state).result()
         assert result.status == "ok"
@@ -345,8 +357,12 @@ class TestSaveLoadState:
     def test_load_with_adapters_restores(self) -> None:
         backend = _make_backend_with_mocks()
         state = {
-            "model_ref": "m", "backend_type": "jax", "backend_config": {},
-            "lora_config": {}, "training_config": {}, "adapter_refs": ["a", "b"],
+            "model_ref": "m",
+            "backend_type": "jax",
+            "backend_config": {},
+            "lora_config": {},
+            "training_config": {},
+            "adapter_refs": ["a", "b"],
         }
         result = backend.load_state(state).result()
         assert result.status == "ok"

@@ -3,21 +3,15 @@
 import json
 import os
 
-import pytest
-
 from clawloop.agent import ClawLoopAgent
 from clawloop.core.env import EvalResult, Sample, StaticTaskEnvironment
 from clawloop.core.episode import Episode, EpisodeSummary, Message, StepMeta
-from clawloop.learning_layers.harness import Insight, PlaybookEntry
 from clawloop.llm import MockLLMClient
 
 
 def _make_env(n_tasks: int = 3, score: float = 0.8) -> StaticTaskEnvironment:
     """Create a simple static environment with fixed-score evaluation."""
-    tasks = [
-        Sample(question=f"Question {i}", ground_truth=f"Answer {i}")
-        for i in range(n_tasks)
-    ]
+    tasks = [Sample(question=f"Question {i}", ground_truth=f"Answer {i}") for i in range(n_tasks)]
     return StaticTaskEnvironment(
         tasks=tasks,
         evaluate_fn=lambda s, r: EvalResult(score=score, feedback="ok"),
@@ -26,15 +20,17 @@ def _make_env(n_tasks: int = 3, score: float = 0.8) -> StaticTaskEnvironment:
 
 def _reflector_response_add() -> str:
     """A canned reflector JSON response that adds a strategy."""
-    return json.dumps([
-        {
-            "action": "add",
-            "content": "Always break the problem into smaller steps",
-            "target_entry_id": None,
-            "tags": ["strategy"],
-            "source_episode_ids": [],
-        }
-    ])
+    return json.dumps(
+        [
+            {
+                "action": "add",
+                "content": "Always break the problem into smaller steps",
+                "target_entry_id": None,
+                "tags": ["strategy"],
+                "source_episode_ids": [],
+            }
+        ]
+    )
 
 
 def _make_episode(reward: float = 0.8) -> Episode:

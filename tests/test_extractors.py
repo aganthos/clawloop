@@ -31,10 +31,12 @@ class TestExecutionExtractor:
         assert self.extractor.name == "execution"
 
     def test_no_tool_messages_returns_none(self) -> None:
-        ep = _make_episode([
-            Message(role="user", content="Hello"),
-            Message(role="assistant", content="Hi there!"),
-        ])
+        ep = _make_episode(
+            [
+                Message(role="user", content="Hello"),
+                Message(role="assistant", content="Hi there!"),
+            ]
+        )
         assert self.extractor.extract(ep) is None
 
     def test_empty_messages_returns_none(self) -> None:
@@ -42,60 +44,80 @@ class TestExecutionExtractor:
         assert self.extractor.extract(ep) is None
 
     def test_error_keyword_gives_negative(self) -> None:
-        ep = _make_episode([
-            Message(role="tool", content="Error: file not found", tool_call_id="tc-1"),
-        ])
+        ep = _make_episode(
+            [
+                Message(role="tool", content="Error: file not found", tool_call_id="tc-1"),
+            ]
+        )
         result = self.extractor.extract(ep)
         assert result is not None
         assert result.value == -1.0
         assert result.confidence == 0.9
 
     def test_exception_keyword(self) -> None:
-        ep = _make_episode([
-            Message(role="tool", content="Traceback (most recent call last):\n  ...", tool_call_id="tc-1"),
-        ])
+        ep = _make_episode(
+            [
+                Message(
+                    role="tool",
+                    content="Traceback (most recent call last):\n  ...",
+                    tool_call_id="tc-1",
+                ),
+            ]
+        )
         result = self.extractor.extract(ep)
         assert result is not None
         assert result.value == -1.0
 
     def test_failure_keyword(self) -> None:
-        ep = _make_episode([
-            Message(role="tool", content="Request failed with timeout", tool_call_id="tc-1"),
-        ])
+        ep = _make_episode(
+            [
+                Message(role="tool", content="Request failed with timeout", tool_call_id="tc-1"),
+            ]
+        )
         result = self.extractor.extract(ep)
         assert result is not None
         assert result.value == -1.0
 
     def test_http_error_code_4xx(self) -> None:
-        ep = _make_episode([
-            Message(role="tool", content="HTTP 404 Not Found", tool_call_id="tc-1"),
-        ])
+        ep = _make_episode(
+            [
+                Message(role="tool", content="HTTP 404 Not Found", tool_call_id="tc-1"),
+            ]
+        )
         result = self.extractor.extract(ep)
         assert result is not None
         assert result.value == -1.0
         assert result.confidence == 0.85
 
     def test_http_error_code_500(self) -> None:
-        ep = _make_episode([
-            Message(role="tool", content="Status 503 Service Unavailable", tool_call_id="tc-1"),
-        ])
+        ep = _make_episode(
+            [
+                Message(
+                    role="tool", content="Status 503 Service Unavailable", tool_call_id="tc-1"
+                ),
+            ]
+        )
         result = self.extractor.extract(ep)
         assert result is not None
         assert result.value == -1.0
 
     def test_empty_content_gives_negative(self) -> None:
-        ep = _make_episode([
-            Message(role="tool", content="", tool_call_id="tc-1"),
-        ])
+        ep = _make_episode(
+            [
+                Message(role="tool", content="", tool_call_id="tc-1"),
+            ]
+        )
         result = self.extractor.extract(ep)
         assert result is not None
         assert result.value == -0.5
         assert result.confidence == 0.5
 
     def test_minimal_content_gives_neutral(self) -> None:
-        ep = _make_episode([
-            Message(role="tool", content="OK", tool_call_id="tc-1"),
-        ])
+        ep = _make_episode(
+            [
+                Message(role="tool", content="OK", tool_call_id="tc-1"),
+            ]
+        )
         result = self.extractor.extract(ep)
         assert result is not None
         assert result.value == 0.0
@@ -103,61 +125,73 @@ class TestExecutionExtractor:
 
     def test_content_exactly_50_chars(self) -> None:
         content = "x" * 50
-        ep = _make_episode([
-            Message(role="tool", content=content, tool_call_id="tc-1"),
-        ])
+        ep = _make_episode(
+            [
+                Message(role="tool", content=content, tool_call_id="tc-1"),
+            ]
+        )
         result = self.extractor.extract(ep)
         assert result is not None
         assert result.value == 0.0
 
     def test_substantial_content_gives_positive(self) -> None:
-        ep = _make_episode([
-            Message(
-                role="tool",
-                content="Here is a detailed result that contains more than fifty characters of output.",
-                tool_call_id="tc-1",
-            ),
-        ])
+        ep = _make_episode(
+            [
+                Message(
+                    role="tool",
+                    content="Here is a detailed result that contains more than fifty characters of output.",
+                    tool_call_id="tc-1",
+                ),
+            ]
+        )
         result = self.extractor.extract(ep)
         assert result is not None
         assert result.value == 0.5
         assert result.confidence == 0.6
 
     def test_mixed_signals_aggregated(self) -> None:
-        ep = _make_episode([
-            Message(role="tool", content="Error: something broke", tool_call_id="tc-1"),
-            Message(
-                role="tool",
-                content="Success! The operation completed with the following detailed output data.",
-                tool_call_id="tc-2",
-            ),
-        ])
+        ep = _make_episode(
+            [
+                Message(role="tool", content="Error: something broke", tool_call_id="tc-1"),
+                Message(
+                    role="tool",
+                    content="Success! The operation completed with the following detailed output data.",
+                    tool_call_id="tc-2",
+                ),
+            ]
+        )
         result = self.extractor.extract(ep)
         assert result is not None
         assert abs(result.value - (-0.4)) < 1e-9
         assert abs(result.confidence - 0.75) < 1e-9
 
     def test_value_clamped_to_range(self) -> None:
-        ep = _make_episode([
-            Message(role="tool", content="Error: first", tool_call_id="tc-1"),
-            Message(role="tool", content="Exception thrown", tool_call_id="tc-2"),
-            Message(role="tool", content="failure in system", tool_call_id="tc-3"),
-        ])
+        ep = _make_episode(
+            [
+                Message(role="tool", content="Error: first", tool_call_id="tc-1"),
+                Message(role="tool", content="Exception thrown", tool_call_id="tc-2"),
+                Message(role="tool", content="failure in system", tool_call_id="tc-3"),
+            ]
+        )
         result = self.extractor.extract(ep)
         assert result is not None
         assert -1.0 <= result.value <= 1.0
 
     def test_tool_message_with_none_content_skipped(self) -> None:
-        ep = _make_episode([
-            Message(role="tool", content=None, tool_call_id="tc-1"),  # type: ignore[arg-type]
-        ])
+        ep = _make_episode(
+            [
+                Message(role="tool", content=None, tool_call_id="tc-1"),  # type: ignore[arg-type]
+            ]
+        )
         result = self.extractor.extract(ep)
         assert result is None
 
     def test_error_keyword_precedence_over_http_code(self) -> None:
-        ep = _make_episode([
-            Message(role="tool", content="Error 500: server failed", tool_call_id="tc-1"),
-        ])
+        ep = _make_episode(
+            [
+                Message(role="tool", content="Error 500: server failed", tool_call_id="tc-1"),
+            ]
+        )
         result = self.extractor.extract(ep)
         assert result is not None
         assert result.value == -1.0

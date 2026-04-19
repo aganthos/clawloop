@@ -1,10 +1,10 @@
 """Harbor environment adapter — runs Harbor trials, produces ClawLoop Episodes."""
+
 from __future__ import annotations
 
 import asyncio
 import logging
 from copy import deepcopy
-from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable
 from uuid import uuid4
@@ -22,9 +22,13 @@ log = logging.getLogger(__name__)
 class HarborTaskEnvironment:
     """Runs Harbor trials and produces ClawLoop Episodes. Harbor is optional."""
 
-    def __init__(self, task_dir: Path, trial_config: dict,
-                 reward_transform: Callable[[float], float] | None = None,
-                 train_on_truncated: bool = True):
+    def __init__(
+        self,
+        task_dir: Path,
+        trial_config: dict,
+        reward_transform: Callable[[float], float] | None = None,
+        train_on_truncated: bool = True,
+    ):
         try:
             from harbor.models.trial.config import TrialConfig
             from harbor.trial.trial import Trial
@@ -61,7 +65,9 @@ class HarborTaskEnvironment:
         if hasattr(agent_state, "harness") and agent_state.harness:
             try:
                 # Try task-specific bench first, fall back to "harbor" bench
-                sample_result = agent_state.harness.sample(SampleContext(bench=self._task_dir.name))
+                sample_result = agent_state.harness.sample(
+                    SampleContext(bench=self._task_dir.name)
+                )
                 harness_prompt = sample_result.result().output
                 if not harness_prompt:
                     sample_result = agent_state.harness.sample(SampleContext(bench="harbor"))
@@ -84,8 +90,7 @@ class HarborTaskEnvironment:
                 original = task_obj.instruction
                 task_obj.instruction = (
                     original + "\n\n---\n\n"
-                    "## Learned strategies (supplementary guidance)\n\n"
-                    + harness_prompt
+                    "## Learned strategies (supplementary guidance)\n\n" + harness_prompt
                 )
             else:
                 log.warning("Cannot inject harness prompt — trial has no task object")
@@ -95,20 +100,30 @@ class HarborTaskEnvironment:
             exc_name = type(e).__name__
             if exc_name == "ContextLengthExceededError":
                 if self._train_on_truncated:
-                    return self._build_episode(agent_state, reward=0.0, metadata={"truncated": True})
+                    return self._build_episode(
+                        agent_state, reward=0.0, metadata={"truncated": True}
+                    )
                 else:
-                    return self._build_episode(agent_state, filtered=True, metadata={"truncated": True})
+                    return self._build_episode(
+                        agent_state, filtered=True, metadata={"truncated": True}
+                    )
             elif exc_name == "AgentTimeoutError":
                 return self._build_episode(agent_state, filtered=True, metadata={"timeout": True})
             else:
-                return self._build_episode(agent_state, filtered=True, metadata={"error": exc_name})
+                return self._build_episode(
+                    agent_state, filtered=True, metadata={"error": exc_name}
+                )
 
         if results.verifier_result is None or results.verifier_result.rewards is None:
             chat_history = []
             if results.agent_result and results.agent_result.metadata:
                 chat_history = results.agent_result.metadata.get("all_messages", [])
-            return self._build_episode(agent_state, chat_history=chat_history,
-                                       reward=0.0, metadata={"verifier_none": True})
+            return self._build_episode(
+                agent_state,
+                chat_history=chat_history,
+                reward=0.0,
+                metadata={"verifier_none": True},
+            )
 
         raw_reward = results.verifier_result.rewards.get("reward", 0.0)
         metadata: dict[str, Any] = {"raw_reward": raw_reward}
@@ -124,15 +139,30 @@ class HarborTaskEnvironment:
             chat_history = results.agent_result.metadata.get("all_messages", [])
         score_breakdown = results.verifier_result.rewards
 
-        return self._build_episode(agent_state, chat_history=chat_history, reward=reward,
-                                   score_breakdown=score_breakdown, metadata=metadata)
+        return self._build_episode(
+            agent_state,
+            chat_history=chat_history,
+            reward=reward,
+            score_breakdown=score_breakdown,
+            metadata=metadata,
+        )
 
-    def _build_episode(self, agent_state: AgentState, chat_history=None, reward=0.0,
-                       filtered=False, score_breakdown=None, metadata=None) -> Episode:
+    def _build_episode(
+        self,
+        agent_state: AgentState,
+        chat_history=None,
+        reward=0.0,
+        filtered=False,
+        score_breakdown=None,
+        metadata=None,
+    ) -> Episode:
         from clawloop.core.reward import RewardSignal
 
-        messages = [Message(role=m.get("role", "user"), content=m.get("content", ""))
-                    for m in (chat_history or []) if isinstance(m, dict)]
+        messages = [
+            Message(role=m.get("role", "user"), content=m.get("content", ""))
+            for m in (chat_history or [])
+            if isinstance(m, dict)
+        ]
         step_boundaries = _compute_step_boundaries(messages)
         steps = _build_steps(step_boundaries, reward)
         summary = EpisodeSummary(filtered=filtered, score_breakdown=score_breakdown)
@@ -141,7 +171,9 @@ class HarborTaskEnvironment:
                 # Transformed reward is already in the caller's target range.
                 # Set signal directly — RewardSignal clamps to [-1, 1].
                 summary.signals["outcome"] = RewardSignal(
-                    name="outcome", value=float(reward), confidence=1.0,
+                    name="outcome",
+                    value=float(reward),
+                    confidence=1.0,
                 )
             else:
                 # Raw Harbor reward is [0, 1]. total_reward setter maps to [-1, 1].
@@ -153,9 +185,15 @@ class HarborTaskEnvironment:
             except Exception:
                 log.debug("Failed to compute state_id for episode", exc_info=True)
         return Episode(
-            id=uuid4().hex, state_id=state_id or "", task_id=self.task_id,
-            bench="harbor", messages=messages, step_boundaries=step_boundaries,
-            steps=steps, summary=summary, metadata=metadata or {},
+            id=uuid4().hex,
+            state_id=state_id or "",
+            task_id=self.task_id,
+            bench="harbor",
+            messages=messages,
+            step_boundaries=step_boundaries,
+            steps=steps,
+            summary=summary,
+            metadata=metadata or {},
         )
 
 
@@ -175,8 +213,9 @@ def _build_steps(step_boundaries: list[int], reward: float) -> list[StepMeta]:
     steps = []
     for i in range(len(step_boundaries)):
         is_terminal = i == len(step_boundaries) - 1
-        steps.append(StepMeta(t=i, reward=reward if is_terminal else 0.0,
-                              done=is_terminal, timing_ms=0.0))
+        steps.append(
+            StepMeta(t=i, reward=reward if is_terminal else 0.0, done=is_terminal, timing_ms=0.0)
+        )
     return steps
 
 
@@ -196,8 +235,13 @@ class HarborAdapter:
     def run_episode(self, task: str, agent_state: AgentState) -> Episode:
         return run_async(self._envs[task].run_episode(agent_state))
 
-    def run_batch(self, agent_state: AgentState, tasks: list[str], n_per_task: int = 1) -> list[Episode]:
+    def run_batch(
+        self, agent_state: AgentState, tasks: list[str], n_per_task: int = 1
+    ) -> list[Episode]:
         async def _gather():
-            coros = [self._envs[t].run_episode(agent_state) for t in tasks for _ in range(n_per_task)]
+            coros = [
+                self._envs[t].run_episode(agent_state) for t in tasks for _ in range(n_per_task)
+            ]
             return await asyncio.gather(*coros)
+
         return run_async(_gather())

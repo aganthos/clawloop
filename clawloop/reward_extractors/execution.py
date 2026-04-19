@@ -31,10 +31,7 @@ class ExecutionExtractor:
 
         Returns ``None`` when no tool messages are present.
         """
-        tool_messages = [
-            m for m in episode.messages
-            if m.role == "tool" and m.content is not None
-        ]
+        tool_messages = [m for m in episode.messages if m.role == "tool" and m.content is not None]
         if not tool_messages:
             return None
 

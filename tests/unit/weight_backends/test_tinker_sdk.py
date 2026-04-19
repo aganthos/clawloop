@@ -16,7 +16,6 @@ import pytest
 tinker = pytest.importorskip("tinker")
 tinker_types = pytest.importorskip("tinker.types")
 
-from clawloop.weight_backends import _tinker_sdk
 from clawloop.weight_backends._tinker_sdk import (
     TinkerBackendError,
     async_sample,
@@ -29,10 +28,10 @@ from clawloop.weight_backends._tinker_sdk import (
     save_weights_and_get_sampling_client,
 )
 
-
 # ---------------------------------------------------------------------------
 # 1. make_service_client reads env
 # ---------------------------------------------------------------------------
+
 
 def test_make_service_client_reads_env(monkeypatch):
     monkeypatch.setenv("TINKER_API_KEY", "test-key-123")
@@ -46,6 +45,7 @@ def test_make_service_client_reads_env(monkeypatch):
 # ---------------------------------------------------------------------------
 # 2. create_training forwards kwargs
 # ---------------------------------------------------------------------------
+
 
 def test_create_training_passes_kwargs():
     service = MagicMock()
@@ -72,6 +72,7 @@ def test_create_training_passes_kwargs():
 # 3. create_sampling: exactly-one-of validation
 # ---------------------------------------------------------------------------
 
+
 def test_create_sampling_requires_exactly_one_ref():
     service = MagicMock()
 
@@ -85,6 +86,7 @@ def test_create_sampling_requires_exactly_one_ref():
 # ---------------------------------------------------------------------------
 # 4. create_sampling forwards base_model + retry_config
 # ---------------------------------------------------------------------------
+
 
 def test_create_sampling_base_model_path():
     service = MagicMock()
@@ -100,6 +102,7 @@ def test_create_sampling_base_model_path():
 # 5. optim_step passes typed AdamParams positionally
 # ---------------------------------------------------------------------------
 
+
 def test_optim_step_passes_typed_adam_params():
     training = MagicMock()
     adam = tinker_types.AdamParams(learning_rate=1e-5)
@@ -113,6 +116,7 @@ def test_optim_step_passes_typed_adam_params():
 # ---------------------------------------------------------------------------
 # 6. save_weights_and_get_sampling_client returns result directly
 # ---------------------------------------------------------------------------
+
 
 def test_save_weights_returns_sampling_client_directly():
     training = MagicMock()
@@ -131,6 +135,7 @@ def test_save_weights_returns_sampling_client_directly():
 # Helper: build a fake exception class by name (for error-taxonomy tests)
 # ---------------------------------------------------------------------------
 
+
 def _make_exc(name: str) -> type[Exception]:
     return type(name, (Exception,), {})
 
@@ -138,6 +143,7 @@ def _make_exc(name: str) -> type[Exception]:
 # ---------------------------------------------------------------------------
 # 7. forward_backward wraps RateLimitError as recoverable
 # ---------------------------------------------------------------------------
+
 
 def test_forward_backward_wraps_rate_limit_as_recoverable():
     RateLimitError = _make_exc("RateLimitError")
@@ -155,6 +161,7 @@ def test_forward_backward_wraps_rate_limit_as_recoverable():
 # 8. forward_backward wraps BadRequestError as non-recoverable
 # ---------------------------------------------------------------------------
 
+
 def test_forward_backward_wraps_badrequest_as_non_recoverable():
     BadRequestError = _make_exc("BadRequestError")
     training = MagicMock()
@@ -170,6 +177,7 @@ def test_forward_backward_wraps_badrequest_as_non_recoverable():
 # ---------------------------------------------------------------------------
 # 9. Error-taxonomy .code assertions + unknown-exception fallthrough
 # ---------------------------------------------------------------------------
+
 
 def test_forward_backward_wraps_rate_limit_has_backend_unreachable_code():
     training = MagicMock()
@@ -204,6 +212,7 @@ def test_forward_backward_unknown_exception_maps_to_unknown_non_recoverable():
 # ---------------------------------------------------------------------------
 # 10. async_sample builds ModelInput + SamplingParams correctly
 # ---------------------------------------------------------------------------
+
 
 def test_async_sample_builds_model_input_and_sampling_params():
     sampling_client = MagicMock()
@@ -240,6 +249,7 @@ def test_async_sample_builds_model_input_and_sampling_params():
 # 11. load_state_with_optimizer forwards the path and unwraps APIFuture
 # ---------------------------------------------------------------------------
 
+
 def test_load_state_with_optimizer_forwards_path():
     training = MagicMock()
     fut = MagicMock()
@@ -272,6 +282,7 @@ def test_load_state_with_optimizer_passthrough_when_no_result_attr():
 # ---------------------------------------------------------------------------
 # 12. load_state_with_optimizer wraps exceptions via the error taxonomy
 # ---------------------------------------------------------------------------
+
 
 def test_load_state_with_optimizer_wraps_recoverable_exception():
     training = MagicMock()

@@ -9,7 +9,10 @@ class TestEmbeddingInvalidation:
     def test_needs_reembed_when_no_embedding(self) -> None:
         """Entry without an embedding always needs re-embedding."""
         entry = PlaybookEntry(
-            id="e1", content="tip", embedding=None, embedding_model_id=None,
+            id="e1",
+            content="tip",
+            embedding=None,
+            embedding_model_id=None,
         )
 
         assert entry.needs_reembed("text-embedding-3-small") is True

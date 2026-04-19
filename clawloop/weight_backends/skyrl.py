@@ -16,7 +16,6 @@ from dataclasses import dataclass, field
 from typing import Any
 from uuid import uuid4
 
-from clawloop.weight_backends.base import BackendError, SkyRLBackendInitError
 from clawloop.core.types import (
     Datum,
     FBResult,
@@ -28,11 +27,12 @@ from clawloop.core.types import (
     SaveResult,
 )
 from clawloop.exporters.skyrl import SkyRLExporter
-
+from clawloop.weight_backends.base import BackendError, SkyRLBackendInitError
 
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class SkyRLWeightsConfig:
@@ -56,7 +56,14 @@ class SkyRLWeightsConfig:
 # ---------------------------------------------------------------------------
 
 _REQUIRED_STATE_KEYS = frozenset(
-    ["model_ref", "backend_type", "backend_config", "lora_config", "training_config", "adapter_refs"]
+    [
+        "model_ref",
+        "backend_type",
+        "backend_config",
+        "lora_config",
+        "training_config",
+        "adapter_refs",
+    ]
 )
 
 
@@ -82,9 +89,7 @@ class SkyRLWeightsBackend:
         try:
             from transformers import AutoTokenizer
 
-            tokenizer = AutoTokenizer.from_pretrained(
-                config.tokenizer_name or config.base_model
-            )
+            tokenizer = AutoTokenizer.from_pretrained(config.tokenizer_name or config.base_model)
             # Smoke-test the chat template
             tokenizer.apply_chat_template(
                 [{"role": "user", "content": "test"}],
@@ -168,14 +173,18 @@ class SkyRLWeightsBackend:
                 for _req_id, output in result.items():
                     # Check for ErrorResponse
                     if hasattr(output, "error") and hasattr(output, "status"):
-                        return Future.immediate(FBResult(
-                            status="error",
-                            metrics={"error": BackendError(
-                                code="backend_unreachable",
-                                message=output.error,
-                                recoverable=True,
-                            )},
-                        ))
+                        return Future.immediate(
+                            FBResult(
+                                status="error",
+                                metrics={
+                                    "error": BackendError(
+                                        code="backend_unreachable",
+                                        message=output.error,
+                                        recoverable=True,
+                                    )
+                                },
+                            )
+                        )
                     if hasattr(output, "metrics") and output.metrics:
                         metrics.update(output.metrics)
                     if hasattr(output, "loss_fn_outputs"):
@@ -202,9 +211,7 @@ class SkyRLWeightsBackend:
             )
             result = self._backend.optim_step(self._model_id, optim_input)
             metrics = result.metrics if result.metrics else {}
-            return Future.immediate(
-                OptimResult(status="ok", updates_applied=1, metrics=metrics)
-            )
+            return Future.immediate(OptimResult(status="ok", updates_applied=1, metrics=metrics))
         except Exception as e:
             err = BackendError.from_exception(e)
             return Future.immediate(
@@ -213,9 +220,7 @@ class SkyRLWeightsBackend:
 
     def sample(self, ctx: SampleContext) -> Future[SampleResult]:
         """Return the base model reference."""
-        return Future.immediate(
-            SampleResult(output=self._config.base_model)
-        )
+        return Future.immediate(SampleResult(output=self._config.base_model))
 
     def save_state(self, name: str) -> Future[SaveResult]:
         """Save a checkpoint and record the adapter reference."""
@@ -231,9 +236,7 @@ class SkyRLWeightsBackend:
         """Restore backend state from a serialized dict."""
         missing = _REQUIRED_STATE_KEYS - set(state.keys())
         if missing:
-            return Future.immediate(
-                LoadResult(status=f"error: missing keys {sorted(missing)}")
-            )
+            return Future.immediate(LoadResult(status=f"error: missing keys {sorted(missing)}"))
 
         adapter_refs = state.get("adapter_refs", [])
         self._adapter_refs = list(adapter_refs)
@@ -317,9 +320,7 @@ class SkyRLWeightsBackend:
             resp_ids = response_ids_list[i]
             mask = loss_masks_list[i] if i < len(loss_masks_list) else [1.0] * len(resp_ids)
 
-            all_model_inputs.append(
-                ModelInput(chunks=[EncodedTextChunk(tokens=full_ids)])
-            )
+            all_model_inputs.append(ModelInput(chunks=[EncodedTextChunk(tokens=full_ids)]))
             all_targets.append(resp_ids)
             all_token_weights.append([float(w) for w in mask])
 
@@ -333,9 +334,7 @@ class SkyRLWeightsBackend:
 
         # -- Build request_batch_slices (one slice per sequence) -------------
         request_id = uuid4().hex
-        request_batch_slices = [
-            (request_id, self._model_id, i, i + 1) for i in range(n)
-        ]
+        request_batch_slices = [(request_id, self._model_id, i, i + 1) for i in range(n)]
 
         return PreparedModelPassBatch(
             all_model_inputs=all_model_inputs,

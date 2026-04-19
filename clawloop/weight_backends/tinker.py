@@ -10,6 +10,7 @@ LoRA kwarg, ``AdamParams`` exposes only ``learning_rate, beta1, beta2, eps``
 (no ``weight_decay``), and ``save_weights_and_get_sampling_client`` does not
 accept a ``ttl_seconds`` argument. See the design doc v5.1 SDK overrides.
 """
+
 from __future__ import annotations
 
 import os
@@ -35,7 +36,6 @@ from clawloop.weight_backends import _tinker_sdk
 from clawloop.weight_backends._tinker_exporter import episodes_to_tinker_datums
 from clawloop.weight_backends._tinker_sdk import TinkerBackendError
 from clawloop.weight_backends.base import BackendError
-
 
 LossFn = Literal["importance_sampling", "cross_entropy", "ppo", "cispo", "dro"]
 
@@ -83,9 +83,7 @@ class TinkerWeightsConfig:
         required = {"learning_rate", "beta1", "beta2", "eps"}
         missing = required - set(merged)
         if missing:
-            raise ValueError(
-                f"adam_params missing required keys after merge: {sorted(missing)}"
-            )
+            raise ValueError(f"adam_params missing required keys after merge: {sorted(missing)}")
         self.adam_params = merged
 
 
@@ -145,16 +143,14 @@ class TinkerWeightsBackend:
 
         # 5. Renderer via tinker_cookbook — auto-select per model unless
         # the user pinned one explicitly.
-        renderer_name = (
-            config.renderer_name
-            or get_recommended_renderer_name(config.base_model)
-        )
+        renderer_name = config.renderer_name or get_recommended_renderer_name(config.base_model)
         self._renderer = get_renderer(renderer_name, self._tokenizer)
 
         # 6. Base-model SamplingClient — so iter 0 rollouts have a valid
         # client BEFORE any save_state has been called.
         self._sampling = _tinker_sdk.create_sampling(
-            self._service, base_model=config.base_model,
+            self._service,
+            base_model=config.base_model,
         )
         self._adapter_paths: list[str] = []
         # Durable tinker:// paths from training.save_state — enumerable via
@@ -217,9 +213,7 @@ class TinkerWeightsBackend:
         two-phase Layer contract.
         """
         try:
-            tinker_datums = episodes_to_tinker_datums(
-                data.episodes, loss_fn=self._config.loss_fn
-            )
+            tinker_datums = episodes_to_tinker_datums(data.episodes, loss_fn=self._config.loss_fn)
             if not tinker_datums:
                 return Future.immediate(
                     FBResult(
@@ -238,14 +232,8 @@ class TinkerWeightsBackend:
             opt_future = _tinker_sdk.optim_step(self._training, adam_params)
 
             # Await both — order: fb first to surface fb errors first.
-            fb_out = (
-                fb_future.result() if hasattr(fb_future, "result") else fb_future
-            )
-            opt_out = (
-                opt_future.result()
-                if hasattr(opt_future, "result")
-                else opt_future
-            )
+            fb_out = fb_future.result() if hasattr(fb_future, "result") else fb_future
+            opt_out = opt_future.result() if hasattr(opt_future, "result") else opt_future
 
             # Extract JSON-safe scalar metrics. The SDK's ForwardBackwardOutput
             # / OptimStepResponse pack their stats in a `.metrics: dict[str, Any]`;
@@ -277,9 +265,7 @@ class TinkerWeightsBackend:
         """No-op — the optimizer step was already submitted+awaited inside
         :meth:`forward_backward`. Returns a successful result so the
         two-phase Layer contract is still satisfied for callers."""
-        return Future.immediate(
-            OptimResult(status="ok", updates_applied=1, metrics={})
-        )
+        return Future.immediate(OptimResult(status="ok", updates_applied=1, metrics={}))
 
     # ------------------------------------------------------------------
     # Layer protocol — sample
@@ -315,16 +301,15 @@ class TinkerWeightsBackend:
           checkpoint we can resume from with ``load_state_with_optimizer``.
         """
         try:
-            new_sampling = _tinker_sdk.save_weights_and_get_sampling_client(
-                self._training, name
-            )
+            new_sampling = _tinker_sdk.save_weights_and_get_sampling_client(self._training, name)
             self._sampling = new_sampling
             self._adapter_paths.append(name)
             # Best-effort durable save. Failure here must not abort training —
             # catch locally and surface via SaveResult.status with a hint.
             try:
                 path = _tinker_sdk.save_state_durable(
-                    self._training, name,
+                    self._training,
+                    name,
                     ttl_seconds=self._config.ttl_seconds_intermediate,
                 )
                 if path:
@@ -335,9 +320,7 @@ class TinkerWeightsBackend:
                 )
             return Future.immediate(SaveResult(name=name, status="ok"))
         except TinkerBackendError as e:
-            return Future.immediate(
-                SaveResult(name=name, status=f"error: {e.code}")
-            )
+            return Future.immediate(SaveResult(name=name, status=f"error: {e.code}"))
 
     def load_state(self, state: dict[str, Any]) -> Future[LoadResult]:
         """Restore weights + optimizer from the last durable checkpoint.
@@ -356,9 +339,7 @@ class TinkerWeightsBackend:
             return Future.immediate(LoadResult(status="ok"))
         try:
             _tinker_sdk.load_state_with_optimizer(self._training, last_path)
-            self._sampling = _tinker_sdk.create_sampling(
-                self._service, model_path=last_path
-            )
+            self._sampling = _tinker_sdk.create_sampling(self._service, model_path=last_path)
             self._adapter_paths = list(adapter)
             self._durable_paths = list(durable)
             return Future.immediate(LoadResult(status="ok"))

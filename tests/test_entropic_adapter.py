@@ -2,12 +2,8 @@
 """Integration tests for EntropicAdapter with mock green agent output."""
 
 import json
-from pathlib import Path
-
-import pytest
 
 from clawloop.environments.entropic import EntropicAdapter
-from clawloop.core.loop import AgentState
 
 
 class TestEntropicAdapterResultsParsing:
@@ -42,10 +38,14 @@ class TestEntropicAdapterResultsParsing:
         adapter._output_dir = tmp_path
 
         results_path = tmp_path / "results.json"
-        results_path.write_text(json.dumps({
-            "results": [self._make_task_result("0")],
-            "summary": {"pass_rate": 1.0, "total_tasks": 1},
-        }))
+        results_path.write_text(
+            json.dumps(
+                {
+                    "results": [self._make_task_result("0")],
+                    "summary": {"pass_rate": 1.0, "total_tasks": 1},
+                }
+            )
+        )
 
         episodes = adapter._parse_results(results_path, ["0"])
         assert len(episodes) == 1
@@ -60,9 +60,13 @@ class TestEntropicAdapterResultsParsing:
         adapter._model = "test"
 
         results_path = tmp_path / "results.json"
-        results_path.write_text(json.dumps({
-            "results": [self._make_task_result("0")],
-        }))
+        results_path.write_text(
+            json.dumps(
+                {
+                    "results": [self._make_task_result("0")],
+                }
+            )
+        )
 
         episodes = adapter._parse_results(results_path, ["0"])
         assert "functional" in episodes[0].summary.signals
@@ -92,9 +96,13 @@ class TestEntropicAdapterResultsParsing:
         adapter._model = "test"
 
         results_path = tmp_path / "results.json"
-        results_path.write_text(json.dumps({
-            "results": [self._make_task_result("0", crm_reward=0, total_score=20.0)],
-        }))
+        results_path.write_text(
+            json.dumps(
+                {
+                    "results": [self._make_task_result("0", crm_reward=0, total_score=20.0)],
+                }
+            )
+        )
 
         episodes = adapter._parse_results(results_path, ["0"])
         assert episodes[0].summary.signals["outcome"].value == -1.0
@@ -142,17 +150,19 @@ class TestEpisodeMapping:
         adapter._model = "test-model"
         adapter._current_state_id = "abc123"
 
-        episode = adapter._map_to_episode({
-            "task_idx": "42",
-            "task_category": "handle_time",
-            "task_query": "Average handle time?",
-            "agent_answer": "15 minutes",
-            "crm_reward": 1,
-            "total_score": 75.0,
-            "dimension_scores": {"FUNCTIONAL": 100.0, "DRIFT_ADAPTATION": 60.0},
-            "success": True,
-            "timing": {"total_seconds": 2.0},
-        })
+        episode = adapter._map_to_episode(
+            {
+                "task_idx": "42",
+                "task_category": "handle_time",
+                "task_query": "Average handle time?",
+                "agent_answer": "15 minutes",
+                "crm_reward": 1,
+                "total_score": 75.0,
+                "dimension_scores": {"FUNCTIONAL": 100.0, "DRIFT_ADAPTATION": 60.0},
+                "success": True,
+                "timing": {"total_seconds": 2.0},
+            }
+        )
 
         assert episode.task_id == "entropic:42"
         assert episode.bench == "entropic"
@@ -165,11 +175,13 @@ class TestEpisodeMapping:
         adapter = EntropicAdapter()
         adapter._model = "test"
 
-        episode = adapter._map_to_episode({
-            "task_idx": "0",
-            "crm_reward": 0,
-            "total_score": 20.0,
-            "dimension_scores": {},
-        })
+        episode = adapter._map_to_episode(
+            {
+                "task_idx": "0",
+                "crm_reward": 0,
+                "total_score": 20.0,
+                "dimension_scores": {},
+            }
+        )
 
         assert episode.summary.signals["outcome"].value == -1.0
