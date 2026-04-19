@@ -13,6 +13,10 @@ agent-environment interactions, learns from them, and feeds improvements back
 into the agent. Three learning layers — **harness**, **router**, **weights** —
 all following the same protocol.
 
+> **Source-available under [BSL 1.1](LICENSE).** Free for dev, test, research,
+> and production use below $10 M revenue. Converts to Apache 2.0 on
+> April 1, 2030. See [License](#license) for details.
+
 <p align="center">
   <img src="architecture.png" alt="ClawLoop Architecture" width="720">
 </p>
@@ -205,17 +209,16 @@ and an `EpisodeSummary` containing reward signals. See `clawloop/environments/ma
 
 </details>
 
-<details>
-<summary><strong>Limitations</strong></summary>
+## Limitations
 
+- **Harness/playbook learning is the stable, recommended path.** Router and
+  weight layers work but have more constraints — see below.
 - **`mode="full"`** (simultaneous harness + weight training) is disabled.
   The on-policy boundary after harness updates needs rework for GRPO advantage
   computation. Use `weight` and `harness_learning` separately for now.
 - **Episode construction is manual.** There is no `ProblemEnv` base class yet.
   New environments must build `Episode` objects directly. A higher-level
   abstraction (like Tinker cookbook's `ProblemEnv`) is planned.
-
-</details>
 
 ## Enterprise
 
