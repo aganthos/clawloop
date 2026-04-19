@@ -1,18 +1,24 @@
 """Environments — built-in task environments and benchmark adapters."""
 
 from clawloop.environments.base import EnvAdapter
-from clawloop.environments.harbor import HarborAdapter, HarborTaskEnvironment
-from clawloop.environments.enterpriseops_gym import (
-    EnterpriseOpsGymAdapter,
-    EnterpriseOpsGymEnvironment,
-    build_adapter_from_hf,
-)
+
+_LAZY_IMPORTS = {
+    "HarborAdapter": "clawloop.environments.harbor",
+    "HarborTaskEnvironment": "clawloop.environments.harbor",
+    "EnterpriseOpsGymAdapter": "clawloop.environments.enterpriseops_gym",
+    "EnterpriseOpsGymEnvironment": "clawloop.environments.enterpriseops_gym",
+    "build_adapter_from_hf": "clawloop.environments.enterpriseops_gym",
+    "TauBenchAdapter": "clawloop.environments.taubench",
+}
 
 
 def __getattr__(name: str):
-    if name == "TauBenchAdapter":
-        from clawloop.environments.taubench import TauBenchAdapter
-        return TauBenchAdapter
+    if name in _LAZY_IMPORTS:
+        import importlib
+        mod = importlib.import_module(_LAZY_IMPORTS[name])
+        value = getattr(mod, name)
+        globals()[name] = value
+        return value
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 

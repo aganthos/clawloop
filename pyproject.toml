@@ -30,6 +30,9 @@ dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
     "pytest-timeout>=2.0",
+    "starlette>=0.27",
+    "uvicorn>=0.20",
+    "httpx>=0.24",
 ]
 car = [
     "starlette>=0.27",
@@ -48,7 +51,7 @@ server = [
     "httpx>=0.24",
 ]
 taubench = [
-    "tau2 @ git+https://github.com/sierra-research/tau2-bench.git@dev/tau3",
+    "tau2>=1.0.0",
 ]
 games = [
     "tinker>=0.18,<0.20",
@@ -60,6 +63,15 @@ games = [
     "game_arena @ git+https://github.com/google-deepmind/game_arena@6ddcc7dac06321472f2f22fabdeceab97eebeb73",
 ]
 
+docs = [
+    "mkdocs>=1.5",
+    "mkdocs-material>=9.0",
+    "pymdown-extensions>=10.0",
+]
+release = [
+    "build>=1.0",
+    "twine>=5.0",
+]
 [project.scripts]
 clawloop = "clawloop.cli:main"
 clawloop-server = "clawloop.server:main"
@@ -98,6 +110,9 @@ python-preference = "only-managed"
 constraint-dependencies = [
   "litellm!=1.82.7,!=1.82.8",
 ]
+
+[tool.uv.sources]
+tau2 = { git = "https://github.com/sierra-research/tau2-bench.git", tag = "v1.0.0" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
