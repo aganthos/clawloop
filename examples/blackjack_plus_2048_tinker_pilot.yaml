@@ -1,0 +1,47 @@
+mode: weight
+env_type: openspiel
+weight_backend: tinker
+
+openspiel:
+  # Mixed-game training: both games land in the SAME forward_backward batch
+  # so ONE LoRA learns both. GRPO groups stay per-(game, seed) so each scenario
+  # has its own baseline and reward ranges don't cross-contaminate.
+  games:
+    - game_name: blackjack
+      seeds: [0, 1, 2, 3]
+      episodes_per_seed: 4
+      max_turns: 10
+    - game_name: "2048"
+      seeds: [0, 1, 2, 3]
+      episodes_per_seed: 4
+      # 2048 episodes can run 1000+ moves; 50 is a safe smoke cap. Can raise
+      # later once we know context-window / cost trade-offs empirically.
+      max_turns: 50
+
+  # Shared sampling knobs inherited by every game unless the per-game spec
+  # overrides them.
+  prompt_style: canonical
+  rethink_k: 3
+  temperature: 1.0
+  top_p: 0.95
+  max_tokens: 128
+
+tinker:
+  base_model: Qwen/Qwen3-8B
+  lora_rank: 8
+  seed: 42
+  train_attn: true
+  train_mlp: true
+  train_unembed: false
+  loss_fn: importance_sampling
+  adam_params:
+    learning_rate: 1.0e-5
+    beta1: 0.9
+    beta2: 0.999
+    eps: 1.0e-8
+
+n_iterations: 3   # smoke default — bump on the CLI via --n-iterations
+system_prompt: |
+  You are playing a board / card game. Read the state, pick from the listed
+  legal moves, and respond with exactly `Final Answer: <move>`.
+benches: [blackjack, "2048"]

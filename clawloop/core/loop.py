@@ -50,11 +50,36 @@ class ExperimentLog:
     (flush after each write).
     """
 
-    def __init__(self, output_dir: str | Path | None = None):
+    def __init__(
+        self,
+        output_dir: str | Path | None = None,
+        *,
+        wandb_project: str | None = None,
+        wandb_name: str | None = None,
+    ):
         self._path: Path | None = None
         if output_dir:
             self._path = Path(output_dir) / "experiment.jsonl"
             self._path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Optional cookbook logger: always emits a Rich console table; opt-in
+        # for wandb / neptune via setup_logging args + env vars. We keep our
+        # own experiment.jsonl as the canonical disk-of-record; the cookbook
+        # logger ALSO writes its own metrics.jsonl alongside.
+        self._ml_logger: Any | None = None
+        if output_dir:
+            try:
+                from tinker_cookbook.utils import ml_log
+                self._ml_logger = ml_log.setup_logging(
+                    log_dir=str(Path(output_dir).expanduser()),
+                    wandb_project=wandb_project,
+                    wandb_name=wandb_name,
+                    config=None,
+                )
+            except Exception as e:
+                # Best-effort — never abort training because Rich/wandb failed.
+                log.warning("ml_log.setup_logging failed: %s; falling back to JSONL only", e)
+                self._ml_logger = None
 
     def log_iteration(
         self,
@@ -62,21 +87,61 @@ class ExperimentLog:
         episodes: list[Episode],
         fb_results: dict[str, FBResult],
         harness: Harness | None = None,
+        backend: Any | None = None,
     ) -> None:
         if self._path is None:
             return
         rewards = [ep.summary.total_reward for ep in episodes]
-        per_task = {
-            ep.task_id: {
-                "reward": ep.summary.total_reward,
-                "signals": {
-                    k: {"value": s.value, "confidence": s.confidence}
-                    for k, s in ep.summary.signals.items()
-                } if ep.summary.signals else {},
-                "error": ep.metadata.get("error") if ep.metadata else None,
+        # Aggregate across GRPO duplicates (the same task_id can appear K times
+        # in one iter — we don't want the dict-comprehension last-wins
+        # behaviour to drop K-1 rollouts). Emit summary stats per task_id +
+        # the list of rewards so downstream viz can plot per-rollout if it
+        # wants.
+        by_task: dict[str, list] = {}
+        for ep in episodes:
+            by_task.setdefault(ep.task_id, []).append(ep)
+        per_task: dict[str, dict] = {}
+        for tid, eps in by_task.items():
+            task_rewards = [e.summary.total_reward for e in eps]
+            errors = [e.metadata.get("error") for e in eps if e.metadata and e.metadata.get("error")]
+            # Latest episode's signals in the original {value, confidence} shape —
+            # keeps the existing viewer (`learning_viewer.html` reads
+            # `info.signals.<name>.value`) working without a simultaneous viewer
+            # rewrite. All K rollouts' signals are preserved in `rollouts[]`
+            # for the eventual viewer revamp.
+            latest = eps[-1]
+            latest_signals: dict[str, dict[str, Any]] = {}
+            if latest.summary.signals:
+                for k, s in latest.summary.signals.items():
+                    latest_signals[k] = {
+                        "value": s.value, "confidence": s.confidence,
+                    }
+            rollouts = [
+                {
+                    "reward": e.summary.total_reward,
+                    "error": (e.metadata.get("error") if e.metadata else None),
+                    "signals": {
+                        k: {"value": s.value, "confidence": s.confidence}
+                        for k, s in (e.summary.signals or {}).items()
+                    },
+                }
+                for e in eps
+            ]
+            mean_reward = sum(task_rewards) / len(task_rewards)
+            per_task[tid] = {
+                # Backward-compatible keys (viewer + existing consumers):
+                "reward": mean_reward,
+                "signals": latest_signals,
+                "error": errors[0] if errors else None,
+                # New per-rollout detail (issue #66 viewer work will use these):
+                "n_rollouts": len(eps),
+                "reward_mean": mean_reward,
+                "reward_min": min(task_rewards),
+                "reward_max": max(task_rewards),
+                "rewards": task_rewards,
+                "errors": errors,
+                "rollouts": rollouts,
             }
-            for ep in episodes
-        }
         entry: dict[str, Any] = {
             "iteration": iteration,
             "timestamp": time.time(),
@@ -90,6 +155,17 @@ class ExperimentLog:
                 for name, r in fb_results.items()
             },
         }
+        if backend is not None and hasattr(backend, "list_tinker_checkpoints"):
+            try:
+                entry["tinker_checkpoints"] = backend.list_tinker_checkpoints()
+            except Exception as e:  # best-effort — never abort the run
+                entry["tinker_checkpoints"] = [
+                    {"error": type(e).__name__, "message": str(e)}
+                ]
+            entry["tinker_model_id"] = getattr(backend, "model_id", None)
+            entry["tinker_durable_paths"] = list(
+                getattr(backend, "_durable_paths", [])
+            )
         if harness is not None:
             entry["playbook_size"] = len(harness.playbook.entries)
             entry["playbook_entries"] = [
@@ -113,6 +189,25 @@ class ExperimentLog:
             entry["max_reward"],
             entry.get("playbook_size", 0),
         )
+        # Mirror to cookbook ml_log (Rich console + opt-in wandb / neptune).
+        if self._ml_logger is not None:
+            try:
+                # Flatten to scalar metrics — wandb/Rich expect numbers, not nested dicts.
+                scalar_metrics: dict[str, Any] = {
+                    "n_episodes":     entry["n_episodes"],
+                    "avg_reward":     entry["avg_reward"],
+                    "min_reward":     entry["min_reward"],
+                    "max_reward":     entry["max_reward"],
+                }
+                for name, r in fb_results.items():
+                    for mk, mv in (r.metrics or {}).items():
+                        if isinstance(mv, (int, float, bool)):
+                            scalar_metrics[f"{name}/{mk}"] = mv
+                if "playbook_size" in entry:
+                    scalar_metrics["playbook/size"] = entry["playbook_size"]
+                self._ml_logger.log_metrics(scalar_metrics, step=iteration)
+            except Exception as e:
+                log.warning("ml_logger.log_metrics failed: %s", e)
 
 
 @dataclass
@@ -123,6 +218,9 @@ class AgentState:
     router: Router = field(default_factory=Router)
     weights: Weights = field(default_factory=Weights)
     inference_url: str | None = None  # vLLM endpoint for Harbor agents
+    sampling_client: Any = None   # Tinker SamplingClient, set per iter by TinkerWeightsBackend; kept Any to avoid tinker import.
+    renderer: Any = None          # tinker_cookbook renderer; set per iter by TinkerWeightsBackend.
+    tokenizer: Any = None         # Tinker training-client tokenizer; set per iter by TinkerWeightsBackend.
     tried_paradigms: list[str] = field(default_factory=list)  # paradigm contents tried
     _prev_playbook_generation: int = 0  # tracks generation for flush logic
 
@@ -163,6 +261,8 @@ def learning_loop(
     active_layers: list[str] | None = None,
     intensity: AdaptiveIntensity | None = None,
     output_dir: str | Path | None = None,
+    wandb_project: str | None = None,
+    wandb_name: str | None = None,
     after_iteration: "Callable[[int, AgentState, list[Episode]], None] | None" = None,
     archive: ArchiveStore | None = None,
     bench: str = "unknown",
@@ -198,7 +298,9 @@ def learning_loop(
     """
     state_id = agent_state.state_id()
     layers = agent_state.get_layers(active_layers)
-    exp_log = ExperimentLog(output_dir)
+    exp_log = ExperimentLog(
+        output_dir, wandb_project=wandb_project, wandb_name=wandb_name,
+    )
     evo_log = EvolutionLog(output_dir)
     _archive: ArchiveStore = archive if archive is not None else NullArchiveStore()
     _run_id = RunRecord.new_id()
@@ -256,6 +358,21 @@ def learning_loop(
     for iteration in range(n_iterations):
         log.info("Iteration %d/%d", iteration + 1, n_iterations)
 
+        # 0. Refresh Tinker-driven fields on AgentState from current backend.
+        # Gated on hasattr so non-Tinker backends (e.g. SkyRL) are untouched.
+        backend = getattr(agent_state.weights, "_backend", None)
+        if backend is not None and hasattr(backend, "current_sampling_client"):
+            from dataclasses import replace as _replace
+
+            agent_state = _replace(
+                agent_state,
+                sampling_client=backend.current_sampling_client(),
+                renderer=getattr(backend, "renderer", None),
+                tokenizer=getattr(backend, "tokenizer", None),
+            )
+            # Refresh the layers view against the (possibly) new agent_state.
+            layers = agent_state.get_layers(active_layers)
+
         # 1. Collect episodes
         if not tasks or n_episodes <= 0:
             episodes: list[Episode] = []
@@ -269,6 +386,13 @@ def learning_loop(
                 getattr(adapter, "run_batch", None)
             ):
                 episodes = adapter.run_batch(agent_state, selected_tasks)
+            elif hasattr(adapter, "run_episodes_batch") and callable(
+                getattr(adapter, "run_episodes_batch", None)
+            ):
+                # Concurrent rollout path (OpenSpielGameAdapter): all
+                # episodes for this iter fan out under one event loop,
+                # Tinker queues them as parallel ConcurrentFutures.
+                episodes = adapter.run_episodes_batch(selected_tasks, agent_state)
             else:
                 episodes = []
                 for task in selected_tasks:
@@ -447,6 +571,37 @@ def learning_loop(
                     except Exception:
                         log.exception("  rollback failed for %s", name)
 
+        # 4b. Tinker save_state hook — persist intermediate weights and swap
+        # the backend's internal SamplingClient so the next iter picks up the
+        # freshly-trained adapter on its top-of-iter refresh.  Gated on
+        # hasattr so SkyRL-style backends are unaffected.
+        #
+        # Skip the save entirely when the weights step produced zero datums
+        # (GRPO filtered every group for zero variance) — checkpointing an
+        # unchanged adapter wastes Tinker quota and pollutes the durable-path
+        # timeline.
+        weights_fb = fb_results.get("weights")
+        n_datums = (
+            weights_fb.metrics.get("n_datums", 0)
+            if weights_fb is not None and weights_fb.metrics
+            else 0
+        )
+        if (
+            backend is not None
+            and hasattr(backend, "save_state")
+            and n_datums > 0
+        ):
+            try:
+                backend.save_state(f"iter_{iteration}").result()
+            except Exception:
+                log.exception("backend.save_state failed for iter_%d", iteration)
+        elif backend is not None and hasattr(backend, "save_state"):
+            log.info(
+                "  [save_state] skipped iter_%d — no datums produced "
+                "(GRPO filtered all groups)",
+                iteration,
+            )
+
         # Generation flush: when playbook_generation advances, clear stale
         # episodes from weights buffer to prevent RL learning pre-adaptation behavior
         if isinstance(agent_state.harness, Harness) and not optim_failed:
@@ -463,7 +618,7 @@ def learning_loop(
 
         # 5. Log iteration results
         harness_ref = agent_state.harness if isinstance(agent_state.harness, Harness) else None
-        exp_log.log_iteration(iteration, episodes, fb_results, harness_ref)
+        exp_log.log_iteration(iteration, episodes, fb_results, harness_ref, backend=backend)
 
         # 6. Recompute state identity and log evolution entry
         prev_hash = state_id.combined_hash

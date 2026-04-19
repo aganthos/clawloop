@@ -1,0 +1,36 @@
+mode: weight
+env_type: openspiel
+weight_backend: tinker
+
+openspiel:
+  game_name: "2048"
+  seeds: [0, 1, 2, 3, 4, 5, 6, 7]
+  episodes_per_seed: 4
+  prompt_style: canonical
+  rethink_k: 3
+  max_turns: 200
+  temperature: 1.0
+  top_p: 0.95
+  max_tokens: 128
+
+tinker:
+  base_model: Qwen/Qwen3-8B
+  lora_rank: 8
+  seed: 42
+  train_attn: true
+  train_mlp: true
+  train_unembed: false
+  loss_fn: importance_sampling
+  adam_params:
+    learning_rate: 1.0e-5
+    beta1: 0.9
+    beta2: 0.999
+    eps: 1.0e-8
+
+n_iterations: 100
+system_prompt: |
+  You are playing 2048. Slide the tiles in one of four directions to combine
+  equal numbers and reach the 2048 tile. Each move shifts all tiles; equal
+  adjacent tiles merge into their sum. Always respond with `Final Answer: <move>`
+  where <move> is one of the listed legal moves.
+benches: ["2048"]
