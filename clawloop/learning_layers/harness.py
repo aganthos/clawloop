@@ -823,6 +823,10 @@ class Harness:
         """Set the EvolverContext for the next forward_backward call."""
         self._evolver_context = ctx
 
+    def pending_paradigm_insights(self) -> list[Insight]:
+        """Return pending insights tagged ``paradigm`` (not yet drained by optim)."""
+        return [i for i in self._pending.insights if "paradigm" in (i.tags or [])]
+
     def _build_snapshot(self) -> Any:
         """Build a HarnessSnapshot from current state for the Evolver."""
         from clawloop.core.evolver import HarnessSnapshot
