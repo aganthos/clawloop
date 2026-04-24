@@ -126,6 +126,8 @@ class WandbSink:
         Designed to be called from the learning loop alongside
         :class:`~clawloop.core.loop.ExperimentLog`.
         """
+        self._step = iteration + 1
+
         try:
             self._log_reward_scalars(episodes, iteration)
 

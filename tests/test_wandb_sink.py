@@ -238,6 +238,14 @@ class TestLogEpisodes:
         assert 0 in steps
         assert 1 in steps
 
+    def test_log_iteration_syncs_auto_step(self) -> None:
+        """log_iteration should advance _step so a subsequent log_episodes picks up."""
+        sink = WandbSink()
+        sink.log_iteration(5, [_make_episode()])
+        sink.log_episodes([_make_episode()])  # should use step=6, not step=0
+        steps = [step for _, step in _LOGGED]
+        assert 6 in steps
+
     def test_episode_table_logged(self) -> None:
         sink = WandbSink()
         sink.log_episodes([_make_episode()], iteration=0)
