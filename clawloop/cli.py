@@ -1,28 +1,30 @@
 """ClawLoop CLI — entry points for demo and benchmark setup commands.
 
-The legacy ``run`` and ``eval`` subcommands are disabled: they only wired a
-subset of environments and drifted from the unified ``TrainConfig`` runner.
-They remain in the parser so stale muscle memory gets a truthful redirect
-instead of a misleading ``Unknown benchmark`` failure.
+`clawloop run <config.json>` is a thin wrapper over the unified ``TrainConfig``
+runner: load JSON, validate via Pydantic, dispatch to ``train()``. The
+``--dry-run`` flag swaps real LLM clients for mocks so smoke tests work
+without API keys.
+
+`clawloop eval` is still disabled; legacy invocations get a truthful redirect
+to ``clawloop run`` and ``clawloop demo math --dry-run``.
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import sys
+from pathlib import Path
 from typing import Any
 
 log = logging.getLogger("clawloop")
 
-_DISABLED_MSG = (
-    "`clawloop {cmd}` is temporarily disabled. Use one of:\n"
-    "  - Real benchmark:  uv run python examples/train_runner.py \\\n"
-    "                         examples/configs/entropic_harness.json\n"
+_EVAL_DISABLED_MSG = (
+    "`clawloop eval` is disabled. Use one of:\n"
+    "  - Real benchmark:  uv run clawloop run examples/configs/math_harness.json\n"
     "  - Other configs:   examples/configs/  (math, harbor, entropic, openclaw, taubench)\n"
-    "  - No-key demo:     uv run clawloop demo math --dry-run\n"
-    "The config-driven runner covers every supported environment; "
-    "reintroduction of `{cmd}` as a thin wrapper is tracked upstream."
+    "  - No-key demo:     uv run clawloop demo math --dry-run"
 )
 
 
@@ -34,11 +36,16 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable debug logging")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    # Disabled subcommands. add_help=False so `run --help` hits the redirect
-    # rather than argparse's auto-generated help output. Any legacy flags land
-    # in `unknown` via parse_known_args() in main() and are ignored.
-    sub.add_parser("run", help="(disabled) use examples/train_runner.py", add_help=False)
-    sub.add_parser("eval", help="(disabled) use examples/train_runner.py", add_help=False)
+    run_p = sub.add_parser("run", help="Run a TrainConfig JSON via train()")
+    run_p.add_argument("config", type=Path, help="Path to TrainConfig JSON")
+    run_p.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Swap real LLM clients for mocks (no API calls)",
+    )
+
+    # Eval stays disabled. add_help=False so `eval --help` hits the redirect.
+    sub.add_parser("eval", help="(disabled) use `clawloop run` instead", add_help=False)
 
     setup_p = sub.add_parser("setup-bench", help="Install benchmark dependencies")
     setup_p.add_argument("-v", "--verbose", action="store_true", help="Enable debug logging")
@@ -82,7 +89,6 @@ BENCH_SETUP: dict[str, dict[str, Any]] = {
 def cmd_setup_bench(args: argparse.Namespace) -> None:
     """Install benchmark external dependencies."""
     import subprocess
-    from pathlib import Path
 
     bench = args.bench
     if bench not in BENCH_SETUP:
@@ -135,10 +141,56 @@ def cmd_demo(args: argparse.Namespace) -> None:
         sys.exit(1)
 
 
+def cmd_run(args: argparse.Namespace) -> None:
+    """Load a TrainConfig JSON and dispatch to train()."""
+    from clawloop.train import MODE_LAYERS, TrainConfig, train
+
+    raw = json.loads(args.config.read_text())
+    config = TrainConfig(**raw)  # Pydantic ValidationError surfaces fail-fast
+
+    log.info(
+        "mode=%s env=%s layers=%s",
+        config.mode,
+        config.env_type,
+        MODE_LAYERS[config.mode],
+    )
+
+    if args.dry_run:
+        _install_dry_run_clients(config)
+
+    train(config)
+
+
+def _install_dry_run_clients(config: "Any") -> None:
+    """Patch ``clawloop.train._make_llm_client`` to return mock clients.
+
+    Identifies the role (reflector / task / other) by matching the cfg
+    object identity against ``config.llm_clients``. Falls back to a generic
+    ``MockLLMClient`` for any unknown role so unfamiliar envs still run.
+    """
+    import clawloop.train as _train
+    from clawloop.demo_math import MockTaskClient, _build_mock_reflector_responses
+    from clawloop.llm import MockLLMClient
+
+    role_by_id = {id(v): k for k, v in config.llm_clients.items()}
+    original = _train._make_llm_client
+
+    def _mock_make(cfg):
+        role = role_by_id.get(id(cfg))
+        if role == "reflector":
+            return MockLLMClient(responses=_build_mock_reflector_responses())
+        if role == "task":
+            return MockTaskClient()
+        return MockLLMClient(responses=["[]"])
+
+    _train._make_llm_client = _mock_make
+    log.info("dry-run: LLM clients patched to mocks (original=%r)", original.__name__)
+
+
 def main() -> None:
     parser = _build_parser()
-    # Use parse_known_args so disabled subcommands can ignore legacy flags
-    # (`clawloop run --bench entropic`) and fall through to the redirect.
+    # parse_known_args lets the disabled `eval` subcommand swallow legacy flags
+    # (`clawloop eval --bench entropic`) and fall through to the redirect.
     args, _unknown = parser.parse_known_args()
 
     log_level = logging.DEBUG if getattr(args, "verbose", False) else logging.INFO
@@ -148,13 +200,14 @@ def main() -> None:
         datefmt="%H:%M:%S",
     )
 
-    if args.command in {"run", "eval"}:
-        print(_DISABLED_MSG.format(cmd=args.command), file=sys.stderr)
+    if args.command == "eval":
+        print(_EVAL_DISABLED_MSG, file=sys.stderr)
         sys.exit(2)
 
     # For active subcommands, re-parse strictly so typos still error.
     args = parser.parse_args()
     handlers = {
+        "run": cmd_run,
         "setup-bench": cmd_setup_bench,
         "demo": cmd_demo,
     }

@@ -169,6 +169,19 @@ def _build_openclaw(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]
     return adapter, tasks
 
 
+def _build_taubench(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]) -> tuple:
+    from clawloop.environments.taubench import TauBenchAdapter
+
+    taubench_cfg = dict(config.env_config or {})
+    adapter = TauBenchAdapter()
+    adapter.setup(taubench_cfg)
+    tasks = adapter.list_tasks(taubench_cfg.get("task_split", "test"))
+    num_tasks = taubench_cfg.get("num_tasks")
+    if num_tasks is not None:
+        tasks = tasks[: int(num_tasks)]
+    return adapter, tasks
+
+
 # ---------------------------------------------------------------------------
 # Environment registry — add new envs here
 # ---------------------------------------------------------------------------
@@ -233,6 +246,7 @@ ENV_BUILDERS: dict[str, Any] = {
     "entropic": _build_entropic,
     "openclaw": _build_openclaw,
     "openspiel": _build_openspiel,
+    "taubench": _build_taubench,
 }
 
 
