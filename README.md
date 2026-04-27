@@ -99,7 +99,8 @@ results = agent.learn(MathEnvironment(), iterations=10, episodes_per_iter=5)
 **Config-driven training (no code):**
 
 ```bash
-uv run python examples/train_runner.py examples/configs/math_harness.json
+uv run clawloop run examples/configs/math_harness.json
+uv run clawloop run examples/configs/math_harness.json --dry-run  # mock LLMs
 ```
 
 ## Choose Your Integration Path
@@ -110,7 +111,7 @@ uv run python examples/train_runner.py examples/configs/math_harness.json
 | Harness: package/module demo entry points | `uv run python -m clawloop.demo_math --dry-run` or [`examples/demo_math.py`](examples/demo_math.py) | Same math demo from an installed package or source clone |
 | Playbook internals walkthrough | `uv run python examples/playbook_demo.py --dry-run` | `forward_backward`, `optim_step`, entry scoring, structured skills |
 | Workflow: n8n webhook integration | [`examples/n8n/`](examples/n8n/) | Workflow platform sends traces to clawloop-server; no Python in the workflow |
-| Harness benchmarks: config-driven runner | `uv run python examples/train_runner.py examples/configs/math_harness.json` | Math, CRMArena, Harbor BFCL via JSON configs and litellm |
+| Harness benchmarks: config-driven runner | `uv run clawloop run examples/configs/math_harness.json` | Math, CRMArena, Harbor BFCL, TauBench via JSON configs and litellm (`examples/train_runner.py` is a deprecated shim that forwards here) |
 | Proxy harness: zero-code-change OpenClaw | `uv run python examples/openclaw_demo.py` | Transparent proxy captures traces and injects learned skills |
 | Remote OpenClaw: SSH-connected proxy harness | `uv run python examples/openclaw_demo_remote.py --host YOUR_HOST ...` | Learn from a remote OpenClaw instance and compare before/after |
 | Weights: SkyRL/Tinker training recipes | [`examples/recipes/`](examples/recipes/) | GRPO, PPO, and fine-tuning recipes for GPU training |
@@ -150,6 +151,7 @@ all layers roll back together.
 | `harbor` | [Harbor](https://harborframework.com/) sandboxed agent tasks (BFCL, etc.) | Docker + LLM API |
 | `entropic` | [CRMArenaPro](https://github.com/salesforce/CRMArena) A2A benchmark | Entropic bench + LLM API |
 | `openclaw` | Transparent proxy — captures traces + injects playbook skills | Node.js + OpenAI-compatible Chat Completions endpoint |
+| `taubench` | [tau-bench](https://github.com/sierra-research/tau2-bench) retail/airline customer-service tasks | `pip install "clawloop[taubench]"` + LLM API |
 
 ## LLM Providers
 
