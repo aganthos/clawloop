@@ -32,6 +32,7 @@ examples/openclaw_runner/package-lock.json
 playbook.json
 runs/
 pilot_runs/
+wandb/
 
 # CodeBoarding generated analysis (regenerable)
 .codeboarding/*.json

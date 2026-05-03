@@ -41,6 +41,9 @@ car = [
     "uvicorn>=0.20",
     "httpx>=0.24",
 ]
+wandb = [
+    "wandb>=0.26",
+]
 otel = [
     "opentelemetry-api>=1.20",
     "opentelemetry-sdk>=1.20",
