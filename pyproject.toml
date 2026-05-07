@@ -44,6 +44,9 @@ car = [
 wandb = [
     "wandb>=0.26",
 ]
+mlflow = [
+    "mlflow>=2.10",
+]
 otel = [
     "opentelemetry-api>=1.20",
     "opentelemetry-sdk>=1.20",
