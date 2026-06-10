@@ -158,10 +158,11 @@ def test_run_openclaw_dry_run_no_api_calls(tmp_path: Path, monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def test_dry_run_role_marker_survives_pydantic_copy(monkeypatch):
-    """Replacing id(cfg) with a model-field marker means revalidation /
-    `.model_copy()` no longer breaks role lookup. Regression for PR #60
-    review comment 2."""
+def test_dry_run_role_field_survives_pydantic_copy(monkeypatch):
+    """The role lives in a dedicated `dry_run_role` field so it survives
+    `.model_copy()`, and `model` stays unmodified for downstream code
+    (e.g. `_build_entropic` reads `tc.model` directly). Regression for
+    PR #60 review comment 2 and PR #62 follow-up."""
     import clawloop.cli as _cli
     import clawloop.train as _train
     from clawloop.demo_math import MockTaskClient
@@ -181,11 +182,19 @@ def test_dry_run_role_marker_survives_pydantic_copy(monkeypatch):
 
     _cli._install_dry_run_clients(cfg)
     try:
-        # Simulate Pydantic revalidation / copy: address changes,
-        # but the marker travels with the data.
+        # `model` is preserved verbatim — no marker pollution.
+        assert cfg.llm_clients["reflector"].model == "anthropic/claude-sonnet-4"
+        assert cfg.llm_clients["task"].model == "anthropic/claude-haiku-4"
+        assert cfg.llm_clients["reflector"].dry_run_role == "reflector"
+        assert cfg.llm_clients["task"].dry_run_role == "task"
+
+        # Simulate Pydantic revalidation / copy: address changes, but the
+        # role field travels in the data and is preserved.
         copied_reflector = cfg.llm_clients["reflector"].model_copy()
         copied_task = cfg.llm_clients["task"].model_copy()
         assert id(copied_reflector) != id(cfg.llm_clients["reflector"])
+        assert copied_reflector.dry_run_role == "reflector"
+        assert copied_task.dry_run_role == "task"
 
         assert isinstance(_train._make_llm_client(copied_reflector), MockLLMClient)
         assert isinstance(_train._make_llm_client(copied_task), MockTaskClient)

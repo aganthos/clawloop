@@ -36,6 +36,11 @@ class LLMClientConfig(BaseModel):
     temperature: float = 0.7
     max_tokens: int = 2000
 
+    # Internal marker used by `clawloop run --dry-run` to route this client to
+    # a mock without mutating `model`. Survives Pydantic `model_copy()`.
+    # Always None for normal training runs.
+    dry_run_role: str | None = None
+
     model_config = {"arbitrary_types_allowed": True}
 
 
@@ -354,6 +359,11 @@ def validate_config(config: TrainConfig) -> list[str]:
             v = tb.get(key, default)
             if v is None:
                 return
+            # Reject bool and float explicitly: `int(True) == 1` and
+            # `int(3.5) == 3` would otherwise pass silently, masking bad
+            # configs (e.g. `num_tasks: true` or `max_steps: 3.5`).
+            if isinstance(v, (bool, float)):
+                raise ValueError(f"taubench env_config.{key} must be a positive int (got {v!r})")
             try:
                 iv = int(v)
             except (TypeError, ValueError) as exc:

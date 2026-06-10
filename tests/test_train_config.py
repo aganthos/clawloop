@@ -175,6 +175,30 @@ class TestTauBenchValidation:
         )
         assert validate_config(cfg) == ["harness", "router"]
 
+    @pytest.mark.parametrize("value", [True, False])
+    def test_num_tasks_bool_rejected(self, value):
+        """`int(True) == 1` would otherwise sneak past — explicit reject."""
+        cfg = self._base({"num_tasks": value})
+        with pytest.raises(ValueError, match="num_tasks"):
+            validate_config(cfg)
+
+    @pytest.mark.parametrize("value", [3.5, 1.0, 0.0])
+    def test_num_tasks_float_rejected(self, value):
+        """`int(3.5) == 3` silently truncates — explicit reject."""
+        cfg = self._base({"num_tasks": value})
+        with pytest.raises(ValueError, match="num_tasks"):
+            validate_config(cfg)
+
+    def test_max_steps_float_rejected(self):
+        cfg = self._base({"max_steps": 30.0})
+        with pytest.raises(ValueError, match="max_steps"):
+            validate_config(cfg)
+
+    def test_max_concurrency_bool_rejected(self):
+        cfg = self._base({"max_concurrency": True})
+        with pytest.raises(ValueError, match="max_concurrency"):
+            validate_config(cfg)
+
 
 # ---------------------------------------------------------------------------
 # LLMClientConfig

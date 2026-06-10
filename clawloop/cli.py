@@ -161,11 +161,6 @@ def cmd_run(args: argparse.Namespace) -> None:
     train(config)
 
 
-# Marker baked into LLMClientConfig.model so `_make_llm_client` can recover
-# the role after Pydantic copies / revalidation. Object identity (the prior
-# id(cfg) approach) is fragile: any model_copy / re-instantiation breaks it.
-_DRY_RUN_MARKER = "__clawloop_dry_run_role__:"
-
 # Envs whose adapter routes its task LLM through `_make_llm_client`. For
 # every other env_type the adapter constructs / drives LLMs internally
 # (e.g. tau2 inside taubench, EntropicAdapter.setup), so patching
@@ -178,10 +173,12 @@ def _install_dry_run_clients(config: Any) -> None:
     """Wire `--dry-run`: guarantee no real LLM calls regardless of env_type.
 
     Two parts:
-      1. Embed the role into each ``LLMClientConfig.model`` field and patch
-         ``clawloop.train._make_llm_client`` to switch on that marker. The
-         marker travels with the data, so it survives Pydantic copies — a
-         failure mode the earlier ``id(cfg)`` approach was vulnerable to.
+      1. Stamp ``dry_run_role`` on each ``LLMClientConfig`` and patch
+         ``clawloop.train._make_llm_client`` to switch on that field. The
+         role travels with the data, so it survives Pydantic ``model_copy()``
+         — a failure mode the earlier ``id(cfg)`` approach was vulnerable to.
+         A dedicated field (vs. overloading ``model``) keeps the public
+         ``model`` value pristine for any code that reads it downstream.
       2. For envs whose adapter bypasses ``_make_llm_client``, swap the
          registered builder with a stub that returns a no-I/O adapter
          whose ``run_episode`` / ``run_batch`` produce canned episodes.
@@ -190,17 +187,16 @@ def _install_dry_run_clients(config: Any) -> None:
     from clawloop.demo_math import MockTaskClient, _build_mock_reflector_responses
     from clawloop.llm import MockLLMClient
 
-    # Part 1: mark each LLMClientConfig with its role, then route
-    # _make_llm_client through a mock factory that reads the marker.
+    # Part 1: tag each LLMClientConfig with its role, then route
+    # _make_llm_client through a mock factory that reads the tag.
     for role, cfg in config.llm_clients.items():
-        if not cfg.model.startswith(_DRY_RUN_MARKER):
-            cfg.model = f"{_DRY_RUN_MARKER}{role}"
+        cfg.dry_run_role = role
 
     original_make = _train._make_llm_client
 
     def _mock_make(cfg):
-        if cfg.model.startswith(_DRY_RUN_MARKER):
-            role = cfg.model[len(_DRY_RUN_MARKER) :]
+        role = getattr(cfg, "dry_run_role", None)
+        if role is not None:
             if role == "reflector":
                 return MockLLMClient(responses=_build_mock_reflector_responses())
             if role == "task":
