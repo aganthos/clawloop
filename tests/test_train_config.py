@@ -121,6 +121,61 @@ class TestEnvValidation:
             validate_config(cfg)
 
 
+class TestTauBenchValidation:
+    """Acceptance for PR #60 review comment 4: validate_config must catch
+    bad taubench env_config up-front instead of failing deep in tau2 / the
+    adapter. Each knob with a meaningful positivity constraint is enforced."""
+
+    @staticmethod
+    def _base(env_config: dict | None = None) -> TrainConfig:
+        return TrainConfig(
+            mode="harness_learning",
+            env_type="taubench",
+            llm_clients=_llm("reflector"),
+            env_config=env_config,
+        )
+
+    def test_requires_env_config(self):
+        cfg = self._base(env_config=None)
+        with pytest.raises(ValueError, match="env_config"):
+            validate_config(cfg)
+
+    def test_num_tasks_zero_rejected(self):
+        cfg = self._base({"num_tasks": 0})
+        with pytest.raises(ValueError, match="num_tasks"):
+            validate_config(cfg)
+
+    def test_num_tasks_negative_rejected(self):
+        cfg = self._base({"num_tasks": -1})
+        with pytest.raises(ValueError, match="num_tasks"):
+            validate_config(cfg)
+
+    def test_num_tasks_omitted_ok(self):
+        cfg = self._base({"domain": "retail"})
+        assert validate_config(cfg) == ["harness", "router"]
+
+    def test_max_steps_zero_rejected(self):
+        cfg = self._base({"max_steps": 0})
+        with pytest.raises(ValueError, match="max_steps"):
+            validate_config(cfg)
+
+    def test_max_concurrency_zero_rejected(self):
+        cfg = self._base({"max_concurrency": 0})
+        with pytest.raises(ValueError, match="max_concurrency"):
+            validate_config(cfg)
+
+    def test_full_valid_config_ok(self):
+        cfg = self._base(
+            {
+                "domain": "retail",
+                "num_tasks": 3,
+                "max_steps": 30,
+                "max_concurrency": 8,
+            }
+        )
+        assert validate_config(cfg) == ["harness", "router"]
+
+
 # ---------------------------------------------------------------------------
 # LLMClientConfig
 # ---------------------------------------------------------------------------

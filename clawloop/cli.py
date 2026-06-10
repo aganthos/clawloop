@@ -161,30 +161,121 @@ def cmd_run(args: argparse.Namespace) -> None:
     train(config)
 
 
-def _install_dry_run_clients(config: "Any") -> None:
-    """Patch ``clawloop.train._make_llm_client`` to return mock clients.
+# Marker baked into LLMClientConfig.model so `_make_llm_client` can recover
+# the role after Pydantic copies / revalidation. Object identity (the prior
+# id(cfg) approach) is fragile: any model_copy / re-instantiation breaks it.
+_DRY_RUN_MARKER = "__clawloop_dry_run_role__:"
 
-    Identifies the role (reflector / task / other) by matching the cfg
-    object identity against ``config.llm_clients``. Falls back to a generic
-    ``MockLLMClient`` for any unknown role so unfamiliar envs still run.
+# Envs whose adapter routes its task LLM through `_make_llm_client`. For
+# every other env_type the adapter constructs / drives LLMs internally
+# (e.g. tau2 inside taubench, EntropicAdapter.setup), so patching
+# `_make_llm_client` alone wouldn't stop real network calls — we also have
+# to install a stub builder.
+_ENVS_USING_MAKE_LLM_CLIENT = frozenset({"math"})
+
+
+def _install_dry_run_clients(config: Any) -> None:
+    """Wire `--dry-run`: guarantee no real LLM calls regardless of env_type.
+
+    Two parts:
+      1. Embed the role into each ``LLMClientConfig.model`` field and patch
+         ``clawloop.train._make_llm_client`` to switch on that marker. The
+         marker travels with the data, so it survives Pydantic copies — a
+         failure mode the earlier ``id(cfg)`` approach was vulnerable to.
+      2. For envs whose adapter bypasses ``_make_llm_client``, swap the
+         registered builder with a stub that returns a no-I/O adapter
+         whose ``run_episode`` / ``run_batch`` produce canned episodes.
     """
     import clawloop.train as _train
     from clawloop.demo_math import MockTaskClient, _build_mock_reflector_responses
     from clawloop.llm import MockLLMClient
 
-    role_by_id = {id(v): k for k, v in config.llm_clients.items()}
-    original = _train._make_llm_client
+    # Part 1: mark each LLMClientConfig with its role, then route
+    # _make_llm_client through a mock factory that reads the marker.
+    for role, cfg in config.llm_clients.items():
+        if not cfg.model.startswith(_DRY_RUN_MARKER):
+            cfg.model = f"{_DRY_RUN_MARKER}{role}"
+
+    original_make = _train._make_llm_client
 
     def _mock_make(cfg):
-        role = role_by_id.get(id(cfg))
-        if role == "reflector":
-            return MockLLMClient(responses=_build_mock_reflector_responses())
-        if role == "task":
-            return MockTaskClient()
-        return MockLLMClient(responses=["[]"])
+        if cfg.model.startswith(_DRY_RUN_MARKER):
+            role = cfg.model[len(_DRY_RUN_MARKER) :]
+            if role == "reflector":
+                return MockLLMClient(responses=_build_mock_reflector_responses())
+            if role == "task":
+                return MockTaskClient()
+            return MockLLMClient(responses=["[]"])
+        return original_make(cfg)
 
     _train._make_llm_client = _mock_make
-    log.info("dry-run: LLM clients patched to mocks (original=%r)", original.__name__)
+
+    # Part 2: for env_types that bypass _make_llm_client, replace the
+    # registered builder with a stub. Without this, --dry-run on (e.g.)
+    # taubench / entropic / openclaw would still hit real endpoints.
+    env_type = config.env_type
+    if env_type not in _ENVS_USING_MAKE_LLM_CLIENT and env_type in _train.ENV_BUILDERS:
+        _train.ENV_BUILDERS[env_type] = _make_stub_env_builder(env_type)
+
+    log.info(
+        "dry-run: LLM clients mocked; env=%r %s",
+        env_type,
+        "stubbed" if env_type not in _ENVS_USING_MAKE_LLM_CLIENT else "uses _make_llm_client",
+    )
+
+
+def _make_stub_env_builder(env_type: str):
+    """Return a builder that constructs a no-I/O stub adapter for `env_type`."""
+
+    def _build_stub(config: Any, llm_clients: Any) -> tuple[Any, list[str]]:
+        tasks = [f"dry_run_{env_type}_{i}" for i in range(3)]
+        return _StubAdapter(env_type), tasks
+
+    return _build_stub
+
+
+class _StubAdapter:
+    """Adapter that yields canned episodes — no network, no LLM calls.
+
+    Used by --dry-run for env_types whose real adapter would otherwise
+    drive external services (tau2, CRMArena, OpenClaw, OpenSpiel).
+    """
+
+    def __init__(self, env_type: str) -> None:
+        self._env_type = env_type
+
+    def run_episode(self, task: Any, agent_state: Any) -> Any:
+        return _stub_episode(self._env_type, task, agent_state)
+
+    def run_batch(self, agent_state: Any, task_ids: list[Any]) -> list[Any]:
+        return [_stub_episode(self._env_type, t, agent_state) for t in task_ids]
+
+    def get_traces(self, episode: Any) -> dict[str, Any]:
+        return {"bench": self._env_type, "episode_id": episode.id, "dry_run": True}
+
+
+def _stub_episode(env_type: str, task: Any, agent_state: Any) -> Any:
+    from uuid import uuid4
+
+    from clawloop.core.episode import Episode, EpisodeSummary, StepMeta
+
+    state_id = ""
+    try:
+        state_id = agent_state.state_id().combined_hash
+    except Exception:
+        pass
+
+    return Episode(
+        id=uuid4().hex,
+        state_id=state_id,
+        task_id=f"{env_type}:{task}",
+        bench=env_type,
+        messages=[],
+        step_boundaries=[],
+        steps=[StepMeta(t=0, reward=1.0, done=True, timing_ms=0.0)],
+        summary=EpisodeSummary(total_reward=1.0),
+        metadata={"dry_run": True},
+    )
 
 
 def main() -> None:

@@ -169,7 +169,9 @@ def _build_openclaw(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]
     return adapter, tasks
 
 
-def _build_taubench(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]) -> tuple:
+def _build_taubench(
+    config: TrainConfig, llm_clients: dict[str, LLMClientConfig]
+) -> tuple[Any, list[str]]:
     from clawloop.environments.taubench import TauBenchAdapter
 
     taubench_cfg = dict(config.env_config or {})
@@ -343,6 +345,29 @@ def validate_config(config: TrainConfig) -> list[str]:
     if config.env_type == "entropic":
         if not config.env_config:
             raise ValueError("entropic env requires 'env_config'")
+    if config.env_type == "taubench":
+        if not config.env_config:
+            raise ValueError("taubench env requires 'env_config'")
+        tb = config.env_config
+
+        def _positive_int(key: str, default: int | None = None) -> None:
+            v = tb.get(key, default)
+            if v is None:
+                return
+            try:
+                iv = int(v)
+            except (TypeError, ValueError) as exc:
+                raise ValueError(
+                    f"taubench env_config.{key} must be a positive int (got {v!r})"
+                ) from exc
+            if iv <= 0:
+                raise ValueError(
+                    f"taubench env_config.{key} must be a positive int (got {iv})"
+                )
+
+        _positive_int("num_tasks")
+        _positive_int("max_steps", default=30)
+        _positive_int("max_concurrency", default=8)
     if config.env_type == "openspiel":
         # OpenSpielTaskEnvironment.run_episode reads sampling_client /
         # renderer / tokenizer off AgentState — those are only populated
