@@ -361,9 +361,7 @@ def validate_config(config: TrainConfig) -> list[str]:
                     f"taubench env_config.{key} must be a positive int (got {v!r})"
                 ) from exc
             if iv <= 0:
-                raise ValueError(
-                    f"taubench env_config.{key} must be a positive int (got {iv})"
-                )
+                raise ValueError(f"taubench env_config.{key} must be a positive int (got {iv})")
 
         _positive_int("num_tasks")
         _positive_int("max_steps", default=30)
