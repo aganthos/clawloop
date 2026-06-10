@@ -154,15 +154,19 @@ def test_run_openclaw_dry_run_no_api_calls(tmp_path: Path, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# Role marker survives Pydantic copy (PR #60 review comment 2)
+# Dry-run role tagging (PR #60 comment 2; PR #62 comment 1; issue #63)
 # ---------------------------------------------------------------------------
 
 
-def test_dry_run_role_field_survives_pydantic_copy(monkeypatch):
-    """The role lives in a dedicated `dry_run_role` field so it survives
-    `.model_copy()`, and `model` stays unmodified for downstream code
-    (e.g. `_build_entropic` reads `tc.model` directly). Regression for
-    PR #60 review comment 2 and PR #62 follow-up."""
+def test_dry_run_subclass_survives_pydantic_copy(monkeypatch):
+    """`_install_dry_run_clients` replaces each entry in `config.llm_clients`
+    with a `_DryRunLLMClientConfig` instance. The subclass:
+      * survives `model_copy()` (Pydantic preserves runtime class),
+      * leaves `model` untouched so downstream consumers see it verbatim,
+      * is detected via `isinstance` by the patched `_make_llm_client`.
+
+    Regression for issue #63: ensures the role does not live on the public
+    `LLMClientConfig` schema."""
     import clawloop.cli as _cli
     import clawloop.train as _train
     from clawloop.demo_math import MockTaskClient
@@ -182,17 +186,24 @@ def test_dry_run_role_field_survives_pydantic_copy(monkeypatch):
 
     _cli._install_dry_run_clients(cfg)
     try:
-        # `model` is preserved verbatim — no marker pollution.
-        assert cfg.llm_clients["reflector"].model == "anthropic/claude-sonnet-4"
-        assert cfg.llm_clients["task"].model == "anthropic/claude-haiku-4"
-        assert cfg.llm_clients["reflector"].dry_run_role == "reflector"
-        assert cfg.llm_clients["task"].dry_run_role == "task"
+        reflector = cfg.llm_clients["reflector"]
+        task = cfg.llm_clients["task"]
 
-        # Simulate Pydantic revalidation / copy: address changes, but the
-        # role field travels in the data and is preserved.
-        copied_reflector = cfg.llm_clients["reflector"].model_copy()
-        copied_task = cfg.llm_clients["task"].model_copy()
-        assert id(copied_reflector) != id(cfg.llm_clients["reflector"])
+        # Each entry is now a _DryRunLLMClientConfig subclass instance.
+        assert isinstance(reflector, _cli._DryRunLLMClientConfig)
+        assert isinstance(task, _cli._DryRunLLMClientConfig)
+        # `model` is preserved verbatim — no marker pollution.
+        assert reflector.model == "anthropic/claude-sonnet-4"
+        assert task.model == "anthropic/claude-haiku-4"
+        # The role lives on the subclass instance.
+        assert reflector.dry_run_role == "reflector"
+        assert task.dry_run_role == "task"
+
+        # `model_copy()` preserves the runtime class so the tag survives.
+        copied_reflector = reflector.model_copy()
+        copied_task = task.model_copy()
+        assert id(copied_reflector) != id(reflector)
+        assert isinstance(copied_reflector, _cli._DryRunLLMClientConfig)
         assert copied_reflector.dry_run_role == "reflector"
         assert copied_task.dry_run_role == "task"
 
@@ -200,3 +211,22 @@ def test_dry_run_role_field_survives_pydantic_copy(monkeypatch):
         assert isinstance(_train._make_llm_client(copied_task), MockTaskClient)
     finally:
         _train._make_llm_client = original_make
+
+
+def test_public_llm_client_config_schema_excludes_dry_run_vocab():
+    """The public `LLMClientConfig` schema must not carry any dry-run
+    testing vocabulary — that lives on the private `_DryRunLLMClientConfig`
+    subclass instead. Acceptance criterion for issue #63."""
+    from clawloop.train import LLMClientConfig
+
+    schema = LLMClientConfig.model_json_schema()
+    properties = set(schema.get("properties", {}).keys())
+    assert (
+        "dry_run_role" not in properties
+    ), f"LLMClientConfig should not expose dry_run_role; got {sorted(properties)}"
+
+    # And model_dump of a vanilla instance must not emit it either.
+    dumped = LLMClientConfig(model="anthropic/x").model_dump()
+    assert (
+        "dry_run_role" not in dumped
+    ), f"vanilla LLMClientConfig.model_dump should not include dry_run_role; got keys {sorted(dumped)}"

@@ -18,7 +18,31 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from clawloop.train import LLMClientConfig
+
 log = logging.getLogger("clawloop")
+
+
+class _DryRunLLMClientConfig(LLMClientConfig):
+    """Private subclass that tags an LLM client config with its dry-run role.
+
+    Used only by ``cmd_run --dry-run``: ``_install_dry_run_clients`` swaps
+    each entry in ``config.llm_clients`` for an instance of this class, and
+    the patched ``_make_llm_client`` picks the right mock via ``isinstance``.
+
+    Why a subclass instead of a field on ``LLMClientConfig``:
+      - The public ``LLMClientConfig`` schema stays free of testing
+        vocabulary — no ``dry_run_role: null`` in JSON dumps or generated
+        JSON Schema.
+      - ``model`` is left untouched, so downstream code that reads it
+        verbatim (e.g. ``_build_entropic`` propagating ``tc.model`` into
+        ``entropic_cfg``) is unaffected.
+      - Pydantic ``model_copy()`` preserves the runtime class, so the tag
+        survives copies just like a field would.
+    """
+
+    dry_run_role: str
+
 
 _EVAL_DISABLED_MSG = (
     "`clawloop eval` is disabled. Use one of:\n"
@@ -165,12 +189,11 @@ def _install_dry_run_clients(config: Any) -> None:
     """Wire `--dry-run`: guarantee no real LLM calls regardless of env_type.
 
     Two parts:
-      1. Stamp ``dry_run_role`` on each ``LLMClientConfig`` and patch
-         ``clawloop.train._make_llm_client`` to switch on that field. The
-         role travels with the data, so it survives Pydantic ``model_copy()``
-         — a failure mode the earlier ``id(cfg)`` approach was vulnerable to.
-         A dedicated field (vs. overloading ``model``) keeps the public
-         ``model`` value pristine for any code that reads it downstream.
+      1. Replace each ``LLMClientConfig`` in ``config.llm_clients`` with a
+         ``_DryRunLLMClientConfig`` instance carrying the role, and patch
+         ``clawloop.train._make_llm_client`` to switch on ``isinstance``.
+         The private subclass keeps the public schema clean and survives
+         ``model_copy()``.
       2. For envs whose adapter bypasses ``_make_llm_client`` (per
          ``train.ENVS_USING_MAKE_LLM_CLIENT``), swap the registered builder
          with a stub that returns a no-I/O ``_StubAdapter``.
@@ -179,16 +202,16 @@ def _install_dry_run_clients(config: Any) -> None:
     from clawloop.demo_math import MockTaskClient, _build_mock_reflector_responses
     from clawloop.llm import MockLLMClient
 
-    # Part 1: tag each LLMClientConfig with its role, then route
-    # _make_llm_client through a mock factory that reads the tag.
-    for role, cfg in config.llm_clients.items():
-        cfg.dry_run_role = role
+    # Part 1: replace each cfg with a subclass instance carrying the role,
+    # then route _make_llm_client through a mock factory that reads the role.
+    for role, cfg in list(config.llm_clients.items()):
+        config.llm_clients[role] = _DryRunLLMClientConfig(**cfg.model_dump(), dry_run_role=role)
 
     original_make = _train._make_llm_client
 
     def _mock_make(cfg):
-        role = getattr(cfg, "dry_run_role", None)
-        if role is not None:
+        if isinstance(cfg, _DryRunLLMClientConfig):
+            role = cfg.dry_run_role
             if role == "reflector":
                 return MockLLMClient(responses=_build_mock_reflector_responses())
             if role == "task":

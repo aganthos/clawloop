@@ -36,11 +36,6 @@ class LLMClientConfig(BaseModel):
     temperature: float = 0.7
     max_tokens: int = 2000
 
-    # Internal marker used by `clawloop run --dry-run` to route this client to
-    # a mock without mutating `model`. Survives Pydantic `model_copy()`.
-    # Always None for normal training runs.
-    dry_run_role: str | None = None
-
     model_config = {"arbitrary_types_allowed": True}
 
 
