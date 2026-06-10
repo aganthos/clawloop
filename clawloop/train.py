@@ -256,6 +256,17 @@ ENV_BUILDERS: dict[str, Any] = {
     "taubench": _build_taubench,
 }
 
+# Env types whose builder routes its task LLM through `_make_llm_client`,
+# so patching that helper alone is enough to stop real network calls under
+# `clawloop run --dry-run`. Every other env_type drives LLMs internally
+# (e.g. tau2 inside taubench, EntropicAdapter.setup), and the CLI will
+# install a `_StubAdapter` for it instead.
+#
+# Maintenance: when registering a new builder above, decide whether it
+# calls `_make_llm_client`. If yes, add the env_type here. If no, leave
+# it out — `--dry-run` will fall back to the stub adapter.
+ENVS_USING_MAKE_LLM_CLIENT: frozenset[str] = frozenset({"math"})
+
 
 # ---------------------------------------------------------------------------
 # Validation
@@ -355,10 +366,13 @@ def validate_config(config: TrainConfig) -> list[str]:
             raise ValueError("taubench env requires 'env_config'")
         tb = config.env_config
 
-        def _positive_int(key: str, default: int | None = None) -> None:
-            v = tb.get(key, default)
-            if v is None:
+        # Validate only keys the user supplied; TauBenchAdapter.setup owns
+        # the defaults for any key they omit, so duplicating them here would
+        # split that knowledge across two files.
+        def _positive_int(key: str) -> None:
+            if key not in tb:
                 return
+            v = tb[key]
             # Reject bool and float explicitly: `int(True) == 1` and
             # `int(3.5) == 3` would otherwise pass silently, masking bad
             # configs (e.g. `num_tasks: true` or `max_steps: 3.5`).
@@ -374,8 +388,8 @@ def validate_config(config: TrainConfig) -> list[str]:
                 raise ValueError(f"taubench env_config.{key} must be a positive int (got {iv})")
 
         _positive_int("num_tasks")
-        _positive_int("max_steps", default=30)
-        _positive_int("max_concurrency", default=8)
+        _positive_int("max_steps")
+        _positive_int("max_concurrency")
     if config.env_type == "openspiel":
         # OpenSpielTaskEnvironment.run_episode reads sampling_client /
         # renderer / tokenizer off AgentState — those are only populated
