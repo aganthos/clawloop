@@ -263,7 +263,10 @@ class _StubAdapter:
         state_id = ""
         try:
             state_id = agent_state.state_id().combined_hash
-        except Exception:
+        except (AttributeError, TypeError):
+            # AttributeError: agent_state has no `state_id` or the result
+            # lacks `combined_hash`. TypeError: `state_id` is not callable.
+            # Any other exception is a real bug and should propagate.
             pass
 
         return Episode(
