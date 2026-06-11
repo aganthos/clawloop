@@ -18,30 +18,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from clawloop.train import LLMClientConfig
-
 log = logging.getLogger("clawloop")
-
-
-class _DryRunLLMClientConfig(LLMClientConfig):
-    """Private subclass that tags an LLM client config with its dry-run role.
-
-    Used only by ``cmd_run --dry-run``: ``_install_dry_run_clients`` swaps
-    each entry in ``config.llm_clients`` for an instance of this class, and
-    the patched ``_make_llm_client`` picks the right mock via ``isinstance``.
-
-    Why a subclass instead of a field on ``LLMClientConfig``:
-      - The public ``LLMClientConfig`` schema stays free of testing
-        vocabulary — no ``dry_run_role: null`` in JSON dumps or generated
-        JSON Schema.
-      - ``model`` is left untouched, so downstream code that reads it
-        verbatim (e.g. ``_build_entropic`` propagating ``tc.model`` into
-        ``entropic_cfg``) is unaffected.
-      - Pydantic ``model_copy()`` preserves the runtime class, so the tag
-        survives copies just like a field would.
-    """
-
-    dry_run_role: str
 
 
 _EVAL_DISABLED_MSG = (
@@ -180,69 +157,65 @@ def cmd_run(args: argparse.Namespace) -> None:
     )
 
     if args.dry_run:
-        _install_dry_run_clients(config)
+        factory, builders = _build_dry_run_overrides(config)
+        train(config, make_llm_client=factory, env_builders=builders)
+    else:
+        train(config)
 
-    train(config)
 
+def _build_dry_run_overrides(config: Any) -> tuple[Any, dict[str, Any]]:
+    """Build the `(make_llm_client, env_builders)` overrides for `--dry-run`.
 
-def _install_dry_run_clients(config: Any) -> None:
-    """Wire `--dry-run`: guarantee no real LLM calls regardless of env_type.
+    Pure function: returns the overrides without mutating any module-level
+    state. ``train()`` then accepts them as keyword arguments and uses them
+    in place of the global defaults. This replaces the earlier
+    monkey-patching approach (see PR #62, PR #65 history).
 
     Two parts:
-      1. Replace each ``LLMClientConfig`` in ``config.llm_clients`` with a
-         ``_DryRunLLMClientConfig`` instance carrying the role, and patch
-         ``clawloop.train._make_llm_client`` to switch on ``isinstance``.
-         The private subclass keeps the public schema clean and survives
-         ``model_copy()``.
-      2. For envs whose adapter bypasses ``_make_llm_client`` (per
-         ``train.ENVS_USING_MAKE_LLM_CLIENT``), swap the registered builder
-         with a stub that returns a no-I/O ``_StubAdapter``.
+      1. A factory closure that maps each ``LLMClientConfig`` to the right
+         mock client based on its role in ``config.llm_clients``. The
+         closure looks up by object identity, which is safe here because
+         every builder receives ``config.llm_clients`` directly and indexes
+         by role name — no copies between cfg creation and factory call.
+      2. For envs whose builder bypasses ``make_llm_client`` (per
+         ``train.ENVS_USING_MAKE_LLM_CLIENT``), an override entry whose
+         builder returns a no-I/O ``_StubAdapter``.
     """
     import clawloop.train as _train
     from clawloop.demo_math import MockTaskClient, _build_mock_reflector_responses
     from clawloop.llm import MockLLMClient
 
-    # Part 1: replace each cfg with a subclass instance carrying the role,
-    # then route _make_llm_client through a mock factory that reads the role.
-    for role, cfg in list(config.llm_clients.items()):
-        config.llm_clients[role] = _DryRunLLMClientConfig(**cfg.model_dump(), dry_run_role=role)
+    role_by_id = {id(cfg): role for role, cfg in config.llm_clients.items()}
 
-    original_make = _train._make_llm_client
+    def factory(cfg: Any) -> Any:
+        role = role_by_id.get(id(cfg))
+        if role == "reflector":
+            return MockLLMClient(responses=_build_mock_reflector_responses())
+        if role == "task":
+            return MockTaskClient()
+        return MockLLMClient(responses=["[]"])
 
-    def _mock_make(cfg):
-        if isinstance(cfg, _DryRunLLMClientConfig):
-            role = cfg.dry_run_role
-            if role == "reflector":
-                return MockLLMClient(responses=_build_mock_reflector_responses())
-            if role == "task":
-                return MockTaskClient()
-            return MockLLMClient(responses=["[]"])
-        return original_make(cfg)
-
-    _train._make_llm_client = _mock_make
-
-    # Part 2: for env_types that bypass _make_llm_client, replace the
-    # registered builder with one that returns a stub adapter. Without this,
-    # --dry-run on (e.g.) taubench / entropic / openclaw would still hit
-    # real endpoints.
     env_type = config.env_type
     uses_make_llm_client = env_type in _train.ENVS_USING_MAKE_LLM_CLIENT
-    if not uses_make_llm_client and env_type in _train.ENV_BUILDERS:
+    if uses_make_llm_client or env_type not in _train.ENV_BUILDERS:
+        builders: dict[str, Any] = _train.ENV_BUILDERS
+    else:
         # Floor at 1 to keep the task list non-empty even if a config sets
         # episodes_per_iter to 0; the learning loop samples from it.
         n_tasks = max(1, config.episodes_per_iter)
         stub_tasks = [f"dry_run_{env_type}_{i}" for i in range(n_tasks)]
 
-        def _stub_builder(_cfg: Any, _clients: Any) -> tuple[Any, list[str]]:
+        def stub_builder(_cfg: Any, _clients: Any, _factory: Any) -> tuple[Any, list[str]]:
             return _StubAdapter(env_type), list(stub_tasks)
 
-        _train.ENV_BUILDERS[env_type] = _stub_builder
+        builders = {**_train.ENV_BUILDERS, env_type: stub_builder}
 
     log.info(
         "dry-run: LLM clients mocked; env=%r %s",
         env_type,
-        "uses _make_llm_client" if uses_make_llm_client else "stubbed",
+        "uses make_llm_client" if uses_make_llm_client else "stubbed",
     )
+    return factory, builders
 
 
 class _StubAdapter:

@@ -353,8 +353,8 @@ class TestMakeLLMClient:
 
 class TestTrainEndToEnd:
     def test_harness_learning_math(self):
-        """Full pipeline: train() with harness_learning + math env (mocked LLMs)."""
-        from unittest.mock import MagicMock, patch
+        """Full pipeline: train() with harness_learning + math env (DI mocks)."""
+        from unittest.mock import MagicMock
 
         from clawloop.train import LLMClientConfig, TrainConfig, train
 
@@ -374,15 +374,11 @@ class TestTrainEndToEnd:
             n_iterations=1,
         )
 
-        with patch("clawloop.train._make_llm_client") as mock_make:
+        def _pick_client(llm_cfg):
+            if "reflector" in llm_cfg.model:
+                return mock_reflector
+            return mock_task
 
-            def _pick_client(llm_cfg):
-                if "reflector" in llm_cfg.model:
-                    return mock_reflector
-                return mock_task
-
-            mock_make.side_effect = _pick_client
-
-            agent_state, state_id = train(cfg)
-            assert state_id.combined_hash
-            assert mock_task.complete.called
+        agent_state, state_id = train(cfg, make_llm_client=_pick_client)
+        assert state_id.combined_hash
+        assert mock_task.complete.called

@@ -5,16 +5,23 @@ Two modes:
   harness_learning — prompt/playbook optimization via reflector LLM (no GPU)
 
 Environments are pluggable via ENV_BUILDERS registry. Each builder is a
-function (config, llm_clients) -> (adapter, tasks) that constructs an
-AdapterLike and a task list for the learning loop.
+function ``(config, llm_clients, make_llm_client) -> (adapter, tasks)``
+that constructs an AdapterLike and a task list for the learning loop.
+
+``train()`` accepts ``make_llm_client`` and ``env_builders`` as keyword-only
+parameters so callers (CLI dry-run, tests) can inject mocks without
+mutating module-level state.
 """
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Literal
 
 from pydantic import BaseModel, SecretStr
+
+LLMClientFactory = Callable[["LLMClientConfig"], Any]
 
 # ---------------------------------------------------------------------------
 # Config
@@ -98,7 +105,11 @@ def _make_llm_client(cfg: LLMClientConfig):
 # ---------------------------------------------------------------------------
 
 
-def _build_harbor(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]):
+def _build_harbor(
+    config: TrainConfig,
+    llm_clients: dict[str, LLMClientConfig],
+    make_llm_client: LLMClientFactory,
+) -> tuple[Any, list[str]]:
     from clawloop.environments.harbor import HarborAdapter, HarborTaskEnvironment
 
     envs = [
@@ -112,16 +123,24 @@ def _build_harbor(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]):
     return HarborAdapter(envs), [env.task_id for env in envs]
 
 
-def _build_math(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]):
+def _build_math(
+    config: TrainConfig,
+    llm_clients: dict[str, LLMClientConfig],
+    make_llm_client: LLMClientFactory,
+) -> tuple[Any, list[str]]:
     from clawloop.environments.math import MathAdapter, MathEnvironment
 
-    task_client = _make_llm_client(llm_clients["task"])
+    task_client = make_llm_client(llm_clients["task"])
     math_env = MathEnvironment()
     tasks = math_env.get_tasks()
     return MathAdapter(env=math_env, client=task_client), [s.question for s in tasks]
 
 
-def _build_entropic(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]):
+def _build_entropic(
+    config: TrainConfig,
+    llm_clients: dict[str, LLMClientConfig],
+    make_llm_client: LLMClientFactory,
+) -> tuple[Any, list[str]]:
     from clawloop.environments.entropic import EntropicAdapter
 
     entropic_cfg = dict(config.env_config or {})
@@ -141,7 +160,11 @@ def _build_entropic(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]
     return adapter, [f"base_{i}" for i in range(n_tasks)]
 
 
-def _build_openclaw(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]) -> tuple:
+def _build_openclaw(
+    config: TrainConfig,
+    llm_clients: dict[str, LLMClientConfig],
+    make_llm_client: LLMClientFactory,
+) -> tuple[Any, list[str]]:
     from clawloop.environments.openclaw import OpenClawAdapter
 
     openclaw_cfg = dict(config.env_config or {})
@@ -170,7 +193,9 @@ def _build_openclaw(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]
 
 
 def _build_taubench(
-    config: TrainConfig, llm_clients: dict[str, LLMClientConfig]
+    config: TrainConfig,
+    llm_clients: dict[str, LLMClientConfig],
+    make_llm_client: LLMClientFactory,
 ) -> tuple[Any, list[str]]:
     from clawloop.environments.taubench import TauBenchAdapter
 
@@ -189,7 +214,11 @@ def _build_taubench(
 # ---------------------------------------------------------------------------
 
 
-def _build_openspiel(config: "TrainConfig", llm_clients: dict[str, "LLMClientConfig"]):
+def _build_openspiel(
+    config: "TrainConfig",
+    llm_clients: dict[str, "LLMClientConfig"],
+    make_llm_client: LLMClientFactory,
+) -> tuple[Any, list[str]]:
     """Build a ClawLoop adapter over one or more OpenSpiel games.
 
     Two config shapes are accepted:
@@ -425,18 +454,31 @@ def validate_config(config: TrainConfig) -> list[str]:
 # ---------------------------------------------------------------------------
 
 
-def train(config: TrainConfig):
+def train(
+    config: TrainConfig,
+    *,
+    make_llm_client: LLMClientFactory | None = None,
+    env_builders: dict[str, Any] | None = None,
+):
     """Unified training entry point.
 
     Builds layers, environment adapter, and runs the learning loop.
     Environment is selected via env_type and constructed by the matching
-    builder from ENV_BUILDERS.
+    builder from ``env_builders`` (defaults to the module-level
+    ``ENV_BUILDERS``).
+
+    Both ``make_llm_client`` and ``env_builders`` are keyword-only so
+    callers (CLI dry-run, tests) can inject mocks / stubs without
+    mutating module-level state. Defaults preserve current behavior.
     """
     from clawloop.core.intensity import AdaptiveIntensity
     from clawloop.core.loop import AgentState, learning_loop
     from clawloop.learning_layers.harness import Harness
     from clawloop.learning_layers.router import Router
     from clawloop.learning_layers.weights import Weights
+
+    factory: LLMClientFactory = make_llm_client or _make_llm_client
+    builders = env_builders if env_builders is not None else ENV_BUILDERS
 
     layers = validate_config(config)
 
@@ -450,7 +492,7 @@ def train(config: TrainConfig):
         from clawloop.core.reflector import Reflector
         from clawloop.harness_backends.local import LocalEvolver
 
-        reflector_client = _make_llm_client(config.llm_clients["reflector"])
+        reflector_client = factory(config.llm_clients["reflector"])
         evolver = LocalEvolver(reflector=Reflector(client=reflector_client))
 
     harness = Harness(system_prompts=prompts, evolver=evolver)
@@ -482,8 +524,8 @@ def train(config: TrainConfig):
     router = Router()
 
     # 3. Environment adapter — dispatched via registry
-    build_env = ENV_BUILDERS[config.env_type]
-    adapter, tasks = build_env(config, config.llm_clients)
+    build_env = builders[config.env_type]
+    adapter, tasks = build_env(config, config.llm_clients, factory)
 
     # Wire harness into adapter for proxy skill injection (openclaw)
     if hasattr(adapter, "set_harness"):
