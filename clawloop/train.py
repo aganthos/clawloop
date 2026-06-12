@@ -36,6 +36,11 @@ class LLMClientConfig(BaseModel):
     temperature: float = 0.7
     max_tokens: int = 2000
 
+    # Internal marker used by `clawloop run --dry-run` to route this client to
+    # a mock without mutating `model`. Survives Pydantic `model_copy()`.
+    # Always None for normal training runs.
+    dry_run_role: str | None = None
+
     model_config = {"arbitrary_types_allowed": True}
 
 
@@ -169,7 +174,9 @@ def _build_openclaw(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]
     return adapter, tasks
 
 
-def _build_taubench(config: TrainConfig, llm_clients: dict[str, LLMClientConfig]) -> tuple:
+def _build_taubench(
+    config: TrainConfig, llm_clients: dict[str, LLMClientConfig]
+) -> tuple[Any, list[str]]:
     from clawloop.environments.taubench import TauBenchAdapter
 
     taubench_cfg = dict(config.env_config or {})
@@ -248,6 +255,17 @@ ENV_BUILDERS: dict[str, Any] = {
     "openspiel": _build_openspiel,
     "taubench": _build_taubench,
 }
+
+# Env types whose builder routes its task LLM through `_make_llm_client`,
+# so patching that helper alone is enough to stop real network calls under
+# `clawloop run --dry-run`. Every other env_type drives LLMs internally
+# (e.g. tau2 inside taubench, EntropicAdapter.setup), and the CLI will
+# install a `_StubAdapter` for it instead.
+#
+# Maintenance: when registering a new builder above, decide whether it
+# calls `_make_llm_client`. If yes, add the env_type here. If no, leave
+# it out — `--dry-run` will fall back to the stub adapter.
+ENVS_USING_MAKE_LLM_CLIENT: frozenset[str] = frozenset({"math"})
 
 
 # ---------------------------------------------------------------------------
@@ -343,6 +361,35 @@ def validate_config(config: TrainConfig) -> list[str]:
     if config.env_type == "entropic":
         if not config.env_config:
             raise ValueError("entropic env requires 'env_config'")
+    if config.env_type == "taubench":
+        if not config.env_config:
+            raise ValueError("taubench env requires 'env_config'")
+        tb = config.env_config
+
+        # Validate only keys the user supplied; TauBenchAdapter.setup owns
+        # the defaults for any key they omit, so duplicating them here would
+        # split that knowledge across two files.
+        def _positive_int(key: str) -> None:
+            if key not in tb:
+                return
+            v = tb[key]
+            # Reject bool and float explicitly: `int(True) == 1` and
+            # `int(3.5) == 3` would otherwise pass silently, masking bad
+            # configs (e.g. `num_tasks: true` or `max_steps: 3.5`).
+            if isinstance(v, (bool, float)):
+                raise ValueError(f"taubench env_config.{key} must be a positive int (got {v!r})")
+            try:
+                iv = int(v)
+            except (TypeError, ValueError) as exc:
+                raise ValueError(
+                    f"taubench env_config.{key} must be a positive int (got {v!r})"
+                ) from exc
+            if iv <= 0:
+                raise ValueError(f"taubench env_config.{key} must be a positive int (got {iv})")
+
+        _positive_int("num_tasks")
+        _positive_int("max_steps")
+        _positive_int("max_concurrency")
     if config.env_type == "openspiel":
         # OpenSpielTaskEnvironment.run_episode reads sampling_client /
         # renderer / tokenizer off AgentState — those are only populated
