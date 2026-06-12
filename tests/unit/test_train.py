@@ -21,7 +21,7 @@ def test_build_openspiel_tasks_repeat_per_seed():
         n_iterations=1,
     )
     builder = ENV_BUILDERS["openspiel"]
-    adapter, tasks = builder(cfg, cfg.llm_clients, None)
+    adapter, tasks = builder(cfg, cfg.llm_clients, lambda _: None)
     assert len(tasks) == 8
     assert tasks.count("blackjack_seed_0") == 4
     assert tasks.count("blackjack_seed_1") == 4
@@ -77,7 +77,7 @@ def test_build_openspiel_mixed_games_interleaves_tasks():
         n_iterations=1,
     )
     builder = ENV_BUILDERS["openspiel"]
-    adapter, tasks = builder(cfg, cfg.llm_clients, None)
+    adapter, tasks = builder(cfg, cfg.llm_clients, lambda _: None)
     # 2 blackjack seeds * 3 + 2 2048 seeds * 2 = 10
     assert len(tasks) == 10
     assert tasks.count("blackjack_seed_0") == 3

@@ -200,7 +200,7 @@ def test_dry_run_overrides_stub_bypassing_env():
     )
     _, builders = _cli._build_dry_run_overrides(cfg_taubench)
     assert builders is not _train.ENV_BUILDERS  # override built
-    adapter, tasks = builders["taubench"](cfg_taubench, cfg_taubench.llm_clients, None)
+    adapter, tasks = builders["taubench"](cfg_taubench, cfg_taubench.llm_clients, lambda _: None)
     assert isinstance(adapter, _cli._StubAdapter)
     assert tasks  # non-empty
 
