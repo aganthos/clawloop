@@ -154,26 +154,19 @@ def test_run_openclaw_dry_run_no_api_calls(tmp_path: Path, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# Dry-run role tagging (PR #60 comment 2; PR #62 comment 1; issue #63)
+# Dry-run via dependency injection (issue #64)
 # ---------------------------------------------------------------------------
 
 
-def test_dry_run_subclass_survives_pydantic_copy(monkeypatch):
-    """`_install_dry_run_clients` replaces each entry in `config.llm_clients`
-    with a `_DryRunLLMClientConfig` instance. The subclass:
-      * survives `model_copy()` (Pydantic preserves runtime class),
-      * leaves `model` untouched so downstream consumers see it verbatim,
-      * is detected via `isinstance` by the patched `_make_llm_client`.
-
-    Regression for issue #63: ensures the role does not live on the public
-    `LLMClientConfig` schema."""
+def test_dry_run_overrides_map_roles_correctly():
+    """`_build_dry_run_overrides(config)` returns a `(factory, builders)`
+    pair. The factory maps each `LLMClientConfig` in `config.llm_clients`
+    to the correct mock based on role — purely via closure, no module-level
+    patching required. Regression for issue #64."""
     import clawloop.cli as _cli
-    import clawloop.train as _train
     from clawloop.demo_math import MockTaskClient
     from clawloop.llm import MockLLMClient
     from clawloop.train import LLMClientConfig, TrainConfig
-
-    original_make = _train._make_llm_client
 
     cfg = TrainConfig(
         mode="harness_learning",
@@ -184,39 +177,74 @@ def test_dry_run_subclass_survives_pydantic_copy(monkeypatch):
         },
     )
 
-    _cli._install_dry_run_clients(cfg)
-    try:
-        reflector = cfg.llm_clients["reflector"]
-        task = cfg.llm_clients["task"]
+    factory, _builders = _cli._build_dry_run_overrides(cfg)
+    assert isinstance(factory(cfg.llm_clients["reflector"]), MockLLMClient)
+    assert isinstance(factory(cfg.llm_clients["task"]), MockTaskClient)
 
-        # Each entry is now a _DryRunLLMClientConfig subclass instance.
-        assert isinstance(reflector, _cli._DryRunLLMClientConfig)
-        assert isinstance(task, _cli._DryRunLLMClientConfig)
-        # `model` is preserved verbatim — no marker pollution.
-        assert reflector.model == "anthropic/claude-sonnet-4"
-        assert task.model == "anthropic/claude-haiku-4"
-        # The role lives on the subclass instance.
-        assert reflector.dry_run_role == "reflector"
-        assert task.dry_run_role == "task"
 
-        # `model_copy()` preserves the runtime class so the tag survives.
-        copied_reflector = reflector.model_copy()
-        copied_task = task.model_copy()
-        assert id(copied_reflector) != id(reflector)
-        assert isinstance(copied_reflector, _cli._DryRunLLMClientConfig)
-        assert copied_reflector.dry_run_role == "reflector"
-        assert copied_task.dry_run_role == "task"
+def test_dry_run_overrides_stub_bypassing_env():
+    """For an env_type whose builder bypasses `make_llm_client`
+    (e.g. taubench), `_build_dry_run_overrides` returns an `env_builders`
+    override whose builder yields a `_StubAdapter`. For an env_type that
+    uses `make_llm_client` (math), it returns the global `ENV_BUILDERS`
+    unchanged."""
+    import clawloop.cli as _cli
+    import clawloop.train as _train
+    from clawloop.train import LLMClientConfig, TrainConfig
 
-        assert isinstance(_train._make_llm_client(copied_reflector), MockLLMClient)
-        assert isinstance(_train._make_llm_client(copied_task), MockTaskClient)
-    finally:
-        _train._make_llm_client = original_make
+    cfg_taubench = TrainConfig(
+        mode="harness_learning",
+        env_type="taubench",
+        llm_clients={"reflector": LLMClientConfig(model="x")},
+        env_config={"domain": "retail"},
+    )
+    _, builders = _cli._build_dry_run_overrides(cfg_taubench)
+    assert builders is not _train.ENV_BUILDERS  # override built
+    adapter, tasks = builders["taubench"](cfg_taubench, cfg_taubench.llm_clients, lambda _: None)
+    assert isinstance(adapter, _cli._StubAdapter)
+    assert tasks  # non-empty
+
+    cfg_math = TrainConfig(
+        mode="harness_learning",
+        env_type="math",
+        llm_clients={
+            "reflector": LLMClientConfig(model="r"),
+            "task": LLMClientConfig(model="t"),
+        },
+    )
+    _, builders_math = _cli._build_dry_run_overrides(cfg_math)
+    assert builders_math is _train.ENV_BUILDERS  # no override for math
+
+
+def test_dry_run_does_not_mutate_module_state(tmp_path: Path):
+    """After `cmd_run --dry-run`, `_make_llm_client` and `ENV_BUILDERS` on
+    `clawloop.train` are unchanged. Regression for the global-mutation
+    footgun that the prior monkey-patching approach created."""
+    import argparse as _argparse
+
+    import clawloop.train as _train
+    from clawloop.cli import cmd_run
+
+    original_make_llm = _train._make_llm_client
+    original_builders_dict = dict(_train.ENV_BUILDERS)
+
+    raw = json.loads((CONFIGS_DIR / "math_harness.json").read_text())
+    raw["n_iterations"] = 1
+    raw["episodes_per_iter"] = 1
+    cfg_path = tmp_path / "math_tiny.json"
+    cfg_path.write_text(json.dumps(raw))
+
+    args = _argparse.Namespace(config=cfg_path, dry_run=True)
+    cmd_run(args)
+
+    assert _train._make_llm_client is original_make_llm
+    assert dict(_train.ENV_BUILDERS) == original_builders_dict
 
 
 def test_public_llm_client_config_schema_excludes_dry_run_vocab():
     """The public `LLMClientConfig` schema must not carry any dry-run
-    testing vocabulary — that lives on the private `_DryRunLLMClientConfig`
-    subclass instead. Acceptance criterion for issue #63."""
+    testing vocabulary. After issue #64 the role lives entirely in a
+    closure inside `_build_dry_run_overrides` — no field, no subclass."""
     from clawloop.train import LLMClientConfig
 
     schema = LLMClientConfig.model_json_schema()
@@ -225,7 +253,6 @@ def test_public_llm_client_config_schema_excludes_dry_run_vocab():
         "dry_run_role" not in properties
     ), f"LLMClientConfig should not expose dry_run_role; got {sorted(properties)}"
 
-    # And model_dump of a vanilla instance must not emit it either.
     dumped = LLMClientConfig(model="anthropic/x").model_dump()
     assert (
         "dry_run_role" not in dumped
